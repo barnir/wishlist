@@ -13,6 +13,18 @@ class WishItemTile extends StatelessWidget {
       title: Text(item.title),
       subtitle: item.link != null ? Text(item.link!) : null,
       trailing: IconButton(icon: Icon(Icons.delete), onPressed: onDelete),
+      leading: categoriaImagem(item.category),
     );
   }
+  Widget categoriaImagem(String cat) {
+  switch (cat) {
+    case 'Livro': return Icon(Icons.book, size: 40);
+    case 'Eletrónico': return Icon(Icons.electrical_services, size: 40);
+    case 'Viagem': return Icon(Icons.flight, size: 40);
+    case 'Moda': return Icon(Icons.checkroom, size: 40);
+    case 'Casa': return Icon(Icons.home, size: 40);
+    default: return Icon(Icons.star, size: 40);
+  }
+}
+
 }

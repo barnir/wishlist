@@ -13,5 +13,13 @@ class WishItem extends HiveObject {
   @HiveField(2)
   String? description;
 
-  WishItem({required this.title, this.link, this.description});
+  @HiveField(3)
+  String category; // NOVO CAMPO
+
+  WishItem({
+    required this.title,
+    this.link,
+    this.description,
+    required this.category,
+  });
 }

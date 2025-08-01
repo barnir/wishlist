@@ -12,12 +12,25 @@ class _AddItemScreenState extends State<AddItemScreen> {
   String title = '';
   String link = '';
   String description = '';
+String categoriaSelecionada = 'Livro';
 
+final categorias = [
+  'Livro',
+  'Eletrónico',
+  'Viagem',
+  'Moda',
+  'Casa',
+  'Outro'
+];
   void saveItem() {
     if (_formKey.currentState!.validate()) {
       Hive.box<WishItem>('wishlist').add(
-        WishItem(title: title, link: link.isNotEmpty ? link : null, description: description),
-      );
+        WishItem(
+            title: title,
+            link: link.isNotEmpty ? link : null,
+            description: description,
+            category: categoriaSelecionada),
+        );
       Navigator.pop(context);
     }
   }
@@ -45,6 +58,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 decoration: InputDecoration(labelText: 'Descrição'),
                 onChanged: (v) => setState(() => description = v),
               ),
+              DropdownButtonFormField<String>(
+              value: categoriaSelecionada,
+              items: categorias
+                  .map((cat) => DropdownMenuItem(child: Text(cat), value: cat))
+                  .toList(),
+              onChanged: (v) => setState(() => categoriaSelecionada = v!),
+              decoration: InputDecoration(labelText: 'Categoria'),
+),
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: saveItem,
