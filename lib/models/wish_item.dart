@@ -14,12 +14,16 @@ class WishItem extends HiveObject {
   String? description;
 
   @HiveField(3)
-  String category; // NOVO CAMPO
+  double? price;  
+
+  @HiveField(4)
+  String category; 
 
   WishItem({
     required this.title,
     this.link,
     this.description,
+    this.price,
     required this.category,
   });
 }

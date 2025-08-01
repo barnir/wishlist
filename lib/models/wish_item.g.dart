@@ -20,14 +20,15 @@ class WishItemAdapter extends TypeAdapter<WishItem> {
       title: fields[0] as String,
       link: fields[1] as String?,
       description: fields[2] as String?,
-      category: fields[3] as String,
+      price: fields[3] as double?,
+      category: fields[4] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, WishItem obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -35,6 +36,8 @@ class WishItemAdapter extends TypeAdapter<WishItem> {
       ..writeByte(2)
       ..write(obj.description)
       ..writeByte(3)
+      ..write(obj.price)
+      ..writeByte(4)
       ..write(obj.category);
   }
 
