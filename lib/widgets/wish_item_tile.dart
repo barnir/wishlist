@@ -13,7 +13,13 @@ class WishItemTile extends StatelessWidget {
     return ListTile(
       leading: categoriaImagem(item.category),
       title: Text(item.title),
-      subtitle: item.link != null ? Text(item.link!) : null,
+      subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (item.link != null && item.link!.isNotEmpty) Text(item.link!),
+            if (item.price != null) Text('Preço: €${item.price!.toStringAsFixed(2)}'), 
+          ],
+        ),     
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

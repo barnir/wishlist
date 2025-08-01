@@ -19,6 +19,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   late String title;
   late String link;
   late String description;
+  late double? price; // Pode ser null se não for preenchido
   late String categoriaSelecionada;
 
   // Lista fixa de categorias
@@ -39,6 +40,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     title = widget.item?.title ?? '';
     link = widget.item?.link ?? '';
     description = widget.item?.description ?? '';
+    price = widget.item?.price ?? null; // Pode ser null se não for preenchido    
     categoriaSelecionada = widget.item?.category ?? categorias[0];
   }
 
@@ -52,6 +54,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         title: title,
         link: link.isNotEmpty ? link : null,
         description: description,
+        price: price,
         category: categoriaSelecionada,
       ));
     } else {
@@ -60,6 +63,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         title: title,
         link: link.isNotEmpty ? link : null,
         description: description,
+        price: price,
         category: categoriaSelecionada,
       ));
     }
@@ -107,6 +111,19 @@ Widget categoriaIcone(String cat) {
                 initialValue: description,
                 decoration: InputDecoration(labelText: 'Descrição'),
                 onChanged: (v) => setState(() => description = v),
+              ),
+              TextFormField(
+                initialValue: price?.toString() ?? '',
+                decoration: InputDecoration(labelText: 'Preço (opcional)'),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) {
+                  if (v.isEmpty) {
+                    setState(() => price = null);
+                  } else {
+                    final parsed = double.tryParse(v.replaceAll(',', '.'));
+                    price = parsed;
+                  }
+                },
               ),
                 DropdownButtonFormField<String>(
                   value: categoriaSelecionada,
