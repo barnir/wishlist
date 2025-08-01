@@ -17,8 +17,22 @@ class WishlistScreen extends StatelessWidget {
           if (box.isEmpty) return Center(child: Text('Lista vazia'));
           return ListView.builder(
             itemCount: box.length,
-            itemBuilder: (context, idx) =>
-                WishItemTile(item: box.getAt(idx)!, onDelete: () => box.deleteAt(idx)),
+            itemBuilder: (context, idx) => WishItemTile(
+            item: box.getAt(idx)!,
+              onDelete: () => box.deleteAt(idx),
+              onEdit: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddItemScreen(
+                      item: box.getAt(idx)!,
+                      itemKey: box.keyAt(idx), // Para saber qual editar!
+                    ),
+                  ),
+                );
+              },
+),
+
           );
         },
       ),
