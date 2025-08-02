@@ -1,6 +1,5 @@
 import org.gradle.api.JavaVersion
 
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -34,7 +33,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            isShrinkResources = false 
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -48,14 +47,17 @@ flutter {
     source = "../.."
 }
 
+// Adicione este bloco para garantir o toolchain Kotlin correto (JVM 17)
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
     // Firebase BoM para controlar versões
     implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
     implementation("com.google.firebase:firebase-analytics")
-    // Adicione outras dependências Firebase conforme preciso (exemplo: firestore, auth)
-    // implementation("com.google.firebase:firebase-auth")
-    // implementation("com.google.firebase:firebase-firestore")
+    // Adicione outras dependências Firebase conforme preciso
 }
 
 repositories {
