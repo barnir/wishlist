@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';  // Import Firestore
 import '../models/wish_item.dart';
 
 class AddItemScreen extends StatefulWidget {
-  final WishItem? item;   // Null para novo, preenchido para edição
-  final dynamic itemKey;  // A chave da box para editar
+  final WishItem? item; // Null para novo, preenchido para edição
 
-  AddItemScreen({this.item, this.itemKey});
+  AddItemScreen({this.item});
 
   @override
   State<AddItemScreen> createState() => _AddItemScreenState();
@@ -32,59 +31,66 @@ class _AddItemScreenState extends State<AddItemScreen> {
     'Outro',
   ];
 
+  final CollectionReference wishlistCollection =
+      FirebaseFirestore.instance.collection('wishlist');
+
   @override
   void initState() {
     super.initState();
 
-    // Se estiver editando, inicializa os campos com os valores do item passado, senão com valores padrão
+    // Inicializa os campos com os valores do item passado, se houver, senão padrões
     title = widget.item?.title ?? '';
     link = widget.item?.link ?? '';
     description = widget.item?.description ?? '';
-    price = widget.item?.price ?? null; // Pode ser null se não for preenchido    
+    price = widget.item?.price;
     categoriaSelecionada = widget.item?.category ?? categorias[0];
   }
 
-  void saveItem() async {
+  Future<void> saveItem() async {
     if (!_formKey.currentState!.validate()) return;
-    final box = Hive.box<WishItem>('wishlist');
 
-    if (widget.item != null && widget.itemKey != null) {
-      // Atualiza item existente
-      await box.put(widget.itemKey, WishItem(
-        title: title,
-        link: link.isNotEmpty ? link : null,
-        description: description,
-        price: price,
-        category: categoriaSelecionada,
-      ));
-    } else {
-      // Novo item
-      await box.add(WishItem(
-        title: title,
-        link: link.isNotEmpty ? link : null,
-        description: description,
-        price: price,
-        category: categoriaSelecionada,
-      ));
+    // Cria o mapa de dados a salvar
+    Map<String, dynamic> data = {
+      'title': title,
+      'link': link.isNotEmpty ? link : null,
+      'description': description,
+      'price': price,
+      'category': categoriaSelecionada,
+    };
+
+    try {
+      if (widget.item != null && widget.item!.id.isNotEmpty) {
+        // Atualiza o documento existente
+        await wishlistCollection.doc(widget.item!.id).update(data);
+      } else {
+        // Adiciona novo documento
+        await wishlistCollection.add(data);
+      }
+      Navigator.pop(context);
+    } catch (e) {
+      // Trate erros aqui (ex: mostrar snackbar)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar o item: $e')),
+      );
     }
-    Navigator.pop(context);
   }
-Widget categoriaIcone(String cat) {
-  switch (cat) {
-    case 'Livro':
-      return Icon(Icons.book);
-    case 'Eletrónico':
-      return Icon(Icons.electrical_services);
-    case 'Viagem':
-      return Icon(Icons.flight);
-    case 'Moda':
-      return Icon(Icons.checkroom);
-    case 'Casa':
-      return Icon(Icons.home);
-    default:
-      return Icon(Icons.star);
+
+  Widget categoriaIcone(String cat) {
+    switch (cat) {
+      case 'Livro':
+        return Icon(Icons.book);
+      case 'Eletrónico':
+        return Icon(Icons.electrical_services);
+      case 'Viagem':
+        return Icon(Icons.flight);
+      case 'Moda':
+        return Icon(Icons.checkroom);
+      case 'Casa':
+        return Icon(Icons.home);
+      default:
+        return Icon(Icons.star);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +100,7 @@ Widget categoriaIcone(String cat) {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
+          child: ListView(  // Use ListView para o teclado não cobrir os campos
             children: [
               TextFormField(
                 initialValue: title,
@@ -121,46 +127,40 @@ Widget categoriaIcone(String cat) {
                     setState(() => price = null);
                   } else {
                     final parsed = double.tryParse(v.replaceAll(',', '.'));
-                    price = parsed;
+                    setState(() => price = parsed);
                   }
                 },
               ),
-                DropdownButtonFormField<String>(
-                  value: categoriaSelecionada,
-                  decoration: InputDecoration(labelText: 'Categoria'),
-                  items: categorias.map((cat) {
-                    return DropdownMenuItem<String>(
-                      value: cat,
-                      child: Row(
-                        children: [
-                          categoriaIcone(cat),
-                          SizedBox(width: 8),
-                          Text(cat),
-                        ],
-                      ),
+              DropdownButtonFormField<String>(
+                value: categoriaSelecionada,
+                decoration: InputDecoration(labelText: 'Categoria'),
+                items: categorias.map((cat) {
+                  return DropdownMenuItem<String>(
+                    value: cat,
+                    child: Row(
+                      children: [
+                        categoriaIcone(cat),
+                        SizedBox(width: 8),
+                        Text(cat),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => categoriaSelecionada = v);
+                },
+                selectedItemBuilder: (BuildContext context) {
+                  return categorias.map<Widget>((String cat) {
+                    return Row(
+                      children: [
+                        categoriaIcone(cat),
+                        SizedBox(width: 8),
+                        Text(cat),
+                      ],
                     );
-                  }).toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      setState(() {
-                        categoriaSelecionada = v;
-                      });
-                    }
-                  },
-                  // Este builder define como o item selecionado aparece no campo após escolha
-                  selectedItemBuilder: (BuildContext context) {
-                    return categorias.map<Widget>((String cat) {
-                      return Row(
-                        children: [
-                          categoriaIcone(cat),
-                          SizedBox(width: 8),
-                          Text(cat),
-                        ],
-                      );
-                    }).toList();
-                  },
-                ),
-
+                  }).toList();
+                },
+              ),
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: saveItem,
