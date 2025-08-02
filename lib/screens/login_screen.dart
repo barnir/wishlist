@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'register_screen.dart'; // Importe seu arquivo de registro
+import 'register_screen.dart';
+
+final GoogleSignIn googleSignIn = GoogleSignIn.instance;
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -28,9 +30,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email, password: password);
-      // Login bem-sucedido - faça a navegação desejada aqui, ex:
-      // Navigator.pushReplacementNamed(context, '/wishlist');
+          email: email.trim(), password: password);
+
+      // Navegue para a tela principal aqui
     } on FirebaseAuthException catch (e) {
       setState(() {
         switch (e.code) {
@@ -66,19 +68,25 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       error = '';
     });
+
     try {
-      final googleUser = await GoogleSignIn().signIn();
+      final googleUser = await googleSignIn.authenticate();
+
       if (googleUser == null) {
         setState(() {
           _loading = false;
         });
-        return; // Cancelou login
+        return; // Login cancelado
       }
+
       final googleAuth = await googleUser.authentication;
+
       final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
+          idToken: googleAuth.idToken,);
+
       await FirebaseAuth.instance.signInWithCredential(credential);
-      // Navegação após login no sucesso
+
+      // Navegue para a tela principal aqui
     } catch (e) {
       setState(() {
         error = 'Falha no login com Google.';
@@ -92,10 +100,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void goToRegister() {
     if (_loading) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => RegisterScreen()),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => RegisterScreen()));
   }
 
   @override
@@ -131,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   }
                   return null;
                 },
-                onChanged: (value) => email = value,
+                onChanged: (value) => email = value.trim(),
               ),
               TextFormField(
                 focusNode: _passwordFocus,
@@ -152,18 +158,12 @@ class _LoginScreenState extends State<LoginScreen> {
               if (error.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12.0),
-                  child: Text(
-                    error,
-                    style: const TextStyle(color: Colors.red),
-                  ),
+                  child: Text(error, style: const TextStyle(color: Colors.red)),
                 ),
               const SizedBox(height: 20),
               _loading
                   ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: login,
-                      child: const Text('Entrar'),
-                    ),
+                  : ElevatedButton(onPressed: login, child: const Text('Entrar')),
               const SizedBox(height: 10),
               ElevatedButton.icon(
                 icon: const Icon(Icons.login),
@@ -171,9 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _loading ? null : loginWithGoogle,
               ),
               TextButton(
-                onPressed: goToRegister,
-                child: const Text('Criar conta'),
-              ),
+                  onPressed: goToRegister, child: const Text('Criar conta')),
             ],
           ),
         ),
