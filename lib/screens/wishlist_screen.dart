@@ -3,6 +3,7 @@ import '../models/wish_item.dart';
 import '../services/firestore_service.dart';
 import '../widgets/wish_item_tile.dart';
 import 'add_item_screen.dart';
+import 'profile_screen.dart';  // não esquecer de importar!
 
 class WishlistScreen extends StatelessWidget {
   final FirestoreService firestoreService = FirestoreService();
@@ -10,7 +11,19 @@ class WishlistScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Minha Wishlist')),
+      appBar: AppBar(
+        title: Text('Minha Wishlist'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.account_circle),
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => ProfileScreen(),
+              ));
+            },
+          )
+        ],
+      ),
       body: StreamBuilder<List<WishItem>>(
         stream: firestoreService.streamWishlist(),
         builder: (context, snapshot) {
