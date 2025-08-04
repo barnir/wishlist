@@ -1,87 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  User? user;
-  String message = '';
-
-  @override
-  void initState() {
-    super.initState();
-    user = _auth.currentUser;
-  }
-
-  Future<void> sendPasswordReset() async {
-    if (user?.email == null) return;
-
-    try {
-      await _auth.sendPasswordResetEmail(email: user!.email!);
-      setState(() {
-        message = 'Email de redefinição de senha enviado para ${user!.email}';
-      });
-    } catch (e) {
-      setState(() {
-        message = 'Erro ao enviar email de redefinição: $e';
-      });
-    }
-  }
-
-  Future<void> signOut() async {
-    await _auth.signOut();
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final displayName = user?.displayName ?? 'Usuário';
-    final email = user?.email ?? 'Sem email';
+    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: Text(displayName),
-              subtitle: Text(email),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: sendPasswordReset,
-              child: const Text('Redefinir Senha (via Email)'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: signOut,
-              child: const Text('Sair'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
-            ),
-            if (message.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: Text(
-                  message,
-                  style: TextStyle(
-                    color: message.startsWith('Erro') ? Colors.red : Colors.green,
+      appBar: AppBar(title: Text('Perfil')),
+      body: user == null
+          ? Center(child: Text('Sem sessão iniciada'))
+          : Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 48,
+                    backgroundImage: user.photoURL != null
+                        ? NetworkImage(user.photoURL!)
+                        : null,
+                    child: user.photoURL == null
+                        ? Icon(Icons.person, size: 48)
+                        : null,
                   ),
-                ),
+                  SizedBox(height: 16),
+                  Text(
+                    user.displayName ?? 'Nome não definido',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    user.email ?? 'Email não disponível',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  ),
+                  SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.edit),
+                    label: Text('Editar Perfil'),
+                    onPressed: () {
+                      // Navega para página de edição do perfil
+                    },
+                  ),
+                  OutlinedButton.icon(
+                    icon: Icon(Icons.logout),
+                    label: Text('Terminar Sessão'),
+                    onPressed: () async {
+                      await FirebaseAuth.instance.signOut();
+                      Navigator.of(context).pushReplacementNamed('/login');
+                    },
+                  ),
+                  Divider(height: 36),
+                  // Aqui podes listar as wishlists, seguidores ou outras infos sociais
+                  /*
+                  Expanded(child: ListaDeWishlistsDoUtilizador()),
+                  */
+                ],
               ),
-          ],
-        ),
-      ),
+            ),
     );
   }
 }

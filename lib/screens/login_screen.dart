@@ -1,178 +1,144 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'register_screen.dart';
-
-final GoogleSignIn googleSignIn = GoogleSignIn.instance;
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final _emailFocus = FocusNode();
-  final _passwordFocus = FocusNode();
+  bool _isLoading = false;
+  String? _erro;
 
-  String email = '';
-  String password = '';
-  String error = '';
-  bool _loading = false;
-
-  Future<void> login() async {
-    if (!_formKey.currentState!.validate()) return;
-
+  Future<void> _loginComEmail() async {
     setState(() {
-      _loading = true;
-      error = '';
+      _isLoading = true;
+      _erro = null;
     });
-
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email.trim(), password: password);
-
-      // Navegue para a tela principal aqui
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      // Aqui redireciona ou trata login bem-sucedido
     } on FirebaseAuthException catch (e) {
       setState(() {
-        switch (e.code) {
-          case 'user-not-found':
-            error = 'Usuário não encontrado.';
-            break;
-          case 'wrong-password':
-            error = 'Senha incorreta.';
-            break;
-          case 'invalid-email':
-            error = 'Email inválido.';
-            break;
-          case 'user-disabled':
-            error = 'Usuário desabilitado.';
-            break;
-          default:
-            error = 'Erro: ${e.message}';
-        }
-      });
-    } catch (e) {
-      setState(() {
-        error = 'Erro inesperado: $e';
+        _erro = e.message;
       });
     } finally {
       setState(() {
-        _loading = false;
+        _isLoading = false;
       });
     }
   }
 
-  Future<void> loginWithGoogle() async {
+  Future<void> _loginComGoogle() async {
     setState(() {
-      _loading = true;
-      error = '';
+      _isLoading = true;
+      _erro = null;
     });
-
     try {
-      final googleUser = await googleSignIn.authenticate();
+      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize(
+        serverClientId: '515293340951-94s0arso1q5uciton05l3mso47709dia.apps.googleusercontent.com',
+      );
 
-      if (googleUser == null) {
+      final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      if (googleAuth.idToken == null) {
         setState(() {
-          _loading = false;
+          _erro = 'Não foi possível obter o idToken do Google.';
         });
-        return; // Login cancelado
+        return;
       }
 
-      final googleAuth = await googleUser.authentication;
-
       final credential = GoogleAuthProvider.credential(
-          idToken: googleAuth.idToken,);
+        idToken: googleAuth.idToken,
+      );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
 
-      // Navegue para a tela principal aqui
-    } catch (e) {
+      // Login com sucesso
+    } on FirebaseAuthException catch (e) {
       setState(() {
-        error = 'Falha no login com Google.';
+        _erro = e.message;
       });
     } finally {
       setState(() {
-        _loading = false;
+        _isLoading = false;
       });
     }
   }
 
-  void goToRegister() {
-    if (_loading) return;
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => RegisterScreen()));
-  }
-
-  @override
-  void dispose() {
-    _emailFocus.dispose();
-    _passwordFocus.dispose();
-    super.dispose();
+  Future<void> _loginComTelemovel() async {
+    Navigator.pushNamed(context, '/telefoneLogin');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                focusNode: _emailFocus,
-                decoration: const InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                onFieldSubmitted: (_) =>
-                    FocusScope.of(context).requestFocus(_passwordFocus),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira o email.';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Email inválido.';
-                  }
-                  return null;
-                },
-                onChanged: (value) => email = value.trim(),
-              ),
-              TextFormField(
-                focusNode: _passwordFocus,
-                decoration: const InputDecoration(labelText: 'Senha'),
-                obscureText: true,
-                textInputAction: TextInputAction.done,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira a senha.';
-                  }
-                  if (value.length < 6) {
-                    return 'Senha deve ter ao menos 6 caracteres.';
-                  }
-                  return null;
-                },
-                onChanged: (value) => password = value,
-              ),
-              if (error.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12.0),
-                  child: Text(error, style: const TextStyle(color: Colors.red)),
+      appBar: AppBar(title: const Text('Entrar na Wishlist')),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                if (_erro != null) ...[
+                  Text(_erro!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 12),
+                ],
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'E-mail'),
+                  validator: (value) => value == null || !value.contains('@') ? 'Email inválido' : null,
                 ),
-              const SizedBox(height: 20),
-              _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(onPressed: login, child: const Text('Entrar')),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.login),
-                label: const Text('Entrar com Google'),
-                onPressed: _loading ? null : loginWithGoogle,
-              ),
-              TextButton(
-                  onPressed: goToRegister, child: const Text('Criar conta')),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                  validator: (value) => value == null || value.length < 8 ? 'Min. 8 caracteres' : null,
+                ),
+                const SizedBox(height: 18),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : () {
+                    if (_formKey.currentState?.validate() == true) {
+                      _loginComEmail();
+                    }
+                  },
+                  child: _isLoading ? const CircularProgressIndicator() : const Text('Entrar com E-mail'),
+                ),
+                const SizedBox(height: 9),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.phone_android),
+                  label: const Text('Entrar com Telemóvel'),
+                  onPressed: _isLoading ? null : _loginComTelemovel,
+                ),
+                const SizedBox(height: 9),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.android),
+                  label: const Text('Entrar com Google'),
+                  onPressed: _isLoading ? null : _loginComGoogle,
+                ),
+                const SizedBox(height: 18),
+                const Divider(),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/register'),
+                  child: const Text('Não tens conta? Regista-te!'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
