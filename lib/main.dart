@@ -10,6 +10,7 @@ import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
 import 'screens/add_edit_item_screen.dart';
 import 'screens/telefone_login_screen.dart';
+import 'screens/explore_screen.dart';  // Deves criar este ecrã
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,9 +19,8 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
-  // Defina suas rotas nominais aqui para facilitar navegação no futuro!
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -34,18 +34,18 @@ class MyApp extends StatelessWidget {
         '/wishlist_details': (_) => const WishlistDetailsScreen(),
         '/add_edit_wishlist': (_) => const AddEditWishlistScreen(),
         '/add_edit_item': (_) => const AddEditItemScreen(),
-       '/telefoneLogin': (_) => const TelefoneLoginScreen(),
+        '/telefoneLogin': (_) => const TelefoneLoginScreen(),
+        // Rotas para detalhes e perfil de outros utilizadores podem ser adicionadas aqui
       },
-      // Redireciona com base no estado de autenticação:
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.active) {
             if (snapshot.hasData) {
-              // Usuário logado
-              return const WishlistsScreen();
+              // Está autenticado: mostra o ecrã principal com navegação bottom
+              return const HomeScreen();
             } else {
-              // Usuário não logado
+              // Não autenticado: login
               return const LoginScreen();
             }
           }
@@ -54,6 +54,57 @@ class MyApp extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         },
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _screens = const [
+    ExploreScreen(),     // Cria esta página para explorar perfis/wishlists
+    WishlistsScreen(),
+    ProfileScreen(),
+  ];
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onTabTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.public),
+            label: 'Explorar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
+            label: 'Wishlists',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
       ),
     );
   }
