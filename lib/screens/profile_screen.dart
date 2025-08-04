@@ -97,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _phoneSection() {
-    String? phone = user?.phoneNumber;
+    final phone = user?.phoneNumber;
 
     if (_isEditingPhone) {
       return Column(
@@ -119,83 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _isLoading ? null : _enviarCodigo,
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Enviar Código'),
-            ),
-          ] else ...[
-            TextField(
-              controller: _codeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Código SMS',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _verificarCodigo,
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Verificar Código'),
-            ),
-          ],
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Icon(Icons.phone, color: phone != null ? Colors.green : Colors.grey),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(phone ?? 'Nenhum número adicionado'),
-        ),
-        TextButton.icon(
-          icon: Icon(phone == null ? Icons.add : Icons.edit),
-          label: Text(phone == null ? 'Adicionar' : 'Alterar'),
-          onPressed: _startAddPhone,
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                    child: user?.photoURL == null ? const Icon(Icons.person, size: 40) : null,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(user?.displayName ?? 'Nome não definido',
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  Text(user?.email ?? '',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 16)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            _phoneSection(),
-            const SizedBox(height: 30),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.logout),
-              label: const Text('Terminar sessão'),
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.of(context).pushReplacementNamed('/login');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text
+                  : const Text

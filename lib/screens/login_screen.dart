@@ -81,7 +81,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginComTelemovel() async {
     Navigator.pushNamed(context, '/telefoneLogin');
-
   }
 
   @override

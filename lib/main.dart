@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
         '/wishlist_details': (_) => const WishlistDetailsScreen(),
         '/add_edit_wishlist': (_) => const AddEditWishlistScreen(),
         '/add_edit_item': (_) => const AddEditItemScreen(),
-        '/telefoneLogin': (_) => const TelefoneLoginScreen(),
+       '/telefoneLogin': (_) => const TelefoneLoginScreen(),
       },
       // Redireciona com base no estado de autenticação:
       home: StreamBuilder<User?>(
