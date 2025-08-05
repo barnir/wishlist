@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -19,18 +21,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   String? _erro;
 
-  // Contactos e pesquisa
   bool _isSearchingContacts = false;
   String? _contactsError;
   List<Contact>? _rawContactos;
 
-  // Amigos encontrados no Firestore (dados de utilizadores)
   List<QueryDocumentSnapshot> _amigosEncontrados = [];
 
   User? get user => FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Obter contactos do telefone
+  Future<bool> verificaPermissaoContactos() async {
+    var status = await Permission.contacts.status;
+    if (!status.isGranted) {
+      status = await Permission.contacts.request();
+    }
+    return status.isGranted;
+  }
+
   Future<void> procurarAmigosPorContactos() async {
     setState(() {
       _isSearchingContacts = true;
@@ -40,15 +47,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      if (!await FlutterContacts.requestPermission()) {
+      final permissionGranted = await verificaPermissaoContactos();
+      if (!permissionGranted) {
         setState(() {
           _contactsError = 'Permissão negada';
           _isSearchingContacts = false;
         });
         return;
       }
-      final contactos = await FlutterContacts.getContacts(withProperties: true);
 
+      final contactos = await FlutterContacts.getContacts(withProperties: true);
       if (contactos.isEmpty) {
         setState(() {
           _contactsError = 'Nenhum contacto encontrado';
@@ -61,14 +69,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _rawContactos = contactos.where((c) => c.phones.isNotEmpty).toList();
       });
 
-      // Extrai números normalizados
       final telefones = _rawContactos!
           .expand((c) => c.phones)
           .map((p) => p.normalizedNumber)
           .where((n) => n.isNotEmpty)
           .toList();
 
-      // Firestore suporta máximo 10-30 elementos em whereIn, divide lista em blocos de 10
       const batchSize = 10;
       List<QueryDocumentSnapshot> amigosTemp = [];
 
@@ -78,7 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .collection('users')
             .where('phoneNumber', whereIn: batch)
             .get();
-
         amigosTemp.addAll(query.docs);
       }
 
@@ -94,7 +99,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Adiciona amigo na subcoleção do utilizador atual
   Future<void> adicionarAmigo(String amigoId, String nomeAmigo) async {
     if (user == null) return;
 
@@ -118,7 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Iniciar fluxo de adição/edição do telefone (igual ao código anterior)
   Future<void> _startAddPhone() async {
     setState(() {
       _isEditingPhone = true;
@@ -207,18 +210,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
           ],
           if (!_codeSent) ...[
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
+            IntlPhoneField(
+              initialCountryCode: 'PT',
               decoration: const InputDecoration(
-                labelText: 'Novo número de telemóvel (+351...)',
+                labelText: 'Novo número de telemóvel',
                 border: OutlineInputBorder(),
               ),
+              onChanged: (phone) {
+                _phoneController.text = phone.completeNumber;
+              },
             ),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _isLoading ? null : _enviarCodigo,
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Enviar Código'),
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text('Enviar Código'),
             ),
           ] else ...[
             TextField(
@@ -232,7 +239,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _isLoading ? null : _verificarCodigo,
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Verificar Código'),
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text('Verificar Código'),
             ),
           ],
         ],
@@ -270,8 +279,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                      child: user?.photoURL == null ? const Icon(Icons.person, size: 40) : null,
+                      backgroundImage: user?.photoURL != null
+                          ? NetworkImage(user!.photoURL!)
+                          : null,
+                      child:
+                          user?.photoURL == null ? const Icon(Icons.person, size: 40) : null,
                     ),
                     const SizedBox(height: 12),
                     Text(user?.displayName ?? 'Nome não definido',
@@ -290,17 +302,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 label: const Text('Procurar amigos nos contactos'),
                 onPressed: _isSearchingContacts ? null : procurarAmigosPorContactos,
               ),
-              if (_isSearchingContacts) const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircularProgressIndicator(),
-              ),
-              if (_contactsError != null) Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(_contactsError!, style: const TextStyle(color: Colors.red)),
-              ),
+              if (_isSearchingContacts)
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: CircularProgressIndicator(),
+                ),
+              if (_contactsError != null)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(_contactsError!, style: const TextStyle(color: Colors.red)),
+                ),
               if (_amigosEncontrados.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                const Text('Sugestões de Amigos:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Sugestões de Amigos:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 ..._amigosEncontrados.map((amigo) {
                   String nome = amigo.get('displayName') ?? 'Sem nome';
                   String telefone = amigo.get('phoneNumber') ?? '';
