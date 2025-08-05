@@ -26,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // Aqui redireciona ou trata login bem-sucedido
+      // Login bem-sucedido, redirecionar
     } on FirebaseAuthException catch (e) {
       setState(() {
         _erro = e.message;
@@ -38,46 +38,47 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _loginComGoogle() async {
+Future<void> _loginComGoogle() async {
+  setState(() {
+    _isLoading = true;
+    _erro = null;
+  });
+  try {
+    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+    await googleSignIn.initialize(
+      serverClientId: '515293340951-94s0arso1q5uciton05l3mso47709dia.apps.googleusercontent.com',
+    );
+
+    final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
+    if (googleUser == null) return;
+
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    if (googleAuth.idToken == null) {
+      setState(() {
+        _erro = 'Não foi possível obter o idToken do Google.';
+      });
+      return;
+    }
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+
+    await FirebaseAuth.instance.signInWithCredential(credential);
+
+    // Redirecionamento ou UI para login bem-sucedido...
+  } on FirebaseAuthException catch (e) {
     setState(() {
-      _isLoading = true;
-      _erro = null;
+      _erro = e.message;
     });
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-      await googleSignIn.initialize(
-        serverClientId: '515293340951-94s0arso1q5uciton05l3mso47709dia.apps.googleusercontent.com',
-      );
-
-      final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
-      if (googleUser == null) return;
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      if (googleAuth.idToken == null) {
-        setState(() {
-          _erro = 'Não foi possível obter o idToken do Google.';
-        });
-        return;
-      }
-
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
-      // Login com sucesso
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _erro = e.message;
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
   }
+}
+
 
   Future<void> _loginComTelemovel() async {
     Navigator.pushNamed(context, '/telefoneLogin');
@@ -101,23 +102,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'E-mail'),
-                  validator: (value) => value == null || !value.contains('@') ? 'Email inválido' : null,
+                  validator: (value) =>
+                      value == null || !value.contains('@') ? 'Email inválido' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(labelText: 'Password'),
                   obscureText: true,
-                  validator: (value) => value == null || value.length < 8 ? 'Min. 8 caracteres' : null,
+                  validator: (value) =>
+                      value == null || value.length < 8 ? 'Min. 8 caracteres' : null,
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : () {
-                    if (_formKey.currentState?.validate() == true) {
-                      _loginComEmail();
-                    }
-                  },
-                  child: _isLoading ? const CircularProgressIndicator() : const Text('Entrar com E-mail'),
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          if (_formKey.currentState?.validate() == true) {
+                            _loginComEmail();
+                          }
+                        },
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Entrar com E-mail'),
                 ),
                 const SizedBox(height: 9),
                 OutlinedButton.icon(

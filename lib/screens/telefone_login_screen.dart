@@ -29,30 +29,37 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
       _error = null;
     });
 
-    await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: _telefoneCompleto!,
-      timeout: const Duration(seconds: 60),
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await FirebaseAuth.instance.signInWithCredential(credential);
-        if (mounted) Navigator.pop(context, true);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        setState(() {
-          _error = e.message;
-          _isLoading = false;
-        });
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        setState(() {
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _telefoneCompleto!,
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+          if (mounted) Navigator.pop(context, true);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          setState(() {
+            _error = e.message;
+            _isLoading = false;
+          });
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() {
+            _verificationId = verificationId;
+            _codeSent = true;
+            _isLoading = false;
+          });
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
           _verificationId = verificationId;
-          _codeSent = true;
-          _isLoading = false;
-        });
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        _verificationId = verificationId;
-      },
-    );
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _error = 'Erro ao enviar código: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _verificarCodigo() async {
@@ -111,9 +118,8 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
               const SizedBox(height: 18),
               ElevatedButton(
                 onPressed: _isLoading ? null : _enviarCodigo,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Enviar Código'),
+                child:
+                    _isLoading ? const CircularProgressIndicator() : const Text('Enviar Código'),
               ),
             ] else ...[
               TextField(
@@ -127,9 +133,8 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
               const SizedBox(height: 18),
               ElevatedButton(
                 onPressed: _isLoading ? null : _verificarCodigo,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Verificar Código'),
+                child:
+                    _isLoading ? const CircularProgressIndicator() : const Text('Verificar Código'),
               ),
             ],
           ],

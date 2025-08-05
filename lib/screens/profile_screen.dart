@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -24,11 +25,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSearchingContacts = false;
   String? _contactsError;
   List<Contact>? _rawContactos;
-
   List<QueryDocumentSnapshot> _amigosEncontrados = [];
 
   User? get user => FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  final GoogleSignIn googleSignIn = GoogleSignIn.instance;
 
   Future<bool> verificaPermissaoContactos() async {
     var status = await Permission.contacts.status;
@@ -138,38 +140,158 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _erro = null;
     });
 
-    await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: _phoneController.text.trim(),
-      timeout: const Duration(seconds: 60),
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await user?.linkWithCredential(credential);
-        setState(() {
-          _isEditingPhone = false;
-          _codeSent = false;
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Telefone adicionado ao perfil!')),
-        );
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        setState(() {
-          _erro = e.message;
-          _isLoading = false;
-        });
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        setState(() {
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _phoneController.text.trim(),
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await user?.linkWithCredential(credential);
+          setState(() {
+            _isEditingPhone = false;
+            _codeSent = false;
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Telefone adicionado ao perfil!')),
+          );
+        },
+        verificationFailed: (FirebaseAuthException e) async {
+          setState(() {
+            _erro = e.message;
+            _isLoading = false;
+          });
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() {
+            _verificationId = verificationId;
+            _codeSent = true;
+            _isLoading = false;
+          });
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
           _verificationId = verificationId;
-          _codeSent = true;
-          _isLoading = false;
-        });
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        _verificationId = verificationId;
-      },
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _erro = 'Erro ao enviar código: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _mostrarDialogoMerge(BuildContext context, PhoneAuthCredential credential) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Número já associado"),
+        content: const Text(
+            "Este número de telemóvel está associado a outra conta. Deseja fundir os dados desta conta à sua conta atual? Será necessário autenticar na conta antiga."),
+        actions: [
+          TextButton(
+            child: const Text("Cancelar"),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          ElevatedButton(
+            child: const Text("Fazer merge"),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await _realizarMergeDeContas(credential);
+            },
+          ),
+        ],
+      ),
     );
   }
+
+  Future<void> _realizarMergeDeContas(PhoneAuthCredential credential) async {
+    try {
+      // Logout da conta atual
+      await FirebaseAuth.instance.signOut();
+
+      // Login na conta antiga com telefone
+      UserCredential oldUserCred = await FirebaseAuth.instance.signInWithCredential(credential);
+      User? oldUser = oldUserCred.user;
+      if (oldUser == null) throw Exception("Falha na autenticação da conta antiga.");
+
+      // Lê dados da conta antiga
+      final oldUserData = await _firestore.collection('users').doc(oldUser.uid).get();
+      final oldFriends = await _firestore
+          .collection('users')
+          .doc(oldUser.uid)
+          .collection('friends')
+          .get();
+      final oldWishlists = await _firestore
+          .collection('wishlists')
+          .where('ownerId', isEqualTo: oldUser.uid)
+          .get();
+
+      // Logout da conta antiga
+      await FirebaseAuth.instance.signOut();
+
+      // Reautentica com Google para entrar na conta principal
+      final newUser = await _reloginGoogle();
+      if (newUser == null) throw Exception("Falha na reautenticação da conta principal.");
+
+      // Migra dados para a conta principal
+      if (oldUserData.exists) {
+        await _firestore.collection('users').doc(newUser.uid).set(
+          oldUserData.data()!,
+          SetOptions(merge: true),
+        );
+      }
+      for (final f in oldFriends.docs) {
+        await _firestore
+            .collection('users')
+            .doc(newUser.uid)
+            .collection('friends')
+            .doc(f.id)
+            .set(f.data());
+      }
+      for (final wl in oldWishlists.docs) {
+        await wl.reference.update({'ownerId': newUser.uid});
+      }
+
+      // Opcional: apagar dados da conta antiga
+      await _firestore.collection('users').doc(oldUser.uid).delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Merge concluído com sucesso!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao fazer merge: $e')),
+      );
+    }
+  }
+
+Future<User?> _reloginGoogle() async {
+  try {
+    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+    await googleSignIn.initialize(
+      serverClientId: '515293340951-94s0arso1q5uciton05l3mso47709dia.apps.googleusercontent.com',
+    );
+
+    final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
+    if (googleUser == null) return null;
+
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    if (googleAuth.idToken == null) {
+      return null;
+    }
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+    return userCredential.user;
+  } catch (e) {
+    return null;
+  }
+}
+
 
   Future<void> _verificarCodigo() async {
     setState(() {
@@ -191,8 +313,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SnackBar(content: Text('Telefone adicionado ao perfil!')),
       );
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'credential-already-in-use') {
+        final phoneCred = PhoneAuthProvider.credential(
+          verificationId: _verificationId!,
+          smsCode: _codeController.text.trim(),
+        );
+        _mostrarDialogoMerge(context, phoneCred);
+      } else {
+        setState(() {
+          _erro = e.message;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _erro = e.message;
+        _erro = e.toString();
         _isLoading = false;
       });
     }
@@ -282,12 +417,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       backgroundImage: user?.photoURL != null
                           ? NetworkImage(user!.photoURL!)
                           : null,
-                      child:
-                          user?.photoURL == null ? const Icon(Icons.person, size: 40) : null,
+                      child: user?.photoURL == null
+                          ? const Icon(Icons.person, size: 40)
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     Text(user?.displayName ?? 'Nome não definido',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
                     Text(user?.email ?? '',
                         style: TextStyle(color: Colors.grey[700], fontSize: 16)),
@@ -310,7 +447,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (_contactsError != null)
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(_contactsError!, style: const TextStyle(color: Colors.red)),
+                  child: Text(_contactsError!,
+                      style: const TextStyle(color: Colors.red)),
                 ),
               if (_amigosEncontrados.isNotEmpty) ...[
                 const SizedBox(height: 12),
