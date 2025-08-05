@@ -67,11 +67,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Mantém o índice inicial como zero
 
   final List<Widget> _screens = const [
-    ExploreScreen(),     // Cria esta página para explorar perfis/wishlists
-    WishlistsScreen(),
+    WishlistsScreen(),    // <-- Wishlists agora é o primeiro tab (default)
+    ExploreScreen(),
     ProfileScreen(),
   ];
 
@@ -93,12 +93,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: _onTabTapped,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.public),
-            label: 'Explorar',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.list_alt),
             label: 'Wishlists',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.public),
+            label: 'Explorar',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -109,3 +109,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
