@@ -6,8 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../models/user.dart';
-import '../services/firestore_service.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -36,10 +35,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
   User? get user => FirebaseAuth.instance.currentUser;
 
   @override
+  @override
   void initState() {
     super.initState();
-    
     _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    if (userId == null) return;
+    final userData = await _firestore.collection('users').doc(userId).get();
+    if (userData.exists) {
+      setState(() {
+        _nameController.text = userData.data()?['displayName'] ?? '';
+        _isPrivate = userData.data()?['isPrivate'] ?? false;
+      });
+    }
+  }
+
+  Future<void> _savePrivacySetting(bool newValue) async {
+    setState(() {
+      _isLoading = true;
+      _erro = null;
+    });
+    try {
+      await _firestore.collection('users').doc(userId).update({'isPrivate': newValue});
+      setState(() {
+        _isPrivate = newValue;
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Definição de privacidade atualizada para ${newValue ? 'Privado' : 'Público'}!')),
+      );
+    } catch (e) {
+      setState(() {
+        _erro = 'Erro ao atualizar a privacidade: $e';
+        _isLoading = false;
+      });
+    }
   }
 
 
@@ -293,7 +325,7 @@ Future<User?> _reloginGoogle() async {
     final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
     if (googleUser == null) return null;
 
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
     if (googleAuth.idToken == null) {
       return null;
