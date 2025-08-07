@@ -1,40 +1,49 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class WishItem {
-  final String id;          // ID do documento Firestore
-  final String title;
+  final String id;
+  final String name;
   final String? link;
   final String? description;
-  final String category;
   final double? price;
+  final String? imageUrl;
+  final String category;
+  final Timestamp createdAt;
 
   WishItem({
     required this.id,
-    required this.title,
+    required this.name,
     this.link,
     this.description,
-    required this.category,
     this.price,
+    this.imageUrl,
+    required this.category,
+    required this.createdAt,
   });
 
-  // Converte o WishItem para Map (para salvar no Firestore)
-  Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'link': link,
-      'description': description,
-      'category': category,
-      'price': price,
-    };
+  factory WishItem.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return WishItem(
+      id: doc.id,
+      name: data['name'] ?? '',
+      link: data['link'] as String?,
+      description: data['description'] as String?,
+      price: (data['price'] as num?)?.toDouble(),
+      imageUrl: data['imageUrl'] as String?,
+      category: data['category'] ?? 'Outros',
+      createdAt: data['createdAt'] ?? Timestamp.now(),
+    );
   }
 
-  // Cria WishItem a partir de Map vindo do Firestore
-  factory WishItem.fromMap(String id, Map<String, dynamic> map) {
-    return WishItem(
-      id: id,
-      title: map['title'] ?? '',
-      link: map['link'] as String?,
-      description: map['description'] as String?,
-      category: map['category'] ?? 'Outro',
-      price: (map['price'] != null) ? (map['price'] as num).toDouble() : null,
-    );
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'link': link,
+      'description': description,
+      'price': price,
+      'imageUrl': imageUrl,
+      'category': category,
+      'createdAt': createdAt,
+    };
   }
 }

@@ -30,6 +30,70 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     }
   }
 
+  Future<void> _confirmDeleteWishlist(BuildContext context) async {
+    TextEditingController confirmController = TextEditingController();
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap button!
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar Eliminação'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Tem a certeza que quer eliminar a wishlist "$_wishlistName"?'),
+                const Text('Esta ação é irreversível.'),
+                const SizedBox(height: 10),
+                const Text('Para confirmar, escreva "SIM" na caixa abaixo:'),
+                TextField(
+                  controller: confirmController,
+                  decoration: const InputDecoration(hintText: 'SIM'),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Eliminar'),
+              onPressed: () async {
+                if (confirmController.text == 'SIM') {
+                  Navigator.of(dialogContext).pop();
+                  await _deleteWishlist();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Confirmação inválida. Escreva SIM.')),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteWishlist() async {
+    try {
+      await FirebaseFirestore.instance.collection('wishlists').doc(widget.wishlistId).delete();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Wishlist "$_wishlistName" eliminada com sucesso!')),
+      );
+      Navigator.of(context).pop(); // Go back to previous screen (wishlists list)
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao eliminar wishlist: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,6 +109,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 arguments: widget.wishlistId,
               ).then((_) => _loadWishlistDetails()); // Reload details after editing
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => _confirmDeleteWishlist(context),
           ),
         ],
       ),

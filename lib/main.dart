@@ -10,6 +10,7 @@ import 'screens/wishlists_screen.dart';
 import 'screens/add_edit_item_screen.dart';
 import 'screens/telefone_login_screen.dart';
 import 'screens/explore_screen.dart';  // Deves criar este ecrã
+import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
 
 
@@ -43,6 +44,10 @@ class MyApp extends StatelessWidget {
           final wishlistId = args?['wishlistId'] as String;
           final itemId = args?['itemId'] as String?;
           return AddEditItemScreen(wishlistId: wishlistId, itemId: itemId);
+        },
+        '/wishlist_details': (context) {
+          final wishlistId = ModalRoute.of(context)?.settings.arguments as String;
+          return WishlistDetailsScreen(wishlistId: wishlistId);
         },
         '/telefoneLogin': (_) => const TelefoneLoginScreen(),
         // Rotas para detalhes e perfil de outros utilizadores podem ser adicionadas aqui

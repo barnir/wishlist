@@ -12,7 +12,7 @@ class WishItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: categoriaImagem(item.category),
-      title: Text(item.title),
+      title: Text(item.name),
       subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
