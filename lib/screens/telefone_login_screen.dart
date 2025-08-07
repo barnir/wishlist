@@ -3,7 +3,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class TelefoneLoginScreen extends StatefulWidget {
-  const TelefoneLoginScreen({Key? key}) : super(key: key);
+  const TelefoneLoginScreen({super.key});
 
   @override
   State<TelefoneLoginScreen> createState() => _TelefoneLoginScreenState();

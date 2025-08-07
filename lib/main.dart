@@ -34,8 +34,16 @@ class MyApp extends StatelessWidget {
         '/profile': (_) => const ProfileScreen(),
         '/wishlists': (_) => const WishlistsScreen(),
         '/add_new_wishlist': (_) => const AddEditWishlistScreen(),
-        '/add_edit_wishlist': (_) => const AddEditWishlistScreen(),
-        '/add_edit_item': (_) => const AddEditItemScreen(),
+        '/add_edit_wishlist': (context) {
+          final wishlistId = ModalRoute.of(context)?.settings.arguments as String?;
+          return AddEditWishlistScreen(wishlistId: wishlistId);
+        },
+        '/add_edit_item': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          final wishlistId = args?['wishlistId'] as String;
+          final itemId = args?['itemId'] as String?;
+          return AddEditItemScreen(wishlistId: wishlistId, itemId: itemId);
+        },
         '/telefoneLogin': (_) => const TelefoneLoginScreen(),
         // Rotas para detalhes e perfil de outros utilizadores podem ser adicionadas aqui
       },

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -30,6 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       // Guarda o nome no perfil do utilizador
       await FirebaseAuth.instance.currentUser!.updateDisplayName(_nomeController.text.trim()); 
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/profile');
       // Redirecciona/utiliza navegação conforme a lógica da app
     } on FirebaseAuthException catch (e) {

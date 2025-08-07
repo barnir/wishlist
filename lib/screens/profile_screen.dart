@@ -9,7 +9,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -101,15 +101,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final permissionGranted = await verificaPermissaoContactos();
       if (!permissionGranted) {
-        setState(() {
-          _contactsError = 'Permissão negada';
-          _isSearchingContacts = false;
-        });
+        if (!mounted) return;
+      setState(() {
+        _contactsError = 'Permissão negada';
+        _isSearchingContacts = false;
+      });
         return;
       }
 
       final contactos = await FlutterContacts.getContacts(withProperties: true);
       if (contactos.isEmpty) {
+        if (!mounted) return;
         setState(() {
           _contactsError = 'Nenhum contacto encontrado';
           _isSearchingContacts = false;
@@ -164,6 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'addedAt': FieldValue.serverTimestamp(),
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Adicionado $nomeAmigo aos teus amigos')),
       );
@@ -196,22 +199,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
           await user?.linkWithCredential(credential);
+          if (!mounted) return;
+          if (!mounted) return;
           setState(() {
             _isEditingPhone = false;
             _codeSent = false;
             _isLoading = false;
           });
+          if (!mounted) return;
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Telefone adicionado ao perfil!')),
           );
         },
         verificationFailed: (FirebaseAuthException e) async {
+          if (!mounted) return;
+          if (!mounted) return;
+      setState(() {
+        if (!mounted) return;
           setState(() {
             _erro = e.message;
             _isLoading = false;
           });
+      });
         },
         codeSent: (String verificationId, int? resendToken) {
+          if (!mounted) return;
           setState(() {
             _verificationId = verificationId;
             _codeSent = true;
@@ -223,6 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _erro = 'Erro ao enviar código: $e';
         _isLoading = false;
@@ -236,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text("Número já associado"),
         content: const Text(
-            "Este número de telemóvel está associado a outra conta. Deseja fundir os dados desta conta à sua conta atual? Será necessário autenticar na conta antiga."),
+            "Este número de telemóvel está associado a outra conta. Deseja fundir os dados desta conta à sua conta atual? Será necessário reautenticar com o seu método de login original."),
         actions: [
           TextButton(
             child: const Text("Cancelar"),
@@ -252,6 +266,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Future<User?> _reauthenticateUser() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return null;
+
+    // Check current provider
+    for (final provider in currentUser.providerData) {
+      if (provider.providerId == GoogleAuthProvider.PROVIDER_ID) {
+        // Reauthenticate with Google
+        final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
+        if (googleUser == null) return null;
+        final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        await currentUser.reauthenticateWithCredential(credential);
+        return FirebaseAuth.instance.currentUser;
+      } else if (provider.providerId == EmailAuthProvider.PROVIDER_ID) {
+        // Reauthenticate with Email/Password
+        // This would typically involve showing a dialog to ask for password
+        // For simplicity, we'll assume a pre-filled dialog or direct input for now.
+        // In a real app, you'd prompt the user for their password here.
+        String? password = await _askForPassword(); // Implement this function
+        if (password == null) return null;
+        if (!mounted) return null;
+        final AuthCredential credential = EmailAuthProvider.credential(
+          email: currentUser.email!,
+          password: password,
+        );
+        await currentUser.reauthenticateWithCredential(credential);
+        return FirebaseAuth.instance.currentUser;
+      }
+    }
+    return null; // No supported provider found for re-authentication
+  }
+
+  Future<String?> _askForPassword() async {
+    String? password;
+    await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        TextEditingController passwordController = TextEditingController();
+        return AlertDialog(
+          title: const Text('Reautenticação Necessária'),
+          content: TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Password'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              child: const Text('Confirmar'),
+              onPressed: () {
+                password = passwordController.text;
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return password;
   }
 
   Future<void> _realizarMergeDeContas(PhoneAuthCredential credential) async {
@@ -279,8 +362,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Logout da conta antiga
       await FirebaseAuth.instance.signOut();
 
-      // Reautentica com Google para entrar na conta principal
-      final newUser = await _reloginGoogle();
+      // Reautentica com o método original para entrar na conta principal
+      final newUser = await _reauthenticateUser();
       if (newUser == null) throw Exception("Falha na reautenticação da conta principal.");
 
       // Migra dados para a conta principal
@@ -305,42 +388,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Opcional: apagar dados da conta antiga
       await _firestore.collection('users').doc(oldUser.uid).delete();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Merge concluído com sucesso!')),
       );
     } catch (e) {
+      if (!mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao fazer merge: $e')),
       );
     }
   }
 
-Future<User?> _reloginGoogle() async {
-  try {
-    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-    await googleSignIn.initialize(
-      serverClientId: '515293340951-94s0arso1q5uciton05l3mso47709dia.apps.googleusercontent.com',
-    );
 
-    final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
-    if (googleUser == null) return null;
-
-    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-    if (googleAuth.idToken == null) {
-      return null;
-    }
-
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-    );
-
-    final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-    return userCredential.user;
-  } catch (e) {
-    return null;
-  }
-}
 
 
   Future<void> _verificarCodigo() async {
@@ -376,6 +437,8 @@ Future<User?> _reloginGoogle() async {
         });
       }
     } catch (e) {
+      if (!mounted) return;
+      if (!mounted) return;
       setState(() {
         _erro = e.toString();
         _isLoading = false;
@@ -463,6 +526,7 @@ Future<User?> _reloginGoogle() async {
         _isLoading = false;
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nome atualizado com sucesso!')),
       );

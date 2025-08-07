@@ -6,7 +6,7 @@ class WishItemTile extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback? onEdit;  // opcional para evitar erro se não usar
 
-  WishItemTile({required this.item, required this.onDelete, this.onEdit});
+  const WishItemTile({super.key, required this.item, required this.onDelete, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
