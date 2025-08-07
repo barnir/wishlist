@@ -14,7 +14,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Moved declarations to the top
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn googleSignIn = GoogleSignIn.instance;
   User? get user => FirebaseAuth.instance.currentUser;
@@ -36,7 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Contact>? _rawContactos;
   List<QueryDocumentSnapshot> _amigosEncontrados = [];
 
-  // Removed duplicate initState
   @override
   void initState() {
     super.initState();
@@ -57,19 +55,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _savePrivacySetting(bool newValue) async {
     if (userId == null) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     setState(() {
       _isLoading = true;
       _erro = null;
     });
     try {
-      await _firestore.collection('users').doc(userId).update({'isPrivate': newValue});
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .update({'isPrivate': newValue});
       if (!mounted) return;
       setState(() {
         _isPrivate = newValue;
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Definição de privacidade atualizada para ${newValue ? 'Privado' : 'Público'}')),
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+            content: Text(
+                'Definição de privacidade atualizada para ${newValue ? 'Privado' : 'Público'}!')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -81,9 +85,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<bool> verificaPermissaoContactos() async {
-    var status = await Permission.contacts.status;
+    final status = await Permission.contacts.status;
     if (!status.isGranted) {
-      status = await Permission.contacts.request();
+      await Permission.contacts.request();
     }
     return status.isGranted;
   }
@@ -107,7 +111,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
-      final contactos = await FlutterContacts.getContacts(withProperties: true);
+      final contactos =
+          await FlutterContacts.getContacts(withProperties: true);
       if (contactos.isEmpty) {
         if (!mounted) return;
         setState(() {
@@ -156,8 +161,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> adicionarAmigo(String amigoId, String nomeAmigo) async {
     if (user == null) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    final ref = _firestore.collection('users').doc(user!.uid).collection('friends');
+    final ref =
+        _firestore.collection('users').doc(user!.uid).collection('friends');
     final existe = await ref.doc(amigoId).get();
 
     if (!mounted) return;
@@ -166,11 +173,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'nome': nomeAmigo,
         'addedAt': FieldValue.serverTimestamp(),
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Adicionado $nomeAmigo aos teus amigos')),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Já tens $nomeAmigo nos teus amigos')),
       );
     }
@@ -187,6 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _enviarCodigo() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     setState(() {
       _isLoading = true;
       _erro = null;
@@ -204,13 +212,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _codeSent = false;
             _isLoading = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             const SnackBar(content: Text('Telefone adicionado ao perfil!')),
           );
         },
         verificationFailed: (FirebaseAuthException e) {
           if (!mounted) return;
-          // Fixed nested setState
           setState(() {
             _erro = e.message;
             _isLoading = false;
@@ -237,7 +244,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _mostrarDialogoMerge(BuildContext context, PhoneAuthCredential credential) {
+  void _mostrarDialogoMerge(
+      BuildContext context, PhoneAuthCredential credential) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -326,27 +334,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _realizarMergeDeContas(PhoneAuthCredential credential) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await FirebaseAuth.instance.signOut();
 
-      final oldUserCred = await FirebaseAuth.instance.signInWithCredential(credential);
+      final oldUserCred =
+          await FirebaseAuth.instance.signInWithCredential(credential);
       final oldUser = oldUserCred.user;
-      if (oldUser == null) throw Exception("Falha na autenticação da conta antiga.");
+      if (oldUser == null) {
+        throw Exception("Falha na autenticação da conta antiga.");
+      }
 
-      final oldUserData = await _firestore.collection('users').doc(oldUser.uid).get();
-      final oldFriends = await _firestore.collection('users').doc(oldUser.uid).collection('friends').get();
-      final oldWishlists = await _firestore.collection('wishlists').where('ownerId', isEqualTo: oldUser.uid).get();
+      final oldUserData =
+          await _firestore.collection('users').doc(oldUser.uid).get();
+      final oldFriends = await _firestore
+          .collection('users')
+          .doc(oldUser.uid)
+          .collection('friends')
+          .get();
+      final oldWishlists = await _firestore
+          .collection('wishlists')
+          .where('ownerId', isEqualTo: oldUser.uid)
+          .get();
 
       await FirebaseAuth.instance.signOut();
 
       final newUser = await _reauthenticateUser();
-      if (newUser == null) throw Exception("Falha na reautenticação da conta principal.");
+      if (newUser == null) {
+        throw Exception("Falha na reautenticação da conta principal.");
+      }
 
       if (oldUserData.exists) {
         await _firestore.collection('users').doc(newUser.uid).set(
-          oldUserData.data()!,
-          SetOptions(merge: true),
-        );
+              oldUserData.data()!,
+              SetOptions(merge: true),
+            );
       }
       for (final f in oldFriends.docs) {
         await _firestore
@@ -363,12 +385,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _firestore.collection('users').doc(oldUser.uid).delete();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Merge concluído com sucesso!')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Erro ao fazer merge: $e')),
       );
     }
@@ -376,6 +398,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _verificarCodigo() async {
     if (_verificationId == null) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final localContext = context;
+
     setState(() {
       _isLoading = true;
       _erro = null;
@@ -392,7 +417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _codeSent = false;
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Telefone adicionado ao perfil!')),
       );
     } on FirebaseAuthException catch (e) {
@@ -402,7 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           verificationId: _verificationId!,
           smsCode: _codeController.text.trim(),
         );
-        _mostrarDialogoMerge(context, phoneCred);
+        _mostrarDialogoMerge(localContext, phoneCred);
       } else {
         setState(() {
           _erro = e.message;
@@ -419,7 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _phoneSection() {
-    String? phone = user?.phoneNumber;
+    final phone = user?.phoneNumber;
 
     if (_isEditingPhone) {
       return Column(
@@ -470,10 +495,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Row(
       children: [
-        Icon(Icons.phone, color: phone != null && phone.isNotEmpty ? Colors.green : Colors.grey),
+        Icon(Icons.phone,
+            color: phone != null && phone.isNotEmpty ? Colors.green : Colors.grey),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(phone != null && phone.isNotEmpty ? phone : 'Nenhum número adicionado'),
+          child: Text(
+              phone != null && phone.isNotEmpty ? phone : 'Nenhum número adicionado'),
         ),
         TextButton.icon(
           icon: Icon(phone == null || phone.isEmpty ? Icons.add : Icons.edit),
@@ -486,13 +513,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveName() async {
     if (userId == null) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     setState(() {
       _isLoading = true;
       _erro = null;
     });
     try {
       await user?.updateDisplayName(_nameController.text.trim());
-      await _firestore.collection('users').doc(userId).update({'displayName': _nameController.text.trim()});
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .update({'displayName': _nameController.text.trim()});
 
       if (!mounted) return;
       setState(() {
@@ -500,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Nome atualizado com sucesso!')),
       );
     } catch (e) {
@@ -513,7 +544,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _nameSection() {
-    String? displayName = user?.displayName;
+    final displayName = user?.displayName;
 
     if (_isEditingName) {
       return Column(
@@ -534,7 +565,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(onPressed: (){ setState(() { _isEditingName = false; }); }, child: const Text('Cancelar')),
+              TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isEditingName = false;
+                    });
+                  },
+                  child: const Text('Cancelar')),
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: _isLoading ? null : _saveName,
@@ -552,10 +589,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Expanded(
           child: Text(displayName ?? 'Nome não definido',
-              style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.bold)),
+              style:
+                  const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         ),
-        TextButton(onPressed: () { setState(() { _isEditingName = true; _nameController.text = displayName ?? ''; }); }, child: const Text("Editar"))
+        TextButton(
+            onPressed: () {
+              setState(() {
+                _isEditingName = true;
+                _nameController.text = displayName ?? '';
+              });
+            },
+            child: const Text("Editar"))
       ],
     );
   }
@@ -586,7 +630,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _nameSection(),
                     const SizedBox(height: 6),
                     Text(user?.email ?? '',
-                        style: TextStyle(color: Colors.grey[700], fontSize: 16)),
+                        style:
+                            TextStyle(color: Colors.grey[700], fontSize: 16)),
                   ],
                 ),
               ),
@@ -610,7 +655,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ElevatedButton.icon(
                 icon: const Icon(Icons.contacts),
                 label: const Text('Procurar amigos nos contactos'),
-                onPressed: _isSearchingContacts ? null : procurarAmigosPorContactos,
+                onPressed:
+                    _isSearchingContacts ? null : procurarAmigosPorContactos,
               ),
               if (_isSearchingContacts)
                 const Padding(
@@ -628,9 +674,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Text('Sugestões de Amigos:',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 ..._amigosEncontrados.map((amigo) {
-                  String nome = amigo.get('displayName') ?? 'Sem nome';
-                  String telefone = amigo.get('phoneNumber') ?? '';
-                  String idAmigo = amigo.id;
+                  final nome = amigo.get('displayName') ?? 'Sem nome';
+                  final telefone = amigo.get('phoneNumber') ?? '';
+                  final idAmigo = amigo.id;
                   return ListTile(
                     leading: const Icon(Icons.person_add_alt_1),
                     title: Text(nome),
@@ -647,9 +693,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: const Icon(Icons.logout),
                 label: const Text('Terminar sessão'),
                 onPressed: () async {
+                  final navigator = Navigator.of(context);
                   await FirebaseAuth.instance.signOut();
                   if (!mounted) return;
-                  Navigator.of(context).pushReplacementNamed('/login');
+                  navigator.pushReplacementNamed('/login');
                 },
               ),
               const SizedBox(height: 10),
@@ -667,23 +714,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _confirmDeleteAccount(BuildContext context) async {
-    TextEditingController confirmController = TextEditingController();
-    TextEditingController passwordController = TextEditingController();
-    String? currentProviderId = user?.providerData.first.providerId;
+    final confirmController = TextEditingController();
+    final passwordController = TextEditingController();
+    final currentProviderId = user?.providerData.first.providerId;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    return showDialog<void>(
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
+        final navigator = Navigator.of(dialogContext);
         return AlertDialog(
           title: const Text('Eliminar Conta'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                const Text('Esta ação é irreversível e eliminará todos os seus dados.'),
+                const Text(
+                    'Esta ação é irreversível e eliminará todos os seus dados.'),
                 const SizedBox(height: 10),
                 if (currentProviderId == EmailAuthProvider.PROVIDER_ID) ...[
-                  const Text('Por favor, insira a sua password para confirmar:'),
+                  const Text(
+                      'Por favor, insira a sua password para confirmar:'),
                   TextField(
                     controller: passwordController,
                     obscureText: true,
@@ -703,7 +754,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton(
               child: const Text('Cancelar'),
               onPressed: () {
-                Navigator.of(dialogContext).pop();
+                navigator.pop();
               },
             ),
             ElevatedButton(
@@ -711,12 +762,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Eliminar'),
               onPressed: () async {
                 if (confirmController.text == 'SIM') {
-                  Navigator.of(dialogContext).pop();
+                  navigator.pop();
                   await _deleteAccount(passwordController.text);
                 } else {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Confirmação inválida. Escreva SIM.')),
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                        content: Text('Confirmação inválida. Escreva SIM.')),
                   );
                 }
               },
@@ -728,6 +779,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _deleteAccount(String? password) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     setState(() {
       _isLoading = true;
       _erro = null;
@@ -737,20 +790,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (currentUser == null) return;
 
       // Reauthenticate if necessary
-      if (currentUser.providerData.first.providerId == EmailAuthProvider.PROVIDER_ID) {
+      if (currentUser.providerData.first.providerId ==
+          EmailAuthProvider.PROVIDER_ID) {
         if (password == null || password.isEmpty) {
-          throw FirebaseAuthException(code: 'no-password', message: 'Password é necessária para reautenticação.');
+          throw FirebaseAuthException(
+              code: 'no-password',
+              message: 'Password é necessária para reautenticação.');
         }
-        AuthCredential credential = EmailAuthProvider.credential(email: currentUser.email!, password: password);
+        final credential = EmailAuthProvider.credential(
+            email: currentUser.email!, password: password);
         await currentUser.reauthenticateWithCredential(credential);
-      } else if (currentUser.providerData.first.providerId == GoogleAuthProvider.PROVIDER_ID) {
-        final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
-        // Added null check
+      } else if (currentUser.providerData.first.providerId ==
+          GoogleAuthProvider.PROVIDER_ID) {
+        final googleUser = await googleSignIn.authenticate();
         if (googleUser == null) {
-            throw FirebaseAuthException(code: 'google-sign-in-cancelled', message: 'Login com o Google cancelado.');
+          throw FirebaseAuthException(
+              code: 'google-sign-in-cancelled',
+              message: 'Login com o Google cancelado.');
         }
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        AuthCredential credential = GoogleAuthProvider.credential(
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
           idToken: googleAuth.idToken,
         );
         await currentUser.reauthenticateWithCredential(credential);
@@ -758,10 +817,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Delete user data from Firestore
       await _firestore.collection('users').doc(currentUser.uid).delete();
-      final userWishlists = await _firestore.collection('wishlists').where('ownerId', isEqualTo: currentUser.uid).get();
-      for (var wishlistDoc in userWishlists.docs) {
-        final items = await wishlistDoc.reference.collection('items').get();
-        for (var itemDoc in items.docs) {
+      final userWishlists = await _firestore
+          .collection('wishlists')
+          .where('ownerId', isEqualTo: currentUser.uid)
+          .get();
+      for (final wishlistDoc in userWishlists.docs) {
+        final items =
+            await wishlistDoc.reference.collection('items').get();
+        for (final itemDoc in items.docs) {
           await itemDoc.reference.delete();
         }
         await wishlistDoc.reference.delete();
@@ -771,10 +834,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await currentUser.delete();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Conta eliminada com sucesso!')),
       );
-      Navigator.of(context).pushReplacementNamed('/login');
+      navigator.pushReplacementNamed('/login');
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {

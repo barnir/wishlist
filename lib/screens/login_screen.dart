@@ -68,7 +68,7 @@ Future<void> _loginComGoogle() async {
     _erro = null;
   });
   try {
-    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+    final googleSignIn = GoogleSignIn.instance;
     await googleSignIn.initialize(
       serverClientId: '515293340951-94s0arso1q5uciton05l3mso47709dia.apps.googleusercontent.com',
     );
