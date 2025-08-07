@@ -7,12 +7,12 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/wishlists_screen.dart';
-import 'screens/wishlist_details_screen.dart';
-import 'screens/add_edit_wishlist_screen.dart';
 import 'screens/add_edit_item_screen.dart';
 import 'screens/telefone_login_screen.dart';
 import 'screens/explore_screen.dart';  // Deves criar este ecrã
 import 'screens/add_edit_wishlist_screen.dart';
+
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

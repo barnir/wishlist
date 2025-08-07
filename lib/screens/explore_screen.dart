@@ -1,19 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/wishlist.dart'; // Import the Wishlist model
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-// Exemplo de dados simulados para perfis públicos e wishlists
-final List<Map<String, String>> perfisPublicos = [
-  {'id': 'user1', 'nome': 'João Silva'},
-  {'id': 'user2', 'nome': 'Maria Santos'},
-  {'id': 'user3', 'nome': 'Carlos Pereira'},
-];
-
-final List<Map<String, String>> wishlistsPublicas = [
-  {'id': 'wl1', 'nome': 'Presentes de Natal', 'proprietario': 'João Silva', 'idProprietario': 'user1'},
-  {'id': 'wl2', 'nome': 'Viagem dos Sonhos', 'proprietario': 'Maria Santos', 'idProprietario': 'user2'},
-  {'id': 'wl3', 'nome': 'Casa Nova', 'proprietario': 'Carlos Pereira', 'idProprietario': 'user3'},
-];
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({Key? key}) : super(key: key);
@@ -28,15 +14,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Filtra perfis e wishlists pela pesquisa
-    final perfisFiltrados = perfisPublicos
-        .where((p) => p['nome']!.toLowerCase().contains(_termoPesquisa.toLowerCase()))
-        .toList();
-
-    final wishlistsFiltradas = wishlistsPublicas
-        .where((w) => w['nome']!.toLowerCase().contains(_termoPesquisa.toLowerCase()))
-        .toList();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Explorar'),
@@ -96,14 +73,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   padding: EdgeInsets.all(8.0),
                   child: Text('Wishlists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-                ...wishlistsFiltradas.map((wl) => ListTile(
-                      leading: const Icon(Icons.list_alt),
-                      title: Text(wl['nome']!),
-                      subtitle: Text('Proprietário: ${wl['proprietario']}'),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/wishlist_details', arguments: wl['id']);
-                      },
-                    )),
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore.collection('wishlists').snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
+
+                    final wishlists = snapshot.data!.docs
+                        .where((doc) => (doc['name'] as String)
+                            .toLowerCase()
+                            .contains(_termoPesquisa.toLowerCase()) && (!(doc['isPrivate'] ?? false)))
+                        .toList();
+
+                    return Column(
+                      children: wishlists.map((wishlist) => ListTile(
+                            leading: const Icon(Icons.list_alt),
+                            title: Text(wishlist['name'] ?? 'Sem nome'),
+                            subtitle: Text('Proprietário: ${wishlist['ownerName'] ?? 'Desconhecido'}'),
+                            onTap: () {
+                              Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist.id);
+                            },
+                          )).toList(),
+                    );
+                  },
+                ),
               ],
             ),
           ),

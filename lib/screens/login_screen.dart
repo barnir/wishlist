@@ -76,7 +76,7 @@ Future<void> _loginComGoogle() async {
     final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
     if (googleUser == null) return;
 
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
     if (googleAuth.idToken == null) {
       setState(() {
