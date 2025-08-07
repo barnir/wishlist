@@ -16,6 +16,26 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _erro;
 
+  String? _validarEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Por favor, insira o seu e-mail.';
+    }
+    if (!value.contains('@')) {
+      return 'Por favor, insira um e-mail válido.';
+    }
+    return null;
+  }
+
+  String? _validarSenha(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Por favor, insira a sua senha.';
+    }
+    if (value.length < 8) {
+      return 'A senha deve ter pelo menos 8 caracteres.';
+    }
+    return null;
+  }
+
   Future<void> _loginComEmail() async {
     setState(() {
       _isLoading = true;
@@ -27,11 +47,15 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
       // Login bem-sucedido, redirecionar
-    } on FirebaseAuthException catch (e) {
-      setState(() {
+    } on FirebaseAuthException catch (e) { 
+      if (e.code == 'user-not-found') {
+        _erro = 'Nenhum usuário encontrado com este e-mail.';
+      } else if (e.code == 'wrong-password') {
+        _erro = 'Senha incorreta.';
+      } else {
         _erro = e.message;
-      });
-    } finally {
+      }
+    } finally {    
       setState(() {
         _isLoading = false;
       });
@@ -102,16 +126,14 @@ Future<void> _loginComGoogle() async {
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'E-mail'),
-                  validator: (value) =>
-                      value == null || !value.contains('@') ? 'Email inválido' : null,
+                  validator: _validarEmail,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(labelText: 'Password'),
                   obscureText: true,
-                  validator: (value) =>
-                      value == null || value.length < 8 ? 'Min. 8 caracteres' : null,
+                  validator: _validarSenha,
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
