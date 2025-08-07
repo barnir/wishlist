@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/wishlist.dart'; // Import the Wishlist model
 
 // Exemplo de dados simulados para perfis públicos e wishlists
 final List<Map<String, String>> perfisPublicos = [
