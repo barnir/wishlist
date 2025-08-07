@@ -6,6 +6,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../models/user.dart';
+import '../services/firestore_service.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
@@ -21,6 +24,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _codeSent = false;
   bool _isLoading = false;
   String? _erro;
+  bool _isEditingName = false;
+  final _nameController = TextEditingController();
+  bool _isPrivate = false;
 
   bool _isSearchingContacts = false;
   String? _contactsError;
@@ -28,6 +34,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<QueryDocumentSnapshot> _amigosEncontrados = [];
 
   User? get user => FirebaseAuth.instance.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _loadProfileData();
+  }
+
+
+
+
+  String? get userId => FirebaseAuth.instance.currentUser?.uid;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final GoogleSignIn googleSignIn = GoogleSignIn.instance;
@@ -399,6 +417,73 @@ Future<User?> _reloginGoogle() async {
     );
   }
 
+  Future<void> _saveName() async {
+    setState(() {
+      _isLoading = true;
+      _erro = null;
+    });
+    try {
+      await user?.updateDisplayName(_nameController.text.trim());
+      await _firestore.collection('users').doc(userId).update({'displayName': _nameController.text.trim()});
+
+      setState(() {
+        _isEditingName = false;
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nome atualizado com sucesso!')),
+      );
+    } catch (e) {
+      setState(() {
+        _erro = 'Erro ao atualizar o nome: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Widget _nameSection() {
+    String? displayName = user?.displayName;
+
+    if (_isEditingName) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_erro != null) ...[
+            Text(_erro!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 12),
+          ],
+          TextFormField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Novo nome',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _saveName,
+            child: _isLoading
+                ? const CircularProgressIndicator()
+                : const Text('Guardar Nome'),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(displayName ?? 'Nome não definido',
+              style: const TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold)),
+        ),
+        TextButton(onPressed: () { setState(() { _isEditingName = true; _nameController.text = displayName ?? ''; }); }, child: const Text("Editar"))
+      ],
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -422,9 +507,7 @@ Future<User?> _reloginGoogle() async {
                           : null,
                     ),
                     const SizedBox(height: 12),
-                    Text(user?.displayName ?? 'Nome não definido',
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold)),
+                    _nameSection(),
                     const SizedBox(height: 6),
                     Text(user?.email ?? '',
                         style: TextStyle(color: Colors.grey[700], fontSize: 16)),
@@ -434,6 +517,24 @@ Future<User?> _reloginGoogle() async {
               const SizedBox(height: 32),
               _phoneSection(),
               const SizedBox(height: 30),
+                Row(
+                children: [
+                  const Text('Perfil Privado:'),
+                  Switch(
+                    
+                    value: _isPrivate,
+                    
+                    onChanged: (bool newValue) {
+                      if (!_isLoading) {
+                       _savePrivacySetting(newValue);
+                      }
+                    },
+                  ),
+                ],
+              ),
+
+
+
               ElevatedButton.icon(
                 icon: const Icon(Icons.contacts),
                 label: const Text('Procurar amigos nos contactos'),
@@ -484,4 +585,5 @@ Future<User?> _reloginGoogle() async {
       ),
     );
   }
+
 }

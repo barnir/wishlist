@@ -29,7 +29,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
       );
       // Guarda o nome no perfil do utilizador
-      await FirebaseAuth.instance.currentUser!.updateDisplayName(_nomeController.text.trim());
+      await FirebaseAuth.instance.currentUser!.updateDisplayName(_nomeController.text.trim()); 
+      Navigator.pushReplacementNamed(context, '/profile');
       // Redirecciona/utiliza navegação conforme a lógica da app
     } on FirebaseAuthException catch (e) {
       setState(() { _erro = e.message; });

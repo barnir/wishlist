@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/wishlist.dart'; // Import the Wishlist model
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Exemplo de dados simulados para perfis públicos e wishlists
 final List<Map<String, String>> perfisPublicos = [
@@ -23,6 +24,7 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   String _termoPesquisa = '';
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -63,15 +65,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   padding: EdgeInsets.all(8.0),
                   child: Text('Perfis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-                ...perfisFiltrados.map((perfil) => ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
-                      title: Text(perfil['nome']!),
-                      onTap: () {
-                        // Navega para página de perfil do utilizador
-                        Navigator.pushNamed(context, '/profileView', arguments: perfil['id']);
-                      },
-                    )),
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore.collection('users').snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
+
+                    final profiles = snapshot.data!.docs
+                        .where((doc) => (doc['displayName'] as String)
+                            .toLowerCase()
+                            .contains(_termoPesquisa.toLowerCase()) && (!(doc['private'] ?? false)))
+                        .toList();
+
+                    return Column(
+                      children: profiles.map((profile) => ListTile(
+                            leading: const CircleAvatar(child: Icon(Icons.person)),
+                            title: Text(profile['displayName'] ?? 'Sem nome'),
+                            onTap: () {
+                              // Navega para página de perfil do utilizador
+                              Navigator.pushNamed(context, '/profileView', arguments: profile.id);
+                            },
+                          )).toList(),
+                    );
+                  },
+                ),
                 const Divider(),
+
                 const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text('Wishlists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

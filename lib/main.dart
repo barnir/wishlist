@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/profile_screen.dart';
@@ -11,6 +12,7 @@ import 'screens/add_edit_wishlist_screen.dart';
 import 'screens/add_edit_item_screen.dart';
 import 'screens/telefone_login_screen.dart';
 import 'screens/explore_screen.dart';  // Deves criar este ecrã
+import 'screens/add_edit_wishlist_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +33,7 @@ class MyApp extends StatelessWidget {
         '/register': (_) => const RegisterScreen(),
         '/profile': (_) => const ProfileScreen(),
         '/wishlists': (_) => const WishlistsScreen(),
-        '/wishlist_details': (_) => const WishlistDetailsScreen(),
+        '/add_new_wishlist': (_) => const AddEditWishlistScreen(),
         '/add_edit_wishlist': (_) => const AddEditWishlistScreen(),
         '/add_edit_item': (_) => const AddEditItemScreen(),
         '/telefoneLogin': (_) => const TelefoneLoginScreen(),
@@ -109,4 +111,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
