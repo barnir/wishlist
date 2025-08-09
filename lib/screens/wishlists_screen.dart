@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/wishlist_total.dart';
 
 class WishlistsScreen extends StatefulWidget {
   const WishlistsScreen({super.key});
@@ -53,7 +54,13 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
               final name = wishlist['name'] ?? 'Sem nome';
               final isPrivate = wishlist['private'] ?? false;
 
+              final imageUrl = wishlist['imageUrl'];
+
               return ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+                  child: imageUrl == null ? const Icon(Icons.card_giftcard) : null,
+                ),
                 title: Text(name),
                 subtitle: Text(isPrivate ? 'Privada' : 'Pública'),
                 onTap: () {
@@ -66,6 +73,8 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    WishlistTotal(wishlistId: wishlist.id),
+                    const SizedBox(width: 16),
                     IconButton(
                       icon: const Icon(Icons.edit),
                       onPressed: () {

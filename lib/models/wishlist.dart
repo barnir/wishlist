@@ -7,12 +7,15 @@ class Wishlist {
   final bool private;
   final DateTime createdAt;
 
+  final String? imageUrl;
+
   Wishlist({
     required this.id,
     required this.name,
     required this.ownerId,
     required this.private,
     required this.createdAt,
+    this.imageUrl,
   });
 
   factory Wishlist.fromJson(Map<String, dynamic> json, String id) {

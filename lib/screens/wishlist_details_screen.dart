@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/wish_item.dart';
+import '../models/category.dart';
+import '../widgets/wish_item_tile.dart';
+
+enum SortOptions { priceAsc, priceDesc, nameAsc, nameDesc }
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -13,6 +18,8 @@ class WishlistDetailsScreen extends StatefulWidget {
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   String _wishlistName = 'Carregando...';
   bool _isPrivate = false;
+  String? _selectedCategory;
+  SortOptions _sortOption = SortOptions.nameAsc;
 
   @override
   void initState() {
@@ -94,12 +101,37 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     }
   }
 
+  Future<void> _deleteItem(String itemId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('wishlists')
+          .doc(widget.wishlistId)
+          .collection('items')
+          .doc(itemId)
+          .delete();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Item eliminado com sucesso!')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao eliminar item: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(_wishlistName),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () => _showFilterDialog(),
+            tooltip: 'Filtrar e Ordenar',
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
@@ -145,31 +177,46 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   return const Center(child: Text('Nenhum item nesta wishlist.'));
                 }
 
-                final items = snapshot.data!.docs;
+                var items = snapshot.data!.docs
+                    .map((doc) => WishItem.fromFirestore(doc))
+                    .toList();
+
+                // Filtering
+                if (_selectedCategory != null) {
+                  items = items.where((item) => item.category == _selectedCategory).toList();
+                }
+
+                // Sorting
+                items.sort((a, b) {
+                  switch (_sortOption) {
+                    case SortOptions.priceAsc:
+                      return (a.price ?? 0).compareTo(b.price ?? 0);
+                    case SortOptions.priceDesc:
+                      return (b.price ?? 0).compareTo(a.price ?? 0);
+                    case SortOptions.nameAsc:
+                      return a.name.compareTo(b.name);
+                    case SortOptions.nameDesc:
+                      return b.name.compareTo(a.name);
+                  }
+                });
 
                 return ListView.builder(
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    final itemName = item['name'] ?? 'Sem nome';
-                    final itemDescription = item['description'] ?? '';
-
-                    return ListTile(
-                      title: Text(itemName),
-                      subtitle: Text(itemDescription),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/add_edit_item',
-                            arguments: {
-                              'wishlistId': widget.wishlistId,
-                              'itemId': item.id,
-                            },
-                          );
-                        },
-                      ),
+                    return WishItemTile(
+                      item: item,
+                      onDelete: () => _deleteItem(item.id),
+                      onEdit: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/add_edit_item',
+                          arguments: {
+                            'wishlistId': widget.wishlistId,
+                            'itemId': item.id,
+                          },
+                        );
+                      },
                     );
                   },
                 );
@@ -189,6 +236,93 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         tooltip: 'Adicionar novo item',
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Filtrar e Ordenar'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    decoration: const InputDecoration(labelText: 'Filtrar por Categoria'),
+                    hint: const Text('Todas as Categorias'),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('Todas as Categorias'),
+                      ),
+                      ...categories.map((Category category) {
+                        return DropdownMenuItem<String>(
+                          value: category.name,
+                          child: Row(
+                            children: [
+                              Icon(category.icon),
+                              const SizedBox(width: 10),
+                              Text(category.name),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                    onChanged: (newValue) {
+                      setState(() {
+                        _selectedCategory = newValue;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<SortOptions>(
+                    value: _sortOption,
+                    decoration: const InputDecoration(labelText: 'Ordenar por'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: SortOptions.nameAsc,
+                        child: Text('Nome (A-Z)'),
+                      ),
+                      DropdownMenuItem(
+                        value: SortOptions.nameDesc,
+                        child: Text('Nome (Z-A)'),
+                      ),
+                      DropdownMenuItem(
+                        value: SortOptions.priceAsc,
+                        child: Text('Preço (Crescente)'),
+                      ),
+                      DropdownMenuItem(
+                        value: SortOptions.priceDesc,
+                        child: Text('Preço (Decrescente)'),
+                      ),
+                    ],
+                    onChanged: (newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          _sortOption = newValue;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                this.setState(() {}); // Rebuild the main screen with the new filter/sort
+              },
+              child: const Text('Aplicar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

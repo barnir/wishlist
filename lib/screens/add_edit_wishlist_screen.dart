@@ -1,11 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class AddEditWishlistScreen extends StatefulWidget {
   final String? wishlistId;
   const AddEditWishlistScreen({super.key, this.wishlistId});
-  
 
   @override
   State<AddEditWishlistScreen> createState() => _AddEditWishlistScreenState();
@@ -18,6 +20,8 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   bool _isLoading = false;
   String? _erro;
   String? _wishlistId;
+  File? _imageFile;
+  String? _imageUrl;
 
   @override
   void initState() {
@@ -35,11 +39,35 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
       if (doc.exists) {
         _nameController.text = doc['name'] ?? '';
         _isPrivate = doc['private'] ?? false;
+        _imageUrl = doc['imageUrl'];
       }
     } catch (e) {
       setState(() => _erro = 'Erro ao carregar wishlist: $e');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadImage(String wishlistId) async {
+    if (_imageFile == null) return null;
+    try {
+      final ref = FirebaseStorage.instance.ref().child('wishlist_icons').child('$wishlistId.jpg');
+      await ref.putFile(_imageFile!);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      setState(() {
+        _erro = 'Erro ao carregar imagem: $e';
+      });
+      return null;
     }
   }
 
@@ -50,21 +78,34 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
 
     try {
       final userId = FirebaseAuth.instance.currentUser!.uid;
-      final data = {
-        'name': _nameController.text.trim(),
-        'ownerId': userId,
-        'private': _isPrivate,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      String? imageUrl = _imageUrl;
 
       if (_wishlistId == null) {
-        await FirebaseFirestore.instance.collection('wishlists').add(data);
+        final newWishlistRef = FirebaseFirestore.instance.collection('wishlists').doc();
+        _wishlistId = newWishlistRef.id;
+        if (_imageFile != null) {
+          imageUrl = await _uploadImage(_wishlistId!);
+        }
+        await newWishlistRef.set({
+          'name': _nameController.text.trim(),
+          'ownerId': userId,
+          'private': _isPrivate,
+          'createdAt': FieldValue.serverTimestamp(),
+          'imageUrl': imageUrl,
+        });
       } else {
-        await FirebaseFirestore.instance.collection('wishlists').doc(_wishlistId).update(data);
+        if (_imageFile != null) {
+          imageUrl = await _uploadImage(_wishlistId!);
+        }
+        await FirebaseFirestore.instance.collection('wishlists').doc(_wishlistId).update({
+          'name': _nameController.text.trim(),
+          'private': _isPrivate,
+          'imageUrl': imageUrl,
+        });
       }
 
-      if (!mounted) return; // Check if the widget is still mounted
-      Navigator.of(context).pop(true); // Indicate success
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _erro = 'Erro ao guardar: $e');
     } finally {
@@ -94,6 +135,21 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                       Text(_erro!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 12),
                     ],
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundImage: _imageFile != null
+                            ? FileImage(_imageFile!)
+                            : _imageUrl != null
+                                ? NetworkImage(_imageUrl!)
+                                : null,
+                        child: _imageFile == null && _imageUrl == null
+                            ? const Icon(Icons.add_a_photo, size: 50)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(labelText: 'Nome da Wishlist'),
