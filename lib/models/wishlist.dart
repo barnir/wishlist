@@ -6,7 +6,6 @@ class Wishlist {
   final String ownerId;
   final bool private;
   final DateTime createdAt;
-
   final String? imageUrl;
 
   Wishlist({
@@ -25,6 +24,8 @@ class Wishlist {
       ownerId: json['ownerId'],
       private: json['private'],
       createdAt: (json['createdAt'] as Timestamp).toDate(),
+      // Adicionado para ler o imageUrl com segurança
+      imageUrl: json.containsKey('imageUrl') ? json['imageUrl'] as String? : null,
     );
   }
 
@@ -34,6 +35,8 @@ class Wishlist {
       'ownerId': ownerId,
       'private': private,
       'createdAt': createdAt,
+      // Adicionado para salvar o imageUrl
+      'imageUrl': imageUrl,
     };
   }
 }

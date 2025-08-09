@@ -54,7 +54,8 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
               final name = wishlist['name'] ?? 'Sem nome';
               final isPrivate = wishlist['private'] ?? false;
 
-              final imageUrl = wishlist['imageUrl'];
+              final data = wishlist.data() as Map<String, dynamic>;
+              final imageUrl = data.containsKey('imageUrl') ? data['imageUrl'] : null;
 
               return ListTile(
                 leading: CircleAvatar(
