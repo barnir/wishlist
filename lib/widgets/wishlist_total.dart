@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/services/firestore_service.dart';
 
 class WishlistTotal extends StatefulWidget {
   final String wishlistId;
@@ -11,14 +12,12 @@ class WishlistTotal extends StatefulWidget {
 }
 
 class _WishlistTotalState extends State<WishlistTotal> {
+  final _firestoreService = FirestoreService();
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('wishlists')
-          .doc(widget.wishlistId)
-          .collection('items')
-          .snapshots(),
+      stream: _firestoreService.getWishItems(widget.wishlistId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(

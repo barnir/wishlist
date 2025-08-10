@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/services/firestore_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 import '../widgets/wish_item_tile.dart';
@@ -16,6 +17,8 @@ class WishlistDetailsScreen extends StatefulWidget {
 }
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
+  final _firestoreService = FirestoreService();
+
   String _wishlistName = 'Carregando...';
   bool _isPrivate = false;
   String? _selectedCategory;
@@ -28,12 +31,16 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   }
 
   Future<void> _loadWishlistDetails() async {
-    final doc = await FirebaseFirestore.instance.collection('wishlists').doc(widget.wishlistId).get();
-    if (doc.exists) {
-      setState(() {
-        _wishlistName = doc['name'] ?? 'Sem nome';
-        _isPrivate = doc['private'] ?? false;
-      });
+    try {
+      final doc = await _firestoreService.getWishlist(widget.wishlistId);
+      if (doc.exists) {
+        setState(() {
+          _wishlistName = doc['name'] ?? 'Sem nome';
+          _isPrivate = doc['private'] ?? false;
+        });
+      }
+    } catch (e) {
+      _showSnackBar('Erro ao carregar detalhes da wishlist: $e');
     }
   }
 
@@ -73,9 +80,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   Navigator.of(dialogContext).pop();
                   await _deleteWishlist();
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Confirmação inválida. Escreva SIM.')),
-                  );
+                  _showSnackBar('Confirmação inválida. Escreva SIM.');
                 }
               },
             ),
@@ -87,38 +92,34 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _deleteWishlist() async {
     try {
-      await FirebaseFirestore.instance.collection('wishlists').doc(widget.wishlistId).delete();
+      await _firestoreService.deleteWishlist(widget.wishlistId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Wishlist "$_wishlistName" eliminada com sucesso!')),
-      );
+      _showSnackBar('Wishlist "$_wishlistName" eliminada com sucesso!');
       Navigator.of(context).pop(); // Go back to previous screen (wishlists list)
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao eliminar wishlist: $e')),
-      );
+      _showSnackBar('Erro ao eliminar wishlist: $e');
     }
   }
 
   Future<void> _deleteItem(String itemId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('wishlists')
-          .doc(widget.wishlistId)
-          .collection('items')
-          .doc(itemId)
-          .delete();
+      await _firestoreService.deleteWishItem(widget.wishlistId, itemId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Item eliminado com sucesso!')),
-      );
+      _showSnackBar('Item eliminado com sucesso!');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao eliminar item: $e')),
-      );
+      _showSnackBar('Erro ao eliminar item: $e');
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -159,11 +160,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('wishlists')
-                  .doc(widget.wishlistId)
-                  .collection('items')
-                  .snapshots(),
+              stream: _firestoreService.getWishItems(widget.wishlistId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

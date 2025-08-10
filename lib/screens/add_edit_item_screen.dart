@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:wishlist_app/services/firestore_service.dart';
 import '../models/category.dart';
 
 class AddEditItemScreen extends StatefulWidget {
@@ -18,11 +21,16 @@ class AddEditItemScreen extends StatefulWidget {
 
 class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _firestoreService = FirestoreService();
+
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _quantityController;
   late TextEditingController _priceController;
   String? _selectedCategory;
+  File? _imageFile;
+  String? _imageUrl;
+
   bool _isSaving = false;
   String? _erro;
 
@@ -43,24 +51,30 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('wishlists')
-          .doc(widget.wishlistId)
-          .collection('items')
-          .doc(widget.itemId)
-          .get();
+      final doc = await _firestoreService.getWishlist(widget.wishlistId);
+      final itemDoc = await doc.reference.collection('items').doc(widget.itemId).get();
 
-      if (doc.exists) {
-        _nameController.text = doc['name'] ?? '';
-        _descriptionController.text = doc['description'] ?? '';
-        _quantityController.text = (doc['quantity'] ?? 1).toString();
-        _priceController.text = (doc['price'] ?? '').toString();
-        _selectedCategory = doc['category'] ?? categories.first.name;
+      if (itemDoc.exists) {
+        _nameController.text = itemDoc['name'] ?? '';
+        _descriptionController.text = itemDoc['description'] ?? '';
+        _quantityController.text = (itemDoc['quantity'] ?? 1).toString();
+        _priceController.text = (itemDoc['price'] ?? '').toString();
+        _selectedCategory = itemDoc['category'] ?? categories.first.name;
+        _imageUrl = itemDoc['imageUrl'];
       }
     } catch (e) {
       setState(() => _erro = 'Erro ao carregar item: $e');
     } finally {
       setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
     }
   }
 
@@ -79,28 +93,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final data = {
-        'name': _nameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'quantity': int.parse(_quantityController.text.trim()),
-        'price': double.tryParse(_priceController.text.trim()),
-        'category': _selectedCategory,
-      };
-
-      if (widget.itemId == null) {
-        await FirebaseFirestore.instance
-            .collection('wishlists')
-            .doc(widget.wishlistId)
-            .collection('items')
-            .add(data);
-      } else {
-        await FirebaseFirestore.instance
-            .collection('wishlists')
-            .doc(widget.wishlistId)
-            .collection('items')
-            .doc(widget.itemId)
-            .update(data);
-      }
+      await _firestoreService.saveWishItem(
+        wishlistId: widget.wishlistId,
+        name: _nameController.text.trim(),
+        price: double.tryParse(_priceController.text.trim()) ?? 0.0,
+        category: _selectedCategory!,
+        imageFile: _imageFile,
+        imageUrl: _imageUrl,
+        itemId: widget.itemId,
+      );
 
       if (!mounted) return; // Check if the widget is still mounted
       Navigator.of(context).pop(true); // Indicate success
@@ -132,6 +133,21 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                       Text(_erro!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 16),
                     ],
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundImage: _imageFile != null
+                            ? FileImage(_imageFile!)
+                            : _imageUrl != null
+                                ? NetworkImage(_imageUrl!)
+                                : null,
+                        child: _imageFile == null && _imageUrl == null
+                            ? const Icon(Icons.add_a_photo, size: 50)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
                       decoration: InputDecoration(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,6 +12,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _authService = AuthService();
+
   bool _isLoading = false;
   String? _erro;
 
@@ -37,72 +38,39 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loginComEmail() async {
-    setState(() {
-      _isLoading = true;
-      _erro = null;
-    });
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      await _authService.signInWithEmailAndPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
-      // Login bem-sucedido, redirecionar
-    } on FirebaseAuthException catch (e) { 
-      if (e.code == 'user-not-found') {
-        _erro = 'Nenhum usuário encontrado com este e-mail.';
-      } else if (e.code == 'wrong-password') {
-        _erro = 'Senha incorreta.';
-      } else {
-        _erro = e.message;
+      // Navigate to home or profile screen
+    } catch (e) {
+      setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
-    } finally {    
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
-Future<void> _loginComGoogle() async {
-  setState(() {
-    _isLoading = true;
-    _erro = null;
-  });
-  try {
-    final googleSignIn = GoogleSignIn.instance;
-    await googleSignIn.initialize(
-      serverClientId: '515293340951-94s0arso1q5uciton05l3mso47709dia.apps.googleusercontent.com',
-    );
+  Future<void> _loginComGoogle() async {
+    setState(() => _isLoading = true);
 
-    final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
-    if (googleUser == null) return;
-
-    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-    if (googleAuth.idToken == null) {
-      setState(() {
-        _erro = 'Não foi possível obter o idToken do Google.';
-      });
-      return;
+    try {
+      await _authService.signInWithGoogle();
+      // Navigate to home or profile screen
+    } catch (e) {
+      setState(() => _erro = 'Erro ao fazer login com Google: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-    );
-
-    await FirebaseAuth.instance.signInWithCredential(credential);
-
-    // Redirecionamento ou UI para login bem-sucedido...
-  } on FirebaseAuthException catch (e) {
-    setState(() {
-      _erro = e.message;
-    });
-  } finally {
-    setState(() {
-      _isLoading = false;
-    });
   }
-}
-
 
   Future<void> _loginComTelemovel() async {
     Navigator.pushNamed(context, '/telefoneLogin');
@@ -137,13 +105,7 @@ Future<void> _loginComGoogle() async {
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          if (_formKey.currentState?.validate() == true) {
-                            _loginComEmail();
-                          }
-                        },
+                  onPressed: _isLoading ? null : _loginComEmail,
                   child: _isLoading
                       ? const CircularProgressIndicator()
                       : const Text('Entrar com E-mail'),

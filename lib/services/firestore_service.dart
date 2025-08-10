@@ -1,22 +1,131 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/wish_item.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/models/wish_item.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final _wishlistCollection = 'wishlist';
+  final _cloudinaryService = CloudinaryService();
+  final String _wishlistsCollection = 'wishlists';
+  final String _usersCollection = 'users';
 
-  // Captura a coleção
-  CollectionReference get _collection => _firestore.collection(_wishlistCollection);
-
-  Stream<List<WishItem>> streamWishlist() {
-    return _collection.snapshots().map((snapshot) =>
-      snapshot.docs.map((doc) => WishItem.fromFirestore(doc)).toList()
-    );
+  Stream<QuerySnapshot> getWishlists(String userId) {
+    return _firestore
+        .collection(_wishlistsCollection)
+        .where('ownerId', isEqualTo: userId)
+        .snapshots();
   }
 
-  Future<void> addWishItem(WishItem item) => _collection.add(item.toFirestore());
+  Future<DocumentSnapshot> getWishlist(String wishlistId) {
+    return _firestore.collection(_wishlistsCollection).doc(wishlistId).get();
+  }
 
-  Future<void> updateWishItem(WishItem item) => _collection.doc(item.id).update(item.toFirestore());
+  Future<void> saveWishlist({
+    required String name,
+    required bool isPrivate,
+    File? imageFile,
+    String? imageUrl,
+    String? wishlistId,
+  }) async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    String? finalImageUrl = imageUrl;
 
-  Future<void> deleteWishItem(String id) => _collection.doc(id).delete();
+    if (imageFile != null) {
+      finalImageUrl = await _cloudinaryService.uploadImage(imageFile);
+      if (finalImageUrl == null) {
+        throw Exception('Erro ao carregar imagem.');
+      }
+    }
+
+    final data = {
+      'name': name,
+      'private': isPrivate,
+      'imageUrl': finalImageUrl,
+    };
+
+    if (wishlistId == null) {
+      data['ownerId'] = userId;
+      data['createdAt'] = FieldValue.serverTimestamp();
+      await _firestore.collection(_wishlistsCollection).add(data);
+    } else {
+      await _firestore.collection(_wishlistsCollection).doc(wishlistId).update(data);
+    }
+  }
+
+  Future<void> deleteWishlist(String wishlistId) async {
+    await _firestore.collection(_wishlistsCollection).doc(wishlistId).delete();
+  }
+
+  Stream<QuerySnapshot> getWishItems(String wishlistId) {
+    return _firestore
+        .collection(_wishlistsCollection)
+        .doc(wishlistId)
+        .collection('items')
+        .snapshots();
+  }
+
+  Future<void> saveWishItem({
+    required String wishlistId,
+    required String name,
+    required double price,
+    required String category,
+    File? imageFile,
+    String? imageUrl,
+    String? itemId,
+  }) async {
+    String? finalImageUrl = imageUrl;
+
+    if (imageFile != null) {
+      finalImageUrl = await _cloudinaryService.uploadImage(imageFile);
+      if (finalImageUrl == null) {
+        throw Exception('Erro ao carregar imagem.');
+      }
+    }
+
+    final data = {
+      'name': name,
+      'price': price,
+      'category': category,
+      'imageUrl': finalImageUrl,
+    };
+
+    if (itemId == null) {
+      await _firestore
+          .collection(_wishlistsCollection)
+          .doc(wishlistId)
+          .collection('items')
+          .add(data);
+    } else {
+      await _firestore
+          .collection(_wishlistsCollection)
+          .doc(wishlistId)
+          .collection('items')
+          .doc(itemId)
+          .update(data);
+    }
+  }
+
+  Future<void> deleteWishItem(String wishlistId, String itemId) async {
+    await _firestore
+        .collection(_wishlistsCollection)
+        .doc(wishlistId)
+        .collection('items')
+        .doc(itemId)
+        .delete();
+  }
+
+  Stream<QuerySnapshot> getPublicUsers() {
+    return _firestore
+        .collection(_usersCollection)
+        .where('isPrivate', isEqualTo: false)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getPublicWishlists() {
+    return _firestore
+        .collection(_wishlistsCollection)
+        .where('private', isEqualTo: false)
+        .snapshots();
+  }
 }

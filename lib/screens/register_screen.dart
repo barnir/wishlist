@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,29 +14,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmarPasswordController = TextEditingController();
+  final _authService = AuthService();
+
   bool _isLoading = false;
   String? _erro;
 
   Future<void> _registar() async {
-    setState(() { _isLoading = true; _erro = null; });
-    if (!_formKey.currentState!.validate()) {
-      setState(() { _isLoading = false; });
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      final userCredential = await _authService.createUserWithEmailAndPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
-      // Guarda o nome no perfil do utilizador
-      await FirebaseAuth.instance.currentUser!.updateDisplayName(_nomeController.text.trim()); 
+      await userCredential.user?.updateDisplayName(_nomeController.text.trim());
+
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/profile');
-      // Redirecciona/utiliza navegação conforme a lógica da app
-    } on FirebaseAuthException catch (e) {
-      setState(() { _erro = e.message; });
+    } catch (e) {
+      setState(() => _erro = 'Erro ao registar: ${e.toString()}');
     } finally {
-      setState(() { _isLoading = false; });
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

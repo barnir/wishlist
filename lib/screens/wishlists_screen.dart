@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/firestore_service.dart';
 import '../widgets/wishlist_total.dart';
 
 class WishlistsScreen extends StatefulWidget {
@@ -11,12 +12,12 @@ class WishlistsScreen extends StatefulWidget {
 }
 
 class _WishlistsScreenState extends State<WishlistsScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _authService = AuthService();
+  final _firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
-    final user = _auth.currentUser;
+    final user = _authService.currentUser;
 
     if (user == null) {
       return Scaffold(
@@ -28,10 +29,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Minhas Wishlists')),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('wishlists')
-            .where('ownerId', isEqualTo: user.uid)
-            .snapshots(),
+        stream: _firestoreService.getWishlists(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -96,7 +94,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushNamed(context, '/add_new_wishlist');
+          Navigator.pushNamed(context, '/add_edit_wishlist');
         },
         tooltip: 'Adicionar nova wishlist',
         child: const Icon(Icons.add),
