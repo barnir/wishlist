@@ -74,17 +74,6 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     WishlistTotal(wishlistId: wishlist.id),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/add_edit_wishlist',
-                          arguments: wishlist.id,
-                        );
-                      },
-                    ),
                     const Icon(Icons.arrow_forward_ios),
                   ],
                 ),
