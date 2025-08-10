@@ -1,9 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 
 class AddEditWishlistScreen extends StatefulWidget {
   final String? wishlistId;
@@ -59,10 +60,25 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
 
   Future<String?> _uploadImage(String wishlistId) async {
     if (_imageFile == null) return null;
+
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/dqwh1uk68/image/upload');
+    final request = http.MultipartRequest('POST', url)
+      ..fields['upload_preset'] = 'wishlists_img'
+      ..files.add(await http.MultipartFile.fromPath('file', _imageFile!.path));
+
     try {
-      final ref = FirebaseStorage.instance.ref().child('wishlist_icons').child('$wishlistId.jpg');
-      await ref.putFile(_imageFile!);
-      return await ref.getDownloadURL();
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.toBytes();
+        final responseString = String.fromCharCodes(responseData);
+        final jsonMap = json.decode(responseString);
+        return jsonMap['secure_url'];
+      } else {
+        setState(() {
+          _erro = 'Erro ao carregar imagem: ${response.reasonPhrase}';
+        });
+        return null;
+      }
     } catch (e) {
       setState(() {
         _erro = 'Erro ao carregar imagem: $e';

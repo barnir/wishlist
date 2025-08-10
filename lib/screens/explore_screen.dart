@@ -49,21 +49,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       return const CircularProgressIndicator();
                     }
 
-                    final profiles = snapshot.data!.docs
-                        .where((doc) => (doc['displayName'] as String)
-                            .toLowerCase()
-                            .contains(_termoPesquisa.toLowerCase()) && (!(doc['private'] ?? false)))
-                        .toList();
+                    final profiles = snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final displayName = data['displayName'] as String? ?? '';
+                      final isPrivate = data['private'] as bool? ?? false;
+                      return displayName.toLowerCase().contains(_termoPesquisa.toLowerCase()) && !isPrivate;
+                    }).toList();
 
                     return Column(
-                      children: profiles.map((profile) => ListTile(
-                            leading: const CircleAvatar(child: Icon(Icons.person)),
-                            title: Text(profile['displayName'] ?? 'Sem nome'),
-                            onTap: () {
-                              // Navega para página de perfil do utilizador
-                              Navigator.pushNamed(context, '/profileView', arguments: profile.id);
-                            },
-                          )).toList(),
+                      children: profiles.map((profile) {
+                        final data = profile.data() as Map<String, dynamic>;
+                        final displayName = data['displayName'] as String? ?? 'Sem nome';
+                        return ListTile(
+                          leading: const CircleAvatar(child: Icon(Icons.person)),
+                          title: Text(displayName),
+                          onTap: () {
+                            // Navega para página de perfil do utilizador
+                            Navigator.pushNamed(context, '/profileView', arguments: profile.id);
+                          },
+                        );
+                      }).toList(),
                     );
                   },
                 ),
@@ -80,21 +85,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       return const CircularProgressIndicator();
                     }
 
-                    final wishlists = snapshot.data!.docs
-                        .where((doc) => (doc['name'] as String)
-                            .toLowerCase()
-                            .contains(_termoPesquisa.toLowerCase()) && (!(doc['isPrivate'] ?? false)))
-                        .toList();
+                    final wishlists = snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final name = data['name'] as String? ?? '';
+                      final isPrivate = data['isPrivate'] as bool? ?? false;
+                      return name.toLowerCase().contains(_termoPesquisa.toLowerCase()) && !isPrivate;
+                    }).toList();
 
                     return Column(
-                      children: wishlists.map((wishlist) => ListTile(
-                            leading: const Icon(Icons.list_alt),
-                            title: Text(wishlist['name'] ?? 'Sem nome'),
-                            subtitle: Text('Proprietário: ${wishlist['ownerName'] ?? 'Desconhecido'}'),
-                            onTap: () {
-                              Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist.id);
-                            },
-                          )).toList(),
+                      children: wishlists.map((wishlist) {
+                        final data = wishlist.data() as Map<String, dynamic>;
+                        final name = data['name'] as String? ?? 'Sem nome';
+                        final ownerName = data['ownerName'] as String? ?? 'Desconhecido';
+                        return ListTile(
+                          leading: const Icon(Icons.list_alt),
+                          title: Text(name),
+                          subtitle: Text('Proprietário: $ownerName'),
+                          onTap: () {
+                            Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist.id);
+                          },
+                        );
+                      }).toList(),
                     );
                   },
                 ),
