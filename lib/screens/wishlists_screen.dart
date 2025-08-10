@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/wishlist_total.dart';
 
 class WishlistsScreen extends StatefulWidget {
@@ -57,7 +58,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
 
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+                  backgroundImage: imageUrl != null ? CachedNetworkImageProvider(imageUrl) : null,
                   child: imageUrl == null ? const Icon(Icons.card_giftcard) : null,
                 ),
                 title: Text(name),

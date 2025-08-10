@@ -14,7 +14,10 @@ class CloudinaryService {
   Future<String?> uploadImage(File imageFile) async {
     try {
       final response = await _cloudinary.uploadFile(
-        CloudinaryFile.fromFile(imageFile.path, resourceType: CloudinaryResourceType.Image),
+        CloudinaryFile.fromFile(
+          imageFile.path,
+          resourceType: CloudinaryResourceType.Image,
+        ),
       );
       return response.secureUrl;
     } on CloudinaryException catch (e) {
