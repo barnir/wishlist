@@ -1,10 +1,8 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
+import 'package:wishlist_app/services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddEditWishlistScreen extends StatefulWidget {
   final String? wishlistId;
@@ -17,18 +15,17 @@ class AddEditWishlistScreen extends StatefulWidget {
 class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _firestoreService = FirestoreService();
+
   bool _isPrivate = false;
   bool _isLoading = false;
-  String? _erro;
-  String? _wishlistId;
   File? _imageFile;
   String? _imageUrl;
 
   @override
   void initState() {
     super.initState();
-    _wishlistId = widget.wishlistId;
-    if (_wishlistId != null) {
+    if (widget.wishlistId != null) {
       _loadWishlistData();
     }
   }
@@ -36,14 +33,16 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   Future<void> _loadWishlistData() async {
     setState(() => _isLoading = true);
     try {
-      final doc = await FirebaseFirestore.instance.collection('wishlists').doc(_wishlistId).get();
+      final doc = await FirebaseFirestore.instance.collection('wishlists').doc(widget.wishlistId).get();
       if (doc.exists) {
-        _nameController.text = doc['name'] ?? '';
-        _isPrivate = doc['private'] ?? false;
-        _imageUrl = doc['imageUrl'];
+        setState(() {
+          _nameController.text = doc['name'] ?? '';
+          _isPrivate = doc['private'] ?? false;
+          _imageUrl = doc['imageUrl'];
+        });
       }
     } catch (e) {
-      setState(() => _erro = 'Erro ao carregar wishlist: $e');
+      _showError('Erro ao carregar wishlist: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -58,75 +57,38 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
     }
   }
 
-  Future<String?> _uploadImage(String wishlistId) async {
-    if (_imageFile == null) return null;
-
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/dqwh1uk68/image/upload');
-    final request = http.MultipartRequest('POST', url)
-      ..fields['upload_preset'] = 'wishlists_img'
-      ..files.add(await http.MultipartFile.fromPath('file', _imageFile!.path));
-
-    try {
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        final responseData = await response.stream.toBytes();
-        final responseString = String.fromCharCodes(responseData);
-        final jsonMap = json.decode(responseString);
-        return jsonMap['secure_url'];
-      } else {
-        setState(() {
-          _erro = 'Erro ao carregar imagem: ${response.reasonPhrase}';
-        });
-        return null;
-      }
-    } catch (e) {
-      setState(() {
-        _erro = 'Erro ao carregar imagem: $e';
-      });
-      return null;
-    }
-  }
-
   Future<void> _saveWishlist() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
-      String? imageUrl = _imageUrl;
-
-      if (_wishlistId == null) {
-        final newWishlistRef = FirebaseFirestore.instance.collection('wishlists').doc();
-        _wishlistId = newWishlistRef.id;
-        if (_imageFile != null) {
-          imageUrl = await _uploadImage(_wishlistId!);
-        }
-        await newWishlistRef.set({
-          'name': _nameController.text.trim(),
-          'ownerId': userId,
-          'private': _isPrivate,
-          'createdAt': FieldValue.serverTimestamp(),
-          'imageUrl': imageUrl,
-        });
-      } else {
-        if (_imageFile != null) {
-          imageUrl = await _uploadImage(_wishlistId!);
-        }
-        await FirebaseFirestore.instance.collection('wishlists').doc(_wishlistId).update({
-          'name': _nameController.text.trim(),
-          'private': _isPrivate,
-          'imageUrl': imageUrl,
-        });
-      }
+      await _firestoreService.saveWishlist(
+        name: _nameController.text.trim(),
+        isPrivate: _isPrivate,
+        imageFile: _imageFile,
+        imageUrl: _imageUrl,
+        wishlistId: widget.wishlistId,
+      );
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
-      setState(() => _erro = 'Erro ao guardar: $e');
+      _showError('Erro ao guardar: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -138,19 +100,15 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_wishlistId == null ? 'Criar Wishlist' : 'Editar Wishlist')),
+      appBar: AppBar(title: Text(widget.wishlistId == null ? 'Criar Wishlist' : 'Editar Wishlist')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isLoading && _wishlistId != null
+        child: _isLoading && widget.wishlistId != null
             ? const Center(child: CircularProgressIndicator())
             : Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    if (_erro != null) ...[
-                      Text(_erro!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 12),
-                    ],
                     GestureDetector(
                       onTap: _pickImage,
                       child: CircleAvatar(
@@ -190,7 +148,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                       onPressed: _isLoading ? null : _saveWishlist,
                       child: _isLoading
                           ? const CircularProgressIndicator()
-                          : Text(_wishlistId == null ? 'Criar Wishlist' : 'Guardar Alterações'),
+                          : Text(widget.wishlistId == null ? 'Criar Wishlist' : 'Guardar Alterações'),
                     ),
                   ],
                 ),

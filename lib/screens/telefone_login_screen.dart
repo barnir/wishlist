@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 
 class TelefoneLoginScreen extends StatefulWidget {
   const TelefoneLoginScreen({super.key});
@@ -10,6 +11,7 @@ class TelefoneLoginScreen extends StatefulWidget {
 }
 
 class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
+  final _authService = AuthService();
   String? _telefoneCompleto;
   final _codeController = TextEditingController();
   String? _verificationId;
@@ -30,11 +32,10 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
+      await _authService.verifyPhoneNumber(
         phoneNumber: _telefoneCompleto!,
-        timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          await FirebaseAuth.instance.signInWithCredential(credential);
+          await _authService.signInWithPhoneCredential(credential);
           if (mounted) Navigator.pop(context, true);
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -78,7 +79,7 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
         verificationId: _verificationId!,
         smsCode: _codeController.text.trim(),
       );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      await _authService.signInWithPhoneCredential(credential);
       if (mounted) Navigator.pop(context, true);
     } on FirebaseAuthException catch (e) {
       setState(() {

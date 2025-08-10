@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/services/firestore_service.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -9,8 +10,8 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
+  final _firestoreService = FirestoreService();
   String _termoPesquisa = '';
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +44,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: Text('Perfis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 StreamBuilder<QuerySnapshot>(
-                  stream: _firestore.collection('users').snapshots(),
+                  stream: _firestoreService.getPublicUsers(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
@@ -52,7 +53,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     final profiles = snapshot.data!.docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       final displayName = data['displayName'] as String? ?? '';
-                      final isPrivate = data['private'] as bool? ?? false;
+                      final isPrivate = data['isPrivate'] as bool? ?? false;
                       return displayName.toLowerCase().contains(_termoPesquisa.toLowerCase()) && !isPrivate;
                     }).toList();
 
@@ -65,7 +66,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           title: Text(displayName),
                           onTap: () {
                             // Navega para página de perfil do utilizador
-                            Navigator.pushNamed(context, '/profileView', arguments: profile.id);
+                            // Navigator.pushNamed(context, '/profileView', arguments: profile.id);
                           },
                         );
                       }).toList(),
@@ -79,7 +80,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: Text('Wishlists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 StreamBuilder<QuerySnapshot>(
-                  stream: _firestore.collection('wishlists').snapshots(),
+                  stream: _firestoreService.getPublicWishlists(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
@@ -88,7 +89,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     final wishlists = snapshot.data!.docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       final name = data['name'] as String? ?? '';
-                      final isPrivate = data['isPrivate'] as bool? ?? false;
+                      final isPrivate = data['private'] as bool? ?? false;
                       return name.toLowerCase().contains(_termoPesquisa.toLowerCase()) && !isPrivate;
                     }).toList();
 
