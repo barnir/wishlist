@@ -5,6 +5,7 @@ import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -139,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           backgroundImage: _imageFile != null
                               ? FileImage(_imageFile!)
                               : user.photoURL != null
-                                  ? NetworkImage(user.photoURL!)
+                                  ? CachedNetworkImageProvider(user.photoURL!)
                                   : null,
                           child: _imageFile == null && user.photoURL == null
                               ? const Icon(Icons.add_a_photo, size: 50)

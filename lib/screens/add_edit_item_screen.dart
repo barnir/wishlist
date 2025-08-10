@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/category.dart';
 
 class AddEditItemScreen extends StatefulWidget {
@@ -140,7 +141,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         backgroundImage: _imageFile != null
                             ? FileImage(_imageFile!)
                             : _imageUrl != null
-                                ? NetworkImage(_imageUrl!)
+                                ? CachedNetworkImageProvider(_imageUrl!)
                                 : null,
                         child: _imageFile == null && _imageUrl == null
                             ? const Icon(Icons.add_a_photo, size: 50)

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class AddEditWishlistScreen extends StatefulWidget {
   final String? wishlistId;
@@ -116,7 +117,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                         backgroundImage: _imageFile != null
                             ? FileImage(_imageFile!)
                             : _imageUrl != null
-                                ? NetworkImage(_imageUrl!)
+                                ? CachedNetworkImageProvider(_imageUrl!)
                                 : null,
                         child: _imageFile == null && _imageUrl == null
                             ? const Icon(Icons.add_a_photo, size: 50)
