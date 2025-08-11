@@ -118,7 +118,6 @@ class AuthService {
 
     final credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken!,
-      accessToken: null, // Explicitly pass null for accessToken as per user's report
     );
     await currentUser!.reauthenticateWithCredential(credential);
   }
