@@ -21,7 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
   bool _isEditingName = false;
   bool _isPrivate = false;
-  File? _imageFile;
+  // File? _imageFile; // Removed this
 
   bool _isLoading = false;
   
@@ -48,21 +48,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
     if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-      _uploadProfilePicture();
+      await _uploadProfilePicture(File(pickedFile.path));
     }
   }
 
-  Future<void> _uploadProfilePicture() async {
-    if (_imageFile == null) return;
-
+  Future<void> _uploadProfilePicture(File imageFile) async {
     setState(() => _isLoading = true);
-    await _authService.updateProfilePicture(_imageFile!);
-    await _loadProfileData();
+    await _authService.updateProfilePicture(imageFile);
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -93,7 +92,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _signOut() async {
     await _authService.signOut();
-    Navigator.of(context).pushReplacementNamed('/login');
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   @override
@@ -115,12 +116,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onTap: _pickImage,
                         child: CircleAvatar(
                           radius: 50,
-                          backgroundImage: _imageFile != null
-                              ? FileImage(_imageFile!)
-                              : user.photoURL != null
+                          backgroundImage: user.photoURL != null
                                   ? CachedNetworkImageProvider(user.photoURL!)
                                   : null,
-                          child: _imageFile == null && user.photoURL == null
+                          child: user.photoURL == null
                               ? const Icon(Icons.add_a_photo, size: 50)
                               : null,
                         ),

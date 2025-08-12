@@ -26,6 +26,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
+  late TextEditingController _linkController; // Added controller
   late TextEditingController _quantityController;
   late TextEditingController _priceController;
   String? _selectedCategory;
@@ -40,8 +41,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     super.initState();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
+    _linkController = TextEditingController(); // Initialized controller
     _quantityController = TextEditingController(text: '1');
-    _priceController = TextEditingController();
+    _priceController = TextEditingController(text: '0'); // Default price to 0
     _selectedCategory = categories.first.name;
 
     if (widget.itemId != null) {
@@ -58,8 +60,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       if (itemDoc.exists) {
         _nameController.text = itemDoc['name'] ?? '';
         _descriptionController.text = itemDoc['description'] ?? '';
+        _linkController.text = itemDoc['link'] ?? ''; // Load link
         _quantityController.text = (itemDoc['quantity'] ?? 1).toString();
-        _priceController.text = (itemDoc['price'] ?? '').toString();
+        _priceController.text = (itemDoc['price'] ?? '0').toString(); // Default price to 0
         _selectedCategory = itemDoc['category'] ?? categories.first.name;
         _imageUrl = itemDoc['imageUrl'];
       }
@@ -71,7 +74,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -83,6 +91,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _linkController.dispose(); // Disposed controller
     _quantityController.dispose();
     _priceController.dispose();
     super.dispose();
@@ -97,8 +106,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       await _firestoreService.saveWishItem(
         wishlistId: widget.wishlistId,
         name: _nameController.text.trim(),
-        price: double.tryParse(_priceController.text.trim()) ?? 0.0,
+        price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
         category: _selectedCategory!,
+        link: _linkController.text.trim(), // Save link
         imageFile: _imageFile,
         imageUrl: _imageUrl,
         itemId: widget.itemId,
@@ -201,6 +211,18 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         filled: true,
                       ),
                       maxLines: 3,
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _linkController,
+                      decoration: InputDecoration(
+                        labelText: 'Link',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                      ),
+                      keyboardType: TextInputType.url,
                     ),
                     const SizedBox(height: 20),
                     Row(

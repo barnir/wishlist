@@ -70,6 +70,7 @@ class FirestoreService {
     required String name,
     required double price,
     required String category,
+    String? link,
     File? imageFile,
     String? imageUrl,
     String? itemId,
@@ -87,6 +88,7 @@ class FirestoreService {
       'name': name,
       'price': price,
       'category': category,
+      'link': link,
       'imageUrl': finalImageUrl,
     };
 

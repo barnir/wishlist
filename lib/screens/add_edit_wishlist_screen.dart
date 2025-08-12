@@ -50,7 +50,12 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
