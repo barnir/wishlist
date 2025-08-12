@@ -25,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _isLoading = false;
   
+  
 
   @override
   void initState() {
@@ -34,6 +35,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
+    final userId = _authService.currentUser!.uid;
+    final userData = await _userService.getUserProfile(userId);
+    if (userData.exists) {
+      setState(() {
+        _nameController.text = userData.get('displayName') ?? '';
+        _isPrivate = userData.get('isPrivate') ?? false;
+      });
+    }
+    if (mounted) {
+      setState(() => _isLoading = false);
     final userId = _authService.currentUser!.uid;
     final userData = await _userService.getUserProfile(userId);
     if (userData.exists) {
@@ -77,11 +88,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isEditingName = false);
     if (mounted) {
       setState(() => _isLoading = false);
+    final userId = _authService.currentUser!.uid;
+    await _authService.currentUser?.updateDisplayName(_nameController.text.trim());
+    await _userService.updateUserProfile(userId, {'displayName': _nameController.text.trim()});
+    setState(() => _isEditingName = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _savePrivacySetting(bool isPrivate) async {
     setState(() => _isLoading = true);
+    final userId = _authService.currentUser!.uid;
+    await _userService.updateUserProfile(userId, {'isPrivate': isPrivate});
+    setState(() => _isPrivate = isPrivate);
+    if (mounted) {
+      setState(() => _isLoading = false);
     final userId = _authService.currentUser!.uid;
     await _userService.updateUserProfile(userId, {'isPrivate': isPrivate});
     setState(() => _isPrivate = isPrivate);
@@ -111,6 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
                     children: [
+                      
                       
                       GestureDetector(
                         onTap: _pickImage,
