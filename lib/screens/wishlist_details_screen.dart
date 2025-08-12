@@ -175,15 +175,15 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 }
 
                 var items = snapshot.data!.docs
-                    .map((doc) => WishItem.fromFirestore(doc))
-                    .toList();
+                    .map((doc) => WishItem.fromFirestore(doc));
 
                 // Filtering
                 if (_selectedCategory != null) {
-                  items = items.where((item) => item.category == _selectedCategory).toList();
+                  items = items.where((item) => item.category == _selectedCategory);
                 }
 
                 // Sorting
+                items = items.toList(); // Convert to list for sorting
                 items.sort((a, b) {
                   switch (_sortOption) {
                     case SortOptions.priceAsc:
@@ -313,7 +313,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                this.setState(() {}); // Rebuild the main screen with the new filter/sort
+                setState(() {}); // Rebuild the main screen with the new filter/sort
               },
               child: const Text('Aplicar'),
             ),
