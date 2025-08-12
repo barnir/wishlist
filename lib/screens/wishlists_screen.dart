@@ -1,8 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:wishlist_app/services/image_cache_service.dart';
 import '../widgets/wishlist_total.dart';
 
 class WishlistsScreen extends StatefulWidget {
@@ -57,9 +58,32 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
               final imageUrl = data.containsKey('imageUrl') ? data['imageUrl'] : null;
 
               return ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: imageUrl != null ? CachedNetworkImageProvider(imageUrl) : null,
-                  child: imageUrl == null ? const Icon(Icons.card_giftcard) : null,
+                leading: SizedBox(
+                  width: 50, // Standard size for CircleAvatar
+                  height: 50,
+                  child: FutureBuilder<File?>(
+                    future: imageUrl != null && imageUrl.isNotEmpty
+                        ? ImageCacheService.getFile(imageUrl)
+                        : Future.value(null),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          child: const CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                        return CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          child: const Icon(Icons.card_giftcard),
+                        );
+                      } else {
+                        return CircleAvatar(
+                          backgroundImage: FileImage(snapshot.data!),
+                          radius: 50,
+                        );
+                      }
+                    },
+                  ),
                 ),
                 title: Text(name),
                 subtitle: Text(isPrivate ? 'Privada' : 'Pública'),

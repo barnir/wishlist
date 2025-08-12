@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/services/image_cache_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 
@@ -20,11 +22,36 @@ class WishItemTile extends StatelessWidget {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          child: Icon(
-            category.icon,
-            color: Theme.of(context).colorScheme.primary,
+        leading: SizedBox(
+          width: 50, // Standard size for CircleAvatar
+          height: 50,
+          child: FutureBuilder<File?>(
+            future: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                ? ImageCacheService.getFile(item.imageUrl!)
+                : Future.value(null), // No image URL, so no file
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  child: const CircularProgressIndicator(strokeWidth: 2),
+                );
+              } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                // Fallback to category icon if image fails to load or is not present
+                return CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  child: Icon(
+                    category.icon,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                );
+              } else {
+                // Display the image from file
+                return CircleAvatar(
+                  backgroundImage: FileImage(snapshot.data!),
+                  radius: 50,
+                );
+              }
+            },
           ),
         ),
         title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -82,3 +109,4 @@ class WishItemTile extends StatelessWidget {
     );
   }
 }
+

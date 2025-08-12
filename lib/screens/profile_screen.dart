@@ -2,10 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,11 +19,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
   bool _isEditingName = false;
   bool _isPrivate = false;
-  // File? _imageFile; // Removed this
+  bool _isUploading = false;
+  Future<File?>? _imageFuture;
 
   bool _isLoading = false;
-  
-  
 
   @override
   void initState() {
@@ -38,20 +35,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userId = _authService.currentUser!.uid;
     final userData = await _userService.getUserProfile(userId);
     if (userData.exists) {
-      setState(() {
-        _nameController.text = userData.get('displayName') ?? '';
-        _isPrivate = userData.get('isPrivate') ?? false;
-      });
-    }
-    if (mounted) {
-      setState(() => _isLoading = false);
-    final userId = _authService.currentUser!.uid;
-    final userData = await _userService.getUserProfile(userId);
-    if (userData.exists) {
-      setState(() {
-        _nameController.text = userData.get('displayName') ?? '';
-        _isPrivate = userData.get('isPrivate') ?? false;
-      });
+      _nameController.text = userData.get('displayName') ?? '';
+      _isPrivate = userData.get('isPrivate') ?? false;
+      final photoURL = _authService.currentUser?.photoURL;
+      if (photoURL != null) {
+        _imageFuture = ImageCacheService.getFile(photoURL);
+      }
     }
     if (mounted) {
       setState(() => _isLoading = false);
@@ -66,15 +55,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       maxHeight: 512,
     );
     if (pickedFile != null) {
-      await _uploadProfilePicture(File(pickedFile.path));
-    }
-  }
-
-  Future<void> _uploadProfilePicture(File imageFile) async {
-    setState(() => _isLoading = true);
-    await _authService.updateProfilePicture(imageFile);
-    if (mounted) {
-      setState(() => _isLoading = false);
+      final tempFile = File(pickedFile.path);
+      setState(() {
+        _imageFuture = Future.value(tempFile);
+        _isUploading = true;
+      });
+      
+      try {
+        await _authService.updateProfilePicture(tempFile);
+        final newUrl = _authService.currentUser?.photoURL;
+        if (newUrl != null) {
+          await ImageCacheService.putFile(newUrl, await tempFile.readAsBytes());
+          setState(() {
+            _imageFuture = ImageCacheService.getFile(newUrl);
+          });
+        }
+      } catch (e) {
+        // Handle error
+      } finally {
+        if (mounted) {
+          setState(() => _isUploading = false);
+        }
+      }
     }
   }
 
@@ -88,22 +90,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isEditingName = false);
     if (mounted) {
       setState(() => _isLoading = false);
-    final userId = _authService.currentUser!.uid;
-    await _authService.currentUser?.updateDisplayName(_nameController.text.trim());
-    await _userService.updateUserProfile(userId, {'displayName': _nameController.text.trim()});
-    setState(() => _isEditingName = false);
-    if (mounted) {
-      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _savePrivacySetting(bool isPrivate) async {
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.uid;
-    await _userService.updateUserProfile(userId, {'isPrivate': isPrivate});
-    setState(() => _isPrivate = isPrivate);
-    if (mounted) {
-      setState(() => _isLoading = false);
     final userId = _authService.currentUser!.uid;
     await _userService.updateUserProfile(userId, {'isPrivate': isPrivate});
     setState(() => _isPrivate = isPrivate);
@@ -133,18 +124,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
                     children: [
-                      
-                      
                       GestureDetector(
-                        onTap: _pickImage,
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundImage: user.photoURL != null
-                                  ? CachedNetworkImageProvider(user.photoURL!)
-                                  : null,
-                          child: user.photoURL == null
-                              ? const Icon(Icons.add_a_photo, size: 50)
-                              : null,
+                        onTap: _isUploading ? null : _pickImage,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            FutureBuilder<File?>(
+                              future: _imageFuture,
+                              builder: (context, snapshot) {
+                                final imageFile = snapshot.data;
+                                return CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+                                  child: imageFile == null && !_isUploading
+                                      ? const Icon(Icons.add_a_photo, size: 50)
+                                      : null,
+                                );
+                              },
+                            ),
+                            if (_isUploading)
+                              const CircularProgressIndicator(),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),

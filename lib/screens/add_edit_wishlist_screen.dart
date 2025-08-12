@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:wishlist_app/services/image_cache_service.dart';
+import 'package:path_provider/path_provider.dart';
 
 class AddEditWishlistScreen extends StatefulWidget {
   final String? wishlistId;
@@ -20,8 +22,10 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
 
   bool _isPrivate = false;
   bool _isLoading = false;
-  File? _imageFile;
-  String? _imageUrl;
+  bool _isUploading = false;
+  Uint8List? _imageBytes;
+  Future<File?>? _imageFuture;
+  String? _existingImageUrl; // Added to store original image URL
 
   @override
   void initState() {
@@ -39,7 +43,10 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         setState(() {
           _nameController.text = doc['name'] ?? '';
           _isPrivate = doc['private'] ?? false;
-          _imageUrl = doc['imageUrl'];
+          _existingImageUrl = doc['imageUrl']; // Store original image URL
+          if (_existingImageUrl != null) {
+            _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
+          }
         });
       }
     } catch (e) {
@@ -57,8 +64,11 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
       maxHeight: 512,
     );
     if (pickedFile != null) {
+      final imageBytes = await pickedFile.readAsBytes();
+      final tempFile = File(pickedFile.path);
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageBytes = imageBytes;
+        _imageFuture = Future.value(tempFile);
       });
     }
   }
@@ -68,23 +78,44 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
 
     setState(() => _isLoading = true);
 
-    try {
+    String? finalImageUrl = _existingImageUrl; // Start with existing URL
+    if (_imageBytes != null) {
+      setState(() => _isUploading = true);
+      try {
+        // Create a temporary file from bytes for upload
+        final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!); // Import path_provider
+
+        await _firestoreService.saveWishlist(
+          name: _nameController.text.trim(),
+          isPrivate: _isPrivate,
+          imageFile: tempFileForUpload, // Pass File
+          wishlistId: widget.wishlistId,
+        );
+        if (finalImageUrl != null) {
+          await ImageCacheService.putFile(finalImageUrl, _imageBytes!); // Cache with new URL
+          setState(() {
+            _imageFuture = ImageCacheService.getFile(finalImageUrl);
+          });
+        }
+      } catch (e) {
+        _showError('Erro ao carregar imagem: $e');
+      } finally {
+        setState(() => _isUploading = false);
+      }
+    } else {
+      // If no new image is picked, save without imageBytes, use existing imageUrl
       await _firestoreService.saveWishlist(
         name: _nameController.text.trim(),
         isPrivate: _isPrivate,
-        imageFile: _imageFile,
-        imageUrl: _imageUrl,
+        imageUrl: _existingImageUrl, // Pass existing image URL
         wishlistId: widget.wishlistId,
       );
+    }
 
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } catch (e) {
-      _showError('Erro ao guardar: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -116,17 +147,26 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                 child: Column(
                   children: [
                     GestureDetector(
-                      onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundImage: _imageFile != null
-                            ? FileImage(_imageFile!)
-                            : _imageUrl != null
-                                ? CachedNetworkImageProvider(_imageUrl!)
-                                : null,
-                        child: _imageFile == null && _imageUrl == null
-                            ? const Icon(Icons.add_a_photo, size: 50)
-                            : null,
+                      onTap: _isUploading ? null : _pickImage,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          FutureBuilder<File?>(
+                            future: _imageFuture,
+                            builder: (context, snapshot) {
+                              final imageFile = snapshot.data;
+                              return CircleAvatar(
+                                radius: 50,
+                                backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+                                child: imageFile == null && !_isUploading
+                                    ? const Icon(Icons.add_a_photo, size: 50)
+                                    : null,
+                              );
+                            },
+                          ),
+                          if (_isUploading)
+                            const CircularProgressIndicator(),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -151,8 +191,8 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton(
-                      onPressed: _isLoading ? null : _saveWishlist,
-                      child: _isLoading
+                      onPressed: _isLoading || _isUploading ? null : _saveWishlist,
+                      child: _isLoading || _isUploading
                           ? const CircularProgressIndicator()
                           : Text(widget.wishlistId == null ? 'Criar Wishlist' : 'Guardar Alterações'),
                     ),

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:flutter/foundation.dart';
 
@@ -24,13 +23,8 @@ class AuthService {
       throw FirebaseAuthException(code: 'USER_CANCELLED');
     }
 
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
     
-    // Ensure idToken is not null
-    if (googleAuth.idToken == null) {
-      throw FirebaseAuthException(code: 'id-token-missing', message: 'ID Token is missing from Google authentication.');
-    }
-
     final AuthCredential credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken!,
     );
@@ -58,7 +52,7 @@ class AuthService {
     );
   }
 
-  Future<UserCredential> signInWithPhoneCredential(PhoneAuthCredential credential) {
+  Future<void> signInWithPhoneCredential(PhoneAuthCredential credential) {
     return _firebaseAuth.signInWithCredential(credential);
   }
 
@@ -93,7 +87,7 @@ class AuthService {
         message: 'Nenhum usuário logado para reautenticar.',
       );
     }
-    if (currentUser!.email == null) {
+    if (currentUser?.email == null) {
       throw FirebaseAuthException(
         code: 'no-email',
         message: 'Usuário não possui e-mail para reautenticação com senha.',
@@ -130,12 +124,7 @@ class AuthService {
     if (googleUser == null) {
       throw FirebaseAuthException(code: 'USER_CANCELLED');
     }
-    final googleAuth = await googleUser.authentication;
-
-    // Ensure idToken is not null
-    if (googleAuth.idToken == null) {
-      throw FirebaseAuthException(code: 'id-token-missing', message: 'ID Token is missing from Google authentication.');
-    }
+    final googleAuth = googleUser.authentication;
 
     final credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken!,
