@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -78,6 +79,8 @@ class AuthService {
     }
   }
 
+   // Import for kDebugMode
+
   Future<void> reauthenticateWithPassword(String password) async {
     if (currentUser == null) {
       throw FirebaseAuthException(
@@ -105,7 +108,20 @@ class AuthService {
         message: 'Nenhum usuário logado para reautenticar.',
       );
     }
-    final googleUser = await _googleSignIn.authenticate();
+    GoogleSignInAccount? googleUser;
+    try {
+      googleUser = await _googleSignIn.authenticate();
+      if (kDebugMode) {
+        print('Type of googleUser: ${googleUser.runtimeType}');
+        print('googleUser: $googleUser');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error during Google authentication: $e');
+      }
+      throw FirebaseAuthException(code: 'google-auth-failed', message: e.toString());
+    }
+
     if (googleUser == null) {
       throw FirebaseAuthException(code: 'USER_CANCELLED');
     }

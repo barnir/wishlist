@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:wishlist_app/config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +18,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   String? _erro;
+
+  @override
+  void initState() {
+    super.initState();
+    GoogleSignIn.instance.initialize(serverClientId: Config.googleSignInServerClientId);
+  }
 
   String? _validarEmail(String? value) {
     if (value == null || value.isEmpty) {
