@@ -76,7 +76,12 @@ class AuthService {
     final imageUrl = await _cloudinaryService.uploadImage(image);
     if (imageUrl != null) {
       await currentUser?.updatePhotoURL(imageUrl);
+      await reloadUser();
     }
+  }
+
+  Future<void> reloadUser() async {
+    await currentUser?.reload();
   }
 
    // Import for kDebugMode

@@ -24,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
 
   bool _isLoading = false;
-  String? _error;
+  
 
   @override
   void initState() {
@@ -34,21 +34,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    try {
-      final userId = _authService.currentUser!.uid;
-      final userData = await _userService.getUserProfile(userId);
-      if (userData.exists) {
-        setState(() {
-          _nameController.text = userData.get('displayName') ?? '';
-          _isPrivate = userData.get('isPrivate') ?? false;
-        });
-      }
-    } catch (e) {
-      setState(() => _error = 'Erro ao carregar perfil: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    final userId = _authService.currentUser!.uid;
+    final userData = await _userService.getUserProfile(userId);
+    if (userData.exists) {
+      setState(() {
+        _nameController.text = userData.get('displayName') ?? '';
+        _isPrivate = userData.get('isPrivate') ?? false;
+      });
+    }
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -66,14 +61,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_imageFile == null) return;
 
     setState(() => _isLoading = true);
-    try {
-      await _authService.updateProfilePicture(_imageFile!);
-    } catch (e) {
-      setState(() => _error = 'Erro ao carregar imagem: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    await _authService.updateProfilePicture(_imageFile!);
+    await _loadProfileData();
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -81,32 +72,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_nameController.text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    try {
-      final userId = _authService.currentUser!.uid;
-      await _authService.currentUser?.updateDisplayName(_nameController.text.trim());
-      await _userService.updateUserProfile(userId, {'displayName': _nameController.text.trim()});
-      setState(() => _isEditingName = false);
-    } catch (e) {
-      setState(() => _error = 'Erro ao guardar nome: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    final userId = _authService.currentUser!.uid;
+    await _authService.currentUser?.updateDisplayName(_nameController.text.trim());
+    await _userService.updateUserProfile(userId, {'displayName': _nameController.text.trim()});
+    setState(() => _isEditingName = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _savePrivacySetting(bool isPrivate) async {
     setState(() => _isLoading = true);
-    try {
-      final userId = _authService.currentUser!.uid;
-      await _userService.updateUserProfile(userId, {'isPrivate': isPrivate});
-      setState(() => _isPrivate = isPrivate);
-    } catch (e) {
-      setState(() => _error = 'Erro ao guardar privacidade: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    final userId = _authService.currentUser!.uid;
+    await _userService.updateUserProfile(userId, {'isPrivate': isPrivate});
+    setState(() => _isPrivate = isPrivate);
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -129,10 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
                     children: [
-                      if (_error != null) ...[
-                        Text(_error!, style: const TextStyle(color: Colors.red)),
-                        const SizedBox(height: 12),
-                      ],
+                      
                       GestureDetector(
                         onTap: _pickImage,
                         child: CircleAvatar(
