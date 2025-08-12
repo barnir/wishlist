@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:wishlist_app/services/image_cache_service.dart';
+import 'package:path_provider/path_provider.dart';
+
 import '../models/category.dart';
 
 class AddEditItemScreen extends StatefulWidget {
@@ -26,12 +28,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
-  late TextEditingController _linkController; // Added controller
+  late TextEditingController _linkController;
   late TextEditingController _quantityController;
   late TextEditingController _priceController;
   String? _selectedCategory;
-  File? _imageFile;
-  String? _imageUrl;
+  Uint8List? _imageBytes;
+  bool _isUploading = false;
+  Future<File?>? _imageFuture;
+  String? _existingImageUrl; // Added to store original image URL
 
   bool _isSaving = false;
   String? _erro;
@@ -41,9 +45,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     super.initState();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
-    _linkController = TextEditingController(); // Initialized controller
+    _linkController = TextEditingController();
     _quantityController = TextEditingController(text: '1');
-    _priceController = TextEditingController(text: '0'); // Default price to 0
+    _priceController = TextEditingController(text: '0');
     _selectedCategory = categories.first.name;
 
     if (widget.itemId != null) {
@@ -60,11 +64,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       if (itemDoc.exists) {
         _nameController.text = itemDoc['name'] ?? '';
         _descriptionController.text = itemDoc['description'] ?? '';
-        _linkController.text = itemDoc['link'] ?? ''; // Load link
+        _linkController.text = itemDoc['link'] ?? '';
         _quantityController.text = (itemDoc['quantity'] ?? 1).toString();
-        _priceController.text = (itemDoc['price'] ?? '0').toString(); // Default price to 0
+        _priceController.text = (itemDoc['price'] ?? '0').toString();
         _selectedCategory = itemDoc['category'] ?? categories.first.name;
-        _imageUrl = itemDoc['imageUrl'];
+        _existingImageUrl = itemDoc['imageUrl']; // Store original image URL
+        if (_existingImageUrl != null) {
+          _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
+        }
       }
     } catch (e) {
       setState(() => _erro = 'Erro ao carregar item: $e');
@@ -81,8 +88,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       maxHeight: 512,
     );
     if (pickedFile != null) {
+      final imageBytes = await pickedFile.readAsBytes();
+      final tempFile = File(pickedFile.path);
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageBytes = imageBytes;
+        _imageFuture = Future.value(tempFile);
       });
     }
   }
@@ -91,7 +101,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _linkController.dispose(); // Disposed controller
+    _linkController.dispose();
     _quantityController.dispose();
     _priceController.dispose();
     super.dispose();
@@ -102,23 +112,49 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
     setState(() => _isSaving = true);
 
-    try {
+    String? finalImageUrl = _existingImageUrl; // Start with existing URL
+    if (_imageBytes != null) {
+      setState(() => _isUploading = true);
+      try {
+        // Create a temporary file from bytes for upload
+        final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!); // Import path_provider
+
+        await _firestoreService.saveWishItem(
+          wishlistId: widget.wishlistId,
+          name: _nameController.text.trim(),
+          price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
+          category: _selectedCategory!,
+          link: _linkController.text.trim(),
+          imageFile: tempFileForUpload, // Pass File
+          itemId: widget.itemId,
+        );
+        if (finalImageUrl != null) {
+          await ImageCacheService.putFile(finalImageUrl, _imageBytes!); // Cache with new URL
+          setState(() {
+            _imageFuture = ImageCacheService.getFile(finalImageUrl);
+          });
+        }
+      } catch (e) {
+        setState(() => _erro = 'Erro ao carregar imagem: $e');
+      } finally {
+        setState(() => _isUploading = false);
+      }
+    } else {
+      // If no new image is picked, save without imageBytes, use existing imageUrl
       await _firestoreService.saveWishItem(
         wishlistId: widget.wishlistId,
         name: _nameController.text.trim(),
         price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
         category: _selectedCategory!,
-        link: _linkController.text.trim(), // Save link
-        imageFile: _imageFile,
-        imageUrl: _imageUrl,
+        link: _linkController.text.trim(),
+        imageUrl: _existingImageUrl, // Pass existing image URL
         itemId: widget.itemId,
       );
+    }
 
-      if (!mounted) return; // Check if the widget is still mounted
-      Navigator.of(context).pop(true); // Indicate success
-    } catch (e) {
-      setState(() => _erro = 'Erro ao guardar item: $e');
-    } finally {
+    if (!mounted) return; // Check if the widget is still mounted
+    Navigator.of(context).pop(true); // Indicate success
+    if (mounted) {
       setState(() => _isSaving = false);
     }
   }
@@ -134,7 +170,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: _isSaving && widget.itemId != null
+        child: _isSaving || _isUploading
             ? const Center(child: CircularProgressIndicator())
             : Form(
                 key: _formKey,
@@ -145,17 +181,26 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                       const SizedBox(height: 16),
                     ],
                     GestureDetector(
-                      onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundImage: _imageFile != null
-                            ? FileImage(_imageFile!)
-                            : _imageUrl != null
-                                ? CachedNetworkImageProvider(_imageUrl!)
-                                : null,
-                        child: _imageFile == null && _imageUrl == null
-                            ? const Icon(Icons.add_a_photo, size: 50)
-                            : null,
+                      onTap: _isUploading ? null : _pickImage,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          FutureBuilder<File?>(
+                            future: _imageFuture,
+                            builder: (context, snapshot) {
+                              final imageFile = snapshot.data;
+                              return CircleAvatar(
+                                radius: 50,
+                                backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+                                child: imageFile == null && !_isUploading
+                                    ? const Icon(Icons.add_a_photo, size: 50)
+                                    : null,
+                              );
+                            },
+                          ),
+                          if (_isUploading)
+                            const CircularProgressIndicator(),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -282,8 +327,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: _isSaving ? null : _saveItem,
-                      child: _isSaving
+                      onPressed: _isSaving || _isUploading ? null : _saveItem,
+                      child: _isSaving || _isUploading
                           ? const SizedBox(
                               width: 24,
                               height: 24,
