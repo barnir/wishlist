@@ -62,9 +62,9 @@ class SupabaseDatabaseService {
 
   // Wish items operations
   Stream<List<Map<String, dynamic>>> getWishItems(String wishlistId, {String? category, SortOptions? sortOption}) {
-    var query = _supabaseClient
+    dynamic query = _supabaseClient
         .from('wish_items')
-        .stream(primaryKey: ['id'])
+        .select()
         .eq('wishlist_id', wishlistId);
 
     if (category != null) {
@@ -83,14 +83,14 @@ class SupabaseDatabaseService {
           query = query.order('name', ascending: true);
           break;
         case SortOptions.nameDesc:
-          query = query.order('name', descending: false);
+          query = query.order('name', ascending: false);
           break;
       }
     } else {
       query = query.order('created_at', ascending: false);
     }
 
-    return query;
+    return query.asStream().map((data) => List<Map<String, dynamic>>.from(data));
   }
 
   Future<Map<String, dynamic>?> getWishItem(String wishlistId, {String? itemId}) async {
@@ -155,7 +155,7 @@ class SupabaseDatabaseService {
   Stream<List<Map<String, dynamic>>> getPublicUsers({String? searchTerm}) {
     var query = _supabaseClient
         .from('users')
-        .stream(primaryKey: ['id'])
+        .select()
         .eq('is_private', false);
 
     if (searchTerm != null && searchTerm.isNotEmpty) {
@@ -165,19 +165,19 @@ class SupabaseDatabaseService {
       query = query.ilike('display_name', '$searchTerm%');
     }
 
-    return query.order('display_name', ascending: true);
+    return query.order('display_name', ascending: true).asStream().map((data) => List<Map<String, dynamic>>.from(data));
   }
 
   Stream<List<Map<String, dynamic>>> getPublicWishlists({String? searchTerm}) {
     var query = _supabaseClient
         .from('wishlists')
-        .stream(primaryKey: ['id'])
+        .select()
         .eq('is_private', false);
 
     if (searchTerm != null && searchTerm.isNotEmpty) {
       query = query.ilike('name', '$searchTerm%');
     }
 
-    return query.order('name', ascending: true);
+    return query.order('name', ascending: true).asStream().map((data) => List<Map<String, dynamic>>.from(data));
   }
 }

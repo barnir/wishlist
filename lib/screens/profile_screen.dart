@@ -96,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isEditingName = false);
     if (mounted) {
       setState(() => _isLoading = false);
-    );
+    }
   }
 
   Future<void> _savePrivacySetting(bool isPrivate) async {
