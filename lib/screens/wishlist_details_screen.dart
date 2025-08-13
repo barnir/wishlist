@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/models/sort_options.dart';
-import 'package:wishlist_app/services/firestore_service.dart';
+import 'package:wishlist_app/services/supabase_database_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 import '../widgets/wish_item_tile.dart';
@@ -16,7 +15,7 @@ class WishlistDetailsScreen extends StatefulWidget {
 }
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
-  final _firestoreService = FirestoreService();
+  final _supabaseDatabaseService = SupabaseDatabaseService();
 
   String _wishlistName = 'Carregando...';
   bool _isPrivate = false;
@@ -31,11 +30,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _loadWishlistDetails() async {
     try {
-      final doc = await _firestoreService.getWishlist(widget.wishlistId);
-      if (doc.exists) {
+      final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId);
+      if (wishlistData != null) {
         setState(() {
-          _wishlistName = doc['name'] ?? 'Sem nome';
-          _isPrivate = doc['private'] ?? false;
+          _wishlistName = wishlistData['name'] ?? 'Sem nome';
+          _isPrivate = wishlistData['is_private'] ?? false;
         });
       }
     } catch (e) {
@@ -91,7 +90,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _deleteWishlist() async {
     try {
-      await _firestoreService.deleteWishlist(widget.wishlistId);
+      await _supabaseDatabaseService.deleteWishlist(widget.wishlistId);
       if (!mounted) return;
       _showSnackBar('Wishlist "$_wishlistName" eliminada com sucesso!');
       Navigator.of(context).pop(); // Go back to previous screen (wishlists list)
@@ -103,7 +102,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _deleteItem(String itemId) async {
     try {
-      await _firestoreService.deleteWishItem(widget.wishlistId, itemId);
+      await _supabaseDatabaseService.deleteWishItem(widget.wishlistId, itemId);
       if (!mounted) return;
       _showSnackBar('Item eliminado com sucesso!');
     } catch (e) {
@@ -158,8 +157,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             ),
           ),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestoreService.getWishItems(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _supabaseDatabaseService.getWishItems(
                 widget.wishlistId,
                 category: _selectedCategory,
                 sortOption: _sortOption,
@@ -173,12 +172,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   return Center(child: Text('Erro: ${snapshot.error}'));
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text('Nenhum item nesta wishlist.'));
                 }
 
-                final items = snapshot.data!.docs
-                    .map((doc) => WishItem.fromFirestore(doc))
+                final items = snapshot.data!
+                    .map((itemData) => WishItem.fromMap(itemData))
                     .toList();
 
                 return ListView.builder(

@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class WishItem {
   final String id;
   final String name;
@@ -8,7 +6,7 @@ class WishItem {
   final double? price;
   final String? imageUrl;
   final String category;
-  final Timestamp createdAt;
+  final DateTime createdAt;
 
   WishItem({
     required this.id,
@@ -21,29 +19,29 @@ class WishItem {
     required this.createdAt,
   });
 
-  factory WishItem.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+  factory WishItem.fromMap(Map<String, dynamic> data) {
     return WishItem(
-      id: doc.id,
+      id: data['id'] as String,
       name: data['name'] ?? '',
       link: data['link'] as String?,
       description: data['description'] as String?,
       price: (data['price'] as num?)?.toDouble(),
-      imageUrl: data['imageUrl'] as String?,
+      imageUrl: data['image_url'] as String?,
       category: data['category'] ?? 'Outros',
-      createdAt: data['createdAt'] ?? Timestamp.now(),
+      createdAt: DateTime.parse(data['created_at'] as String),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
       'link': link,
       'description': description,
       'price': price,
-      'imageUrl': imageUrl,
+      'image_url': imageUrl,
       'category': category,
-      'createdAt': createdAt,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 }

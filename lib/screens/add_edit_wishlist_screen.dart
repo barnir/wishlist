@@ -2,8 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:wishlist_app/services/firestore_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -18,7 +17,7 @@ class AddEditWishlistScreen extends StatefulWidget {
 class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _firestoreService = FirestoreService();
+  final _supabaseDatabaseService = SupabaseDatabaseService();
 
   bool _isPrivate = false;
   bool _isLoading = false;
@@ -38,12 +37,12 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   Future<void> _loadWishlistData() async {
     setState(() => _isLoading = true);
     try {
-      final doc = await FirebaseFirestore.instance.collection('wishlists').doc(widget.wishlistId).get();
-      if (doc.exists) {
+      final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId!);
+      if (wishlistData != null) {
         setState(() {
-          _nameController.text = doc['name'] ?? '';
-          _isPrivate = doc['private'] ?? false;
-          _existingImageUrl = doc['imageUrl']; // Store original image URL
+          _nameController.text = wishlistData['name'] ?? '';
+          _isPrivate = wishlistData['is_private'] ?? false;
+          _existingImageUrl = wishlistData['image_url']; // Store original image URL
           if (_existingImageUrl != null) {
             _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
           }
@@ -85,7 +84,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         // Create a temporary file from bytes for upload
         final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!); // Import path_provider
 
-        await _firestoreService.saveWishlist(
+        await _supabaseDatabaseService.saveWishlist(
           name: _nameController.text.trim(),
           isPrivate: _isPrivate,
           imageFile: tempFileForUpload, // Pass File
@@ -104,7 +103,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
       }
     } else {
       // If no new image is picked, save without imageBytes, use existing imageUrl
-      await _firestoreService.saveWishlist(
+      await _supabaseDatabaseService.saveWishlist(
         name: _nameController.text.trim(),
         isPrivate: _isPrivate,
         imageUrl: _existingImageUrl, // Pass existing image URL

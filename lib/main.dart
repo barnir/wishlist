@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:wishlist_app/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/config.dart';
+import 'package:wishlist_app/services/auth_service.dart'; // Keep this for now, will refactor later
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -15,7 +15,12 @@ import 'screens/add_edit_wishlist_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  await Supabase.initialize(
+    url: Config.supabaseUrl,
+    anonKey: Config.supabaseAnonKey,
+  );
+
   runApp(const MyApp());
 }
 

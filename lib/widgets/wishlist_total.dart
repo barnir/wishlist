@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/services/firestore_service.dart';
+import 'package:wishlist_app/services/supabase_database_service.dart';
 
 class WishlistTotal extends StatefulWidget {
   final String wishlistId;
@@ -12,12 +11,12 @@ class WishlistTotal extends StatefulWidget {
 }
 
 class _WishlistTotalState extends State<WishlistTotal> {
-  final _firestoreService = FirestoreService();
+  final _supabaseDatabaseService = SupabaseDatabaseService();
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestoreService.getWishItems(widget.wishlistId),
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _supabaseDatabaseService.getWishItems(widget.wishlistId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(
@@ -31,16 +30,16 @@ class _WishlistTotalState extends State<WishlistTotal> {
           return const Text('-');
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Text('€0.00');
         }
 
         double total = 0;
-        for (var doc in snapshot.data!.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final price = (data['price'] as num?)?.toDouble() ?? 0.0;
-          final quantity = (data['quantity'] as num?)?.toInt() ?? 1;
-          total += price * quantity;
+        for (var itemData in snapshot.data!) {
+          final price = (itemData['price'] as num?)?.toDouble() ?? 0.0;
+          // Quantity is not in the wish_items table in the proposed schema.
+          // If needed, it should be added to the wish_items table.
+          total += price; // Assuming quantity is 1 if not specified
         }
 
         return Text('€${total.toStringAsFixed(2)}');
