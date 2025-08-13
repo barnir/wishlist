@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 import '../widgets/wish_item_tile.dart';
-
-enum SortOptions { priceAsc, priceDesc, nameAsc, nameDesc }
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -40,7 +39,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         });
       }
     } catch (e) {
-      _showSnackBar('Erro ao carregar detalhes da wishlist: $e');
+      _showSnackBar('Erro ao carregar detalhes da wishlist: $e', isError: true);
     }
   }
 
@@ -80,7 +79,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   Navigator.of(dialogContext).pop();
                   await _deleteWishlist();
                 } else {
-                  _showSnackBar('Confirmação inválida. Escreva SIM.');
+                  _showSnackBar('Confirmação inválida. Escreva SIM.', isError: true);
                 }
               },
             ),
@@ -98,7 +97,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       Navigator.of(context).pop(); // Go back to previous screen (wishlists list)
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('Erro ao eliminar wishlist: $e');
+      _showSnackBar('Erro ao eliminar wishlist: $e', isError: true);
     }
   }
 
@@ -109,15 +108,15 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       _showSnackBar('Item eliminado com sucesso!');
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('Erro ao eliminar item: $e');
+      _showSnackBar('Erro ao eliminar item: $e', isError: true);
     }
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
   }
@@ -160,7 +159,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestoreService.getWishItems(widget.wishlistId),
+              stream: _firestoreService.getWishItems(
+                widget.wishlistId,
+                category: _selectedCategory,
+                sortOption: _sortOption,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -174,27 +177,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   return const Center(child: Text('Nenhum item nesta wishlist.'));
                 }
 
-                var items = snapshot.data!.docs
-                    .map((doc) => WishItem.fromFirestore(doc)).toList();
-
-                // Filtering
-                if (_selectedCategory != null) {
-                  items = items.where((item) => item.category == _selectedCategory).toList();
-                }
-
-                // Sorting
-                items.sort((a, b) {
-                  switch (_sortOption) {
-                    case SortOptions.priceAsc:
-                      return (a.price ?? 0).compareTo(b.price ?? 0);
-                    case SortOptions.priceDesc:
-                      return (b.price ?? 0).compareTo(a.price ?? 0);
-                    case SortOptions.nameAsc:
-                      return a.name.compareTo(b.name);
-                    case SortOptions.nameDesc:
-                      return b.name.compareTo(a.name);
-                  }
-                });
+                final items = snapshot.data!.docs
+                    .map((doc) => WishItem.fromFirestore(doc))
+                    .toList();
 
                 return ListView.builder(
                   itemCount: items.length,
@@ -312,7 +297,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                setState(() {}); // Rebuild the main screen with the new filter/sort
+                this.setState(() {}); // Rebuild the main screen with the new filter/sort
               },
               child: const Text('Aplicar'),
             ),

@@ -1,9 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
-import 'package:wishlist_app/services/image_cache_service.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Import CachedNetworkImage
 import '../widgets/wishlist_total.dart';
 
 class WishlistsScreen extends StatefulWidget {
@@ -61,29 +60,26 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                 leading: SizedBox(
                   width: 50, // Standard size for CircleAvatar
                   height: 50,
-                  child: FutureBuilder<File?>(
-                    future: imageUrl != null && imageUrl.isNotEmpty
-                        ? ImageCacheService.getFile(imageUrl)
-                        : Future.value(null),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                          child: const CircularProgressIndicator(strokeWidth: 2),
-                        );
-                      } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-                        return CircleAvatar(
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          imageBuilder: (context, imageProvider) => CircleAvatar(
+                            backgroundImage: imageProvider,
+                            radius: 50,
+                          ),
+                          placeholder: (context, url) => CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            child: const CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          errorWidget: (context, url, error) => CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            child: const Icon(Icons.card_giftcard),
+                          ),
+                        )
+                      : CircleAvatar(
                           backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                           child: const Icon(Icons.card_giftcard),
-                        );
-                      } else {
-                        return CircleAvatar(
-                          backgroundImage: FileImage(snapshot.data!),
-                          radius: 50,
-                        );
-                      }
-                    },
-                  ),
+                        ),
                 ),
                 title: Text(name),
                 subtitle: Text(isPrivate ? 'Privada' : 'Pública'),

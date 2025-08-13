@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/services/firestore_service.dart';
-import 'package:wishlist_app/services/image_cache_service.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Import CachedNetworkImage
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -39,28 +38,35 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           Expanded(
-            child: ListView(
+            child: ListView( // Changed to ListView to contain multiple sections
               children: [
                 const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text('Perfis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 StreamBuilder<QuerySnapshot>(
-                  stream: _firestoreService.getPublicUsers(),
+                  stream: _firestoreService.getPublicUsers(searchTerm: _termoPesquisa),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const CircularProgressIndicator();
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
                     }
 
-                    final profiles = snapshot.data!.docs.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final displayName = data['displayName'] as String? ?? '';
-                      final isPrivate = data['isPrivate'] as bool? ?? false;
-                      return displayName.toLowerCase().contains(_termoPesquisa.toLowerCase()) && !isPrivate;
-                    }).toList();
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Erro: ${snapshot.error}'));
+                    }
 
-                    return Column(
-                      children: profiles.map((profile) {
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text('Nenhum perfil encontrado.'));
+                    }
+
+                    final profiles = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      shrinkWrap: true, // Important for nested ListViews
+                      physics: const NeverScrollableScrollPhysics(), // Disable scrolling for nested ListView
+                      itemCount: profiles.length,
+                      itemBuilder: (context, index) {
+                        final profile = profiles[index];
                         final data = profile.data() as Map<String, dynamic>;
                         final displayName = data['displayName'] as String? ?? 'Sem nome';
                         return ListTile(
@@ -71,7 +77,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             // Navigator.pushNamed(context, '/profileView', arguments: profile.id);
                           },
                         );
-                      }).toList(),
+                      },
                     );
                   },
                 ),
@@ -82,21 +88,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: Text('Wishlists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 StreamBuilder<QuerySnapshot>(
-                  stream: _firestoreService.getPublicWishlists(),
+                  stream: _firestoreService.getPublicWishlists(searchTerm: _termoPesquisa),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const CircularProgressIndicator();
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
                     }
 
-                    final wishlists = snapshot.data!.docs.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final name = data['name'] as String? ?? '';
-                      final isPrivate = data['private'] as bool? ?? false;
-                      return name.toLowerCase().contains(_termoPesquisa.toLowerCase()) && !isPrivate;
-                    }).toList();
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Erro: ${snapshot.error}'));
+                    }
 
-                    return Column(
-                      children: wishlists.map((wishlist) {
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text('Nenhuma wishlist encontrada.'));
+                    }
+
+                    final wishlists = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      shrinkWrap: true, // Important for nested ListViews
+                      physics: const NeverScrollableScrollPhysics(), // Disable scrolling for nested ListView
+                      itemCount: wishlists.length,
+                      itemBuilder: (context, index) {
+                        final wishlist = wishlists[index];
                         final data = wishlist.data() as Map<String, dynamic>;
                         final name = data['name'] as String? ?? 'Sem nome';
                         final ownerName = data['ownerName'] as String? ?? 'Desconhecido';
@@ -106,29 +119,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           leading: SizedBox(
                             width: 50,
                             height: 50,
-                            child: FutureBuilder<File?>(
-                              future: imageUrl != null && imageUrl.isNotEmpty
-                                  ? ImageCacheService.getFile(imageUrl)
-                                  : Future.value(null),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return CircleAvatar(
-                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                    child: const CircularProgressIndicator(strokeWidth: 2),
-                                  );
-                                } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-                                  return CircleAvatar(
+                            child: imageUrl != null && imageUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    imageBuilder: (context, imageProvider) => CircleAvatar(
+                                      backgroundImage: imageProvider,
+                                      radius: 50,
+                                    ),
+                                    placeholder: (context, url) => CircleAvatar(
+                                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                      child: const CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                    errorWidget: (context, url, error) => CircleAvatar(
+                                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                      child: const Icon(Icons.card_giftcard),
+                                    ),
+                                  )
+                                : CircleAvatar(
                                     backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                     child: const Icon(Icons.card_giftcard),
-                                  );
-                                } else {
-                                  return CircleAvatar(
-                                    backgroundImage: FileImage(snapshot.data!),
-                                    radius: 50,
-                                  );
-                                }
-                              },
-                            ),
+                                  ),
                           ),
                           title: Text(name),
                           subtitle: Text('Proprietário: $ownerName'),
@@ -136,7 +146,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist.id);
                           },
                         );
-                      }).toList(),
+                      },
                     );
                   },
                 ),
