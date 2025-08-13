@@ -3,14 +3,14 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/screens/otp_screen.dart';
 
-class LinkPhoneScreen extends StatefulWidget {
-  const LinkPhoneScreen({super.key});
+class AddPhoneScreen extends StatefulWidget {
+  const AddPhoneScreen({super.key});
 
   @override
-  State<LinkPhoneScreen> createState() => _LinkPhoneScreenState();
+  State<AddPhoneScreen> createState() => _AddPhoneScreenState();
 }
 
-class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
+class _AddPhoneScreenState extends State<AddPhoneScreen> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   bool _isLoading = false;
@@ -30,10 +30,9 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
     await _authService.verifyPhoneNumber(
       phoneNumber: _telefoneCompleto!,
       verificationCompleted: (credential) async {
-        // Auto-retrieval or instant verification
         await _authService.linkPhoneNumber(credential);
         if (mounted) {
-          Navigator.of(context).pop();
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       },
       verificationFailed: (e) {

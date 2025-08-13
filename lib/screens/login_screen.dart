@@ -51,11 +51,17 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _authService.signInWithEmailAndPassword(
+      final userCredential = await _authService.signInWithEmailAndPassword(
         _emailController.text.trim(),
         _passwordController.text,
       );
-      // Navigate to home or profile screen
+      if (userCredential.user?.phoneNumber == null || userCredential.user!.phoneNumber!.isEmpty) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/add_phone');
+      } else {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } catch (e) {
       setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
     } finally {
@@ -69,8 +75,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _authService.signInWithGoogle();
-      // Navigate to home or profile screen
+      final userCredential = await _authService.signInWithGoogle();
+      if (userCredential.user?.phoneNumber == null || userCredential.user!.phoneNumber!.isEmpty) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/add_phone');
+      } else {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } catch (e) {
       setState(() => _erro = 'Erro ao fazer login com Google: ${e.toString()}');
     } finally {

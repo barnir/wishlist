@@ -37,10 +37,46 @@ class _OTPScreenState extends State<OTPScreen> {
         Navigator.of(context).pop();
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Ocorreu um erro')),
+      if (e.code == 'account-exists-with-different-credential') {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Conta Existente'),
+            content: const Text(
+                'Este número de telemóvel já está associado a outra conta. Deseja iniciar sessão com essa conta?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  try {
+                    await _authService.signInWithPhoneCredential(e.credential!);
+                    if (mounted) {
+                      // Navigate to the home screen after signing in with the other account
+                      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                    }
+                  } on FirebaseAuthException catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.message ?? 'Ocorreu um erro ao iniciar sessão')),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Iniciar Sessão'),
+              ),
+            ],
+          ),
         );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message ?? 'Ocorreu um erro')),
+          );
+        }
       }
     } finally {
       if (mounted) {
