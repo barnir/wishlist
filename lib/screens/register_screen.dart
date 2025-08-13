@@ -32,7 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await userCredential.user?.updateDisplayName(_nomeController.text.trim());
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/profile');
+      Navigator.pushReplacementNamed(context, '/add_phone');
     } catch (e) {
       setState(() => _erro = 'Erro ao registar: ${e.toString()}');
     } finally {

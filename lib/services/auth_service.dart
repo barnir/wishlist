@@ -98,7 +98,7 @@ class AuthService {
     );
   }
 
-  Future<void> signInWithPhoneCredential(PhoneAuthCredential credential) {
+  Future<void> signInWithPhoneCredential(AuthCredential credential) {
     return _firebaseAuth.signInWithCredential(credential);
   }
 
