@@ -52,22 +52,20 @@ class AuthService {
 
   // --- Methods to be refactored or re-evaluated for Supabase --- 
 
-  Future<AuthResponse> signInWithGoogle() async {
+  Future<void> signInWithGoogle() async {
     // Supabase Google Sign-In usually involves a redirect or deep link.
     // This will require platform-specific setup.
     // For now, a basic OAuth call:
     try {
-      final AuthResponse response = await _supabaseClient.auth.signInWithOAuth(
+      await _supabaseClient.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback/',
       );
-      return response;
     } on AuthException catch (e) {
       throw Exception(e.message);
     }
   }
 
-  // Supabase Phone Authentication
   Future<void> sendPhoneOtp(String phoneNumber) async {
     try {
       await _supabaseClient.auth.signInWithOtp(phone: phoneNumber);
@@ -78,7 +76,7 @@ class AuthService {
 
   Future<AuthResponse> verifyPhoneOtp(String phoneNumber, String otp) async {
     try {
-      final AuthResponse response = await _supabaseClient.auth.verifyOtp(
+      final AuthResponse response = await _supabaseClient.auth.verifyOTP(
         phone: phoneNumber,
         token: otp,
         type: OtpType.sms,
@@ -94,7 +92,6 @@ class AuthService {
     await verifyPhoneOtp(phoneNumber, otp);
   }
 
-  // This method is now simplified to use verifyPhoneOtp directly
   Future<void> linkPhoneNumber(String phoneNumber, String otp) async {
     // Supabase does not have a direct 'link' method for phone like Firebase.
     // You would typically sign in the user with phone, and then update their profile
@@ -183,17 +180,10 @@ class AuthService {
       throw Exception('Nenhum usuário logado para reautenticação.');
     }
     try {
-      // Reauthenticating with Google typically involves re-initiating the OAuth flow.
-      // If the user is already logged in, this will refresh their session.
-      // This is similar to signInWithGoogle, but the context is reauthentication.
-      final AuthResponse response = await _supabaseClient.auth.signInWithOAuth(
+      await _supabaseClient.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback/',
       );
-      // Check if the reauthentication was successful (e.g., session is valid)
-      if (response.session == null) {
-        throw Exception('Reautenticação com Google falhou.');
-      }
     } on AuthException catch (e) {
       throw Exception(e.message);
     }

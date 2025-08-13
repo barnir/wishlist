@@ -27,35 +27,25 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
       _isLoading = true;
     });
 
-    await _authService.verifyPhoneNumber(
-      phoneNumber: _telefoneCompleto!,
-      verificationCompleted: (credential) async {
-        await _authService.linkPhoneNumber(credential);
-        if (mounted) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-        }
-      },
-      verificationFailed: (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message ?? 'Ocorreu um erro')),
-          );
-        }
-      },
-      codeSent: (verificationId, forceResendingToken) {
-        if (mounted) {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => OTPScreen(verificationId: verificationId),
-          ));
-        }
-      },
-      codeAutoRetrievalTimeout: (verificationId) {},
-    );
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+    try {
+      await _authService.sendPhoneOtp(_telefoneCompleto!);
+      if (mounted) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => OTPScreen(phoneNumber: _telefoneCompleto!), // Pass phone number
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())), // Display the error message
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

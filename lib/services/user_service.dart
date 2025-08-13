@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:postgrest/postgrest.dart';
 
 class UserService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
@@ -37,7 +38,7 @@ class UserService {
       final response = await _supabaseClient
           .from(_collectionName)
           .select()
-          .in_('phone_number', phoneNumbers);
+          .filter('phone_number', 'in', phoneNumbers.join(','));
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('Error searching friends by contacts: $e');
