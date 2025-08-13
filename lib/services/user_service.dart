@@ -1,60 +1,48 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collectionName = 'users';
+  final SupabaseClient _supabaseClient = Supabase.instance.client;
+  final String _collectionName = 'users'; // Corresponds to the 'users' table in Supabase
 
-  Future<DocumentSnapshot> getUserProfile(String userId) {
-    return _firestore.collection(_collectionName).doc(userId).get();
-  }
-
-  Future<void> updateUserProfile(String userId, Map<String, dynamic> data) {
-    return _firestore.collection(_collectionName).doc(userId).update(data);
-  }
-
-  Future<void> createUserProfile(String userId, Map<String, dynamic> data) {
-    return _firestore.collection(_collectionName).doc(userId).set(data);
-  }
-
-  Future<List<QueryDocumentSnapshot>> searchFriendsByContacts(List<String> phoneNumbers) async {
-    final List<QueryDocumentSnapshot> friends = [];
-    const batchSize = 10;
-
-    for (var i = 0; i < phoneNumbers.length; i += batchSize) {
-      final batch = phoneNumbers.skip(i).take(batchSize).toList();
-      final query = await _firestore
-          .collection(_collectionName)
-          .where('phoneNumber', whereIn: batch)
-          .get();
-      friends.addAll(query.docs);
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    try {
+      final response = await _supabaseClient
+          .from(_collectionName)
+          .select()
+          .eq('id', userId)
+          .single();
+      return response;
+    } catch (e) {
+      // Handle case where user profile might not exist
+      return null;
     }
-    return friends;
   }
 
-  Future<void> addFriend(String userId, String friendId, String friendName) {
-    return _firestore
-        .collection(_collectionName)
-        .doc(userId)
-        .collection('friends')
-        .doc(friendId)
-        .set({
-      'name': friendName,
-      'addedAt': FieldValue.serverTimestamp(),
-    });
+  Future<void> updateUserProfile(String userId, Map<String, dynamic> data) async {
+    await _supabaseClient.from(_collectionName).update(data).eq('id', userId);
+  }
+
+  Future<void> createUserProfile(String userId, Map<String, dynamic> data) async {
+    await _supabaseClient.from(_collectionName).insert({'id': userId, ...data});
+  }
+
+  // --- Methods to be refactored or re-evaluated for Supabase --- 
+
+  Future<List<Map<String, dynamic>>> searchFriendsByContacts(List<String> phoneNumbers) async {
+    // This will require the 'phone_number' column in the 'users' table.
+    // Also, consider performance for large lists of phone numbers.
+    throw UnimplementedError('Search friends by contacts not yet implemented for Supabase.');
+  }
+
+  Future<void> addFriend(String userId, String friendId, String friendName) async {
+    // This requires a 'friends' table in Supabase.
+    throw UnimplementedError('Add friend not yet implemented for Supabase.');
   }
 
   Future<void> deleteUserData(String userId) async {
-    await _firestore.collection(_collectionName).doc(userId).delete();
-    final userWishlists = await _firestore
-        .collection('wishlists')
-        .where('ownerId', isEqualTo: userId)
-        .get();
-    for (final wishlistDoc in userWishlists.docs) {
-      final items = await wishlistDoc.reference.collection('items').get();
-      for (final itemDoc in items.docs) {
-        await itemDoc.reference.delete();
-      }
-      await wishlistDoc.reference.delete();
-    }
+    // Deleting user data in Supabase is typically handled by RLS and cascading deletes
+    // when the user is deleted from auth.users, or via a server-side function.
+    // This method's implementation depends on the overall account deletion strategy.
+    throw UnimplementedError('Delete user data not yet implemented for Supabase.');
   }
 }

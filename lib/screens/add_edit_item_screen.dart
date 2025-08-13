@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:wishlist_app/services/firestore_service.dart';
+import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -24,7 +24,7 @@ class AddEditItemScreen extends StatefulWidget {
 
 class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _firestoreService = FirestoreService();
+  final _supabaseDatabaseService = SupabaseDatabaseService();
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
@@ -58,17 +58,17 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-      final doc = await _firestoreService.getWishlist(widget.wishlistId);
-      final itemDoc = await doc.reference.collection('items').doc(widget.itemId).get();
+      final itemData = await _supabaseDatabaseService.getWishItem(widget.wishlistId, itemId: widget.itemId);
 
-      if (itemDoc.exists) {
-        _nameController.text = itemDoc['name'] ?? '';
-        _descriptionController.text = itemDoc['description'] ?? '';
-        _linkController.text = itemDoc['link'] ?? '';
-        _quantityController.text = (itemDoc['quantity'] ?? 1).toString();
-        _priceController.text = (itemDoc['price'] ?? '0').toString();
-        _selectedCategory = itemDoc['category'] ?? categories.first.name;
-        _existingImageUrl = itemDoc['imageUrl']; // Store original image URL
+      if (itemData != null) {
+        _nameController.text = itemData['name'] ?? '';
+        _descriptionController.text = itemData['description'] ?? '';
+        _linkController.text = itemData['link'] ?? '';
+        // Assuming quantity is not directly stored in wish_items table, or needs to be added
+        // _quantityController.text = (itemData['quantity'] ?? 1).toString();
+        _priceController.text = (itemData['price'] ?? '0').toString();
+        _selectedCategory = itemData['category'] ?? categories.first.name;
+        _existingImageUrl = itemData['image_url']; // Store original image URL
         if (_existingImageUrl != null) {
           _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
         }
@@ -119,7 +119,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         // Create a temporary file from bytes for upload
         final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!); // Import path_provider
 
-        await _firestoreService.saveWishItem(
+        await _supabaseDatabaseService.saveWishItem(
           wishlistId: widget.wishlistId,
           name: _nameController.text.trim(),
           price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
@@ -141,7 +141,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       }
     } else {
       // If no new image is picked, save without imageBytes, use existing imageUrl
-      await _firestoreService.saveWishItem(
+      await _supabaseDatabaseService.saveWishItem(
         wishlistId: widget.wishlistId,
         name: _nameController.text.trim(),
         price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,

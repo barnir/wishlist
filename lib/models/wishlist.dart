@@ -1,10 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Wishlist {
   final String id;
   final String name;
   final String ownerId;
-  final bool private;
+  final bool isPrivate;
   final DateTime createdAt;
   final String? imageUrl;
 
@@ -12,31 +10,30 @@ class Wishlist {
     required this.id,
     required this.name,
     required this.ownerId,
-    required this.private,
+    required this.isPrivate,
     required this.createdAt,
     this.imageUrl,
   });
 
-  factory Wishlist.fromJson(Map<String, dynamic> json, String id) {
+  factory Wishlist.fromMap(Map<String, dynamic> data) {
     return Wishlist(
-      id: id,
-      name: json['name'],
-      ownerId: json['ownerId'],
-      private: json['private'],
-      createdAt: (json['createdAt'] as Timestamp).toDate(),
-      // Adicionado para ler o imageUrl com segurança
-      imageUrl: json.containsKey('imageUrl') ? json['imageUrl'] as String? : null,
+      id: data['id'] as String,
+      name: data['name'] as String,
+      ownerId: data['owner_id'] as String,
+      isPrivate: data['is_private'] as bool,
+      createdAt: DateTime.parse(data['created_at'] as String),
+      imageUrl: data['image_url'] as String?,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
-      'ownerId': ownerId,
-      'private': private,
-      'createdAt': createdAt,
-      // Adicionado para salvar o imageUrl
-      'imageUrl': imageUrl,
+      'owner_id': ownerId,
+      'is_private': isPrivate,
+      'created_at': createdAt.toIso8601String(),
+      'image_url': imageUrl,
     };
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/services/firestore_service.dart';
+import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Import CachedNetworkImage
 
 class ExploreScreen extends StatefulWidget {
@@ -11,7 +10,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final _firestoreService = FirestoreService();
+  final _supabaseDatabaseService = SupabaseDatabaseService();
   String _termoPesquisa = '';
 
   @override
@@ -44,8 +43,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   padding: EdgeInsets.all(8.0),
                   child: Text('Perfis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-                StreamBuilder<QuerySnapshot>(
-                  stream: _firestoreService.getPublicUsers(searchTerm: _termoPesquisa),
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _supabaseDatabaseService.getPublicUsers(searchTerm: _termoPesquisa),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -55,11 +54,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       return Center(child: Text('Erro: ${snapshot.error}'));
                     }
 
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return const Center(child: Text('Nenhum perfil encontrado.'));
                     }
 
-                    final profiles = snapshot.data!.docs;
+                    final profiles = snapshot.data!;
 
                     return ListView.builder(
                       shrinkWrap: true, // Important for nested ListViews
@@ -67,14 +66,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       itemCount: profiles.length,
                       itemBuilder: (context, index) {
                         final profile = profiles[index];
-                        final data = profile.data() as Map<String, dynamic>;
-                        final displayName = data['displayName'] as String? ?? 'Sem nome';
+                        final displayName = profile['display_name'] as String? ?? 'Sem nome';
                         return ListTile(
                           leading: const CircleAvatar(child: Icon(Icons.person)),
                           title: Text(displayName),
                           onTap: () {
                             // Navega para página de perfil do utilizador
-                            // Navigator.pushNamed(context, '/profileView', arguments: profile.id);
+                            // Navigator.pushNamed(context, '/profileView', arguments: profile['id']);
                           },
                         );
                       },
@@ -87,8 +85,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   padding: EdgeInsets.all(8.0),
                   child: Text('Wishlists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-                StreamBuilder<QuerySnapshot>(
-                  stream: _firestoreService.getPublicWishlists(searchTerm: _termoPesquisa),
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _supabaseDatabaseService.getPublicWishlists(searchTerm: _termoPesquisa),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -98,11 +96,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       return Center(child: Text('Erro: ${snapshot.error}'));
                     }
 
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return const Center(child: Text('Nenhuma wishlist encontrada.'));
                     }
 
-                    final wishlists = snapshot.data!.docs;
+                    final wishlists = snapshot.data!;
 
                     return ListView.builder(
                       shrinkWrap: true, // Important for nested ListViews
@@ -110,10 +108,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       itemCount: wishlists.length,
                       itemBuilder: (context, index) {
                         final wishlist = wishlists[index];
-                        final data = wishlist.data() as Map<String, dynamic>;
-                        final name = data['name'] as String? ?? 'Sem nome';
-                        final ownerName = data['ownerName'] as String? ?? 'Desconhecido';
-                        final imageUrl = data.containsKey('imageUrl') ? data['imageUrl'] : null;
+                        final name = wishlist['name'] as String? ?? 'Sem nome';
+                        // ownerName is not directly available in the wishlists table in Supabase without a join.
+                        // For now, we'll just display a placeholder or fetch it separately if needed.
+                        final ownerName = 'Desconhecido'; // Placeholder
+                        final imageUrl = wishlist.containsKey('image_url') ? wishlist['image_url'] : null;
 
                         return ListTile(
                           leading: SizedBox(
@@ -143,7 +142,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           title: Text(name),
                           subtitle: Text('Proprietário: $ownerName'),
                           onTap: () {
-                            Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist.id);
+                            Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist['id']);
                           },
                         );
                       },

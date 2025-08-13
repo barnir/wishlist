@@ -1,269 +1,124 @@
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/supabase_storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
 class AuthService {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
-  final CloudinaryService _cloudinaryService = CloudinaryService();
+  final SupabaseClient _supabaseClient = Supabase.instance.client;
+  final SupabaseStorageService _supabaseStorageService = SupabaseStorageService();
   final UserService _userService = UserService();
 
-  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
+  Stream<User?> get authStateChanges => _supabaseClient.auth.onAuthStateChange.map((data) => data.session?.user);
 
-  User? get currentUser => _firebaseAuth.currentUser;
+  User? get currentUser => _supabaseClient.auth.currentUser;
 
-  Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
-    final userCredential = await _firebaseAuth.signInWithEmailAndPassword(email: email, password: password);
-    final user = userCredential.user;
-    if (user != null) {
-      final userProfile = await _userService.getUserProfile(user.uid);
-      if (!userProfile.exists) {
-        await _userService.createUserProfile(user.uid, {
-          'email': user.email,
-          'displayName': user.displayName ?? '',
-          'isPrivate': false,
-        });
-      }
-    }
-    return userCredential;
-  }
-
-  Future<UserCredential> signInWithGoogle() async {
-    final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-    if (googleUser == null) {
-      throw FirebaseAuthException(code: 'USER_CANCELLED');
-    }
-
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-    if (googleAuth.idToken == null) {
-      throw FirebaseAuthException(
-        code: 'google-sign-in-failed',
-        message: 'Google sign in failed to provide an ID token.',
+  Future<AuthResponse> signInWithEmailAndPassword(String email, String password) async {
+    try {
+      final AuthResponse response = await _supabaseClient.auth.signInWithPassword(
+        email: email,
+        password: password,
       );
-    }
-
-    final AuthCredential credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken!,
-    );
-
-    final userCredential = await _firebaseAuth.signInWithCredential(credential);
-    final user = userCredential.user;
-
-    if (user != null) {
-      final userProfile = await _userService.getUserProfile(user.uid);
-      if (!userProfile.exists) {
-        await _userService.createUserProfile(user.uid, {
-          'email': user.email,
-          'displayName': user.displayName ?? '',
-          'photoURL': user.photoURL,
-          'isPrivate': false,
-        });
+      final user = response.user;
+      if (user != null) {
+        // TODO: Handle user profile creation/update in Supabase database
+        // For now, assuming user profile is handled by Supabase's default user management
       }
+      return response;
+    } on AuthException catch (e) {
+      throw Exception(e.message);
     }
-
-    return userCredential;
   }
 
-  Future<UserCredential> createUserWithEmailAndPassword(String email, String password) async {
-    final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
-    final user = userCredential.user;
-    if (user != null) {
-      await _userService.createUserProfile(user.uid, {
-        'email': user.email,
-        'displayName': user.displayName ?? '',
-        'isPrivate': false,
-      });
+  Future<AuthResponse> createUserWithEmailAndPassword(String email, String password) async {
+    try {
+      final AuthResponse response = await _supabaseClient.auth.signUp(
+        email: email,
+        password: password,
+      );
+      final user = response.user;
+      if (user != null) {
+        // TODO: Handle user profile creation/update in Supabase database
+      }
+      return response;
+    } on AuthException catch (e) {
+      throw Exception(e.message);
     }
-    return userCredential;
+  }
+
+  Future<void> signOut() async {
+    await _supabaseClient.auth.signOut();
+  }
+
+  // --- Methods to be refactored or re-evaluated for Supabase --- 
+
+  Future<AuthResponse> signInWithGoogle() async {
+    // Supabase Google Sign-In usually involves a redirect or deep link.
+    // This will require platform-specific setup.
+    // For now, a basic OAuth call:
+    try {
+      final AuthResponse response = await _supabaseClient.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback/',
+      );
+      return response;
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    }
   }
 
   Future<void> verifyPhoneNumber({
     required String phoneNumber,
-    required void Function(PhoneAuthCredential) verificationCompleted,
-    required void Function(FirebaseAuthException) verificationFailed,
+    required void Function(AuthCredential) verificationCompleted,
+    required void Function(AuthException) verificationFailed,
     required void Function(String, int?) codeSent,
     required void Function(String) codeAutoRetrievalTimeout,
-  }) {
-    return _firebaseAuth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: verificationCompleted,
-      verificationFailed: verificationFailed,
-      codeSent: codeSent,
-      codeAutoRetrievalTimeout: codeAutoRetrievalTimeout,
-    );
+  }) async {
+    // Supabase phone auth uses signInWithOtp and verifyOtp
+    // This method needs significant refactoring.
+    throw UnimplementedError('Phone number verification not yet implemented for Supabase.');
   }
 
-  Future<void> signInWithPhoneCredential(AuthCredential credential) {
-    return _firebaseAuth.signInWithCredential(credential);
+  Future<void> signInWithPhoneCredential(AuthCredential credential) async {
+    throw UnimplementedError('Phone sign-in not yet implemented for Supabase.');
   }
 
-  Future<void> linkPhoneNumber(PhoneAuthCredential credential) async {
-    if (currentUser == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'Nenhum usuário logado para vincular o telefone.',
-      );
-    }
-    try {
-      await currentUser!.linkWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'account-exists-with-different-credential') {
-        throw FirebaseAuthException(
-          code: 'account-exists-with-different-credential',
-          message: 'Este número de telemóvel já está associado a outra conta.',
-        );
-      }
-      rethrow;
-    }
+  Future<void> linkPhoneNumber(AuthCredential credential) async {
+    throw UnimplementedError('Linking phone number not yet implemented for Supabase.');
   }
 
   Future<void> linkEmailAndPassword(String email, String password) async {
-    if (currentUser == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'Nenhum usuário logado para vincular o email.',
-      );
-    }
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: email,
-        password: password,
-      );
-      await currentUser!.linkWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'account-exists-with-different-credential') {
-        throw FirebaseAuthException(
-          code: 'account-exists-with-different-credential',
-          message: 'Este email já está associado a outra conta.',
-        );
-      }
-      rethrow;
-    }
+    throw UnimplementedError('Linking email and password not yet implemented for Supabase.');
   }
 
   Future<void> linkGoogle() async {
-    if (currentUser == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'Nenhum usuário logado para vincular o Google.',
-      );
-    }
-    try {
-      final googleUser = await _googleSignIn.authenticate();
-      if (googleUser == null) {
-        throw FirebaseAuthException(code: 'USER_CANCELLED');
-      }
-      final googleAuth = await googleUser.authentication;
-      if (googleAuth.idToken == null) {
-        throw FirebaseAuthException(
-          code: 'google-sign-in-failed',
-          message: 'Google sign in failed to provide an ID token.',
-        );
-      }
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken!,
-      );
-      await currentUser!.linkWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'account-exists-with-different-credential') {
-        throw FirebaseAuthException(
-          code: 'account-exists-with-different-credential',
-          message: 'Esta conta Google já está associada a outra conta.',
-        );
-      }
-      rethrow;
-    }
+    throw UnimplementedError('Linking Google not yet implemented for Supabase.');
   }
 
   Future<void> updateProfilePicture(File image) async {
-    final imageUrl = await _cloudinaryService.uploadImage(image);
+    final imageUrl = await _supabaseStorageService.uploadImage(image, 'avatars');
     if (imageUrl != null) {
-      await currentUser?.updatePhotoURL(imageUrl);
-      await reloadUser();
+      await _supabaseClient.auth.updateUser(UserAttributes(data: {'photoURL': imageUrl}));
     }
   }
 
   Future<void> reloadUser() async {
-    await currentUser?.reload();
+    // Supabase user object is usually up-to-date after an auth event.
+    // No direct equivalent for Firebase's reloadUser.
   }
 
   Future<void> reauthenticateWithPassword(String password) async {
-    if (currentUser == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'Nenhum usuário logado para reautenticar.',
-      );
-    }
-    if (currentUser?.email == null) {
-      throw FirebaseAuthException(
-        code: 'no-email',
-        message: 'Usuário não possui e-mail para reautenticação com senha.',
-      );
-    }
-    final credential = EmailAuthProvider.credential(
-      email: currentUser!.email!,
-      password: password,
-    );
-    await currentUser!.reauthenticateWithCredential(credential);
+    throw UnimplementedError('Reauthentication with password not yet implemented for Supabase.');
   }
 
   Future<void> reauthenticateWithGoogle() async {
-    if (currentUser == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'Nenhum usuário logado para reautenticar.',
-      );
-    }
-    GoogleSignInAccount? googleUser;
-    try {
-      googleUser = await _googleSignIn.authenticate();
-      if (kDebugMode) {
-        print('Type of googleUser: ${googleUser.runtimeType}');
-        print('googleUser: $googleUser');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error during Google authentication: $e');
-      }
-      throw FirebaseAuthException(code: 'google-auth-failed', message: e.toString());
-    }
-
-    if (googleUser == null) {
-      throw FirebaseAuthException(code: 'USER_CANCELLED');
-    }
-    final googleAuth = await googleUser.authentication;
-
-    if (googleAuth.idToken == null) {
-      throw FirebaseAuthException(
-        code: 'google-sign-in-failed',
-        message: 'Google sign in failed to provide an ID token.',
-      );
-    }
-
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken!,
-    );
-    await currentUser!.reauthenticateWithCredential(credential);
+    throw UnimplementedError('Reauthentication with Google not yet implemented for Supabase.');
   }
 
   Future<void> deleteAccount() async {
-    if (currentUser == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'Nenhum usuário logado para deletar a conta.',
-      );
-    }
-    await _userService.deleteUserData(currentUser!.uid);
-    await currentUser!.delete();
-  }
-
-  Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _firebaseAuth.signOut();
+    // This will involve deleting the user from Supabase Auth and then deleting their data from the Supabase database.
+    // Supabase does not have a direct client-side delete user method for security reasons.
+    // This usually requires a server-side function or RLS policies.
+    throw UnimplementedError('Account deletion not yet implemented for Supabase.');
   }
 }
