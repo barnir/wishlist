@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/config.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    GoogleSignIn.instance.initialize(serverClientId: Config.googleSignInServerClientId);
   }
 
   String? _validarEmail(String? value) {
@@ -51,17 +49,12 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final userCredential = await _authService.signInWithEmailAndPassword(
+      await _authService.signInWithEmailAndPassword(
         _emailController.text.trim(),
         _passwordController.text,
       );
-      if (userCredential.user?.phoneNumber == null || userCredential.user!.phoneNumber!.isEmpty) {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/add_phone');
-      } else {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
     } finally {
@@ -75,14 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final userCredential = await _authService.signInWithGoogle();
-      if (userCredential.user?.phoneNumber == null || userCredential.user!.phoneNumber!.isEmpty) {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/add_phone');
-      } else {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      await _authService.signInWithGoogle();
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       setState(() => _erro = 'Erro ao fazer login com Google: ${e.toString()}');
     } finally {

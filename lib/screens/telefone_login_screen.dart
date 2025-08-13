@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 class TelefoneLoginScreen extends StatefulWidget {
@@ -14,7 +13,7 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
   final _authService = AuthService();
   String? _telefoneCompleto;
   final _codeController = TextEditingController();
-  String? _verificationId;
+  String? _verificationId; // Not directly used with Supabase OTP, but kept for context
   bool _codeSent = false;
   bool _isLoading = false;
   String? _error;
@@ -32,32 +31,22 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
     });
 
     try {
-      await _authService.verifyPhoneNumber(
-        phoneNumber: _telefoneCompleto!,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await _authService.signInWithPhoneCredential(credential);
-          if (mounted) Navigator.pop(context, true);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          setState(() {
-            _error = e.message;
-            _isLoading = false;
-          });
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          setState(() {
-            _verificationId = verificationId;
-            _codeSent = true;
-            _isLoading = false;
-          });
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
-        },
-      );
-    } catch (e) {
+      // Supabase phone authentication uses signInWithOtp.
+      // The current AuthService methods for phone auth are unimplemented.
+      // This part needs to be refactored once Supabase phone auth is implemented.
+      throw Exception('Autenticação por telefone não implementada para Supabase.');
+
+      // Example of how it might look with Supabase (conceptual):
+      // await _authService.signInWithOtp(
+      //   phone: _telefoneCompleto!,
+      // );
+      // setState(() {
+      //   _codeSent = true;
+      //   _isLoading = false;
+      // });
+    } on Exception catch (e) { // Changed from FirebaseAuthException
       setState(() {
-        _error = 'Erro ao enviar código: $e';
+        _error = 'Erro ao enviar código: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -75,15 +64,21 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
       _error = null;
     });
     try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: _codeController.text.trim(),
-      );
-      await _authService.signInWithPhoneCredential(credential);
-      if (mounted) Navigator.pop(context, true);
-    } on FirebaseAuthException catch (e) {
+      // Supabase phone authentication uses verifyOtp.
+      // The current AuthService methods for phone auth are unimplemented.
+      // This part needs to be refactored once Supabase phone auth is implemented.
+      throw Exception('Verificação de código não implementada para Supabase.');
+
+      // Example of how it might look with Supabase (conceptual):
+      // await _authService.verifyOtp(
+      //   phone: _telefoneCompleto!,
+      //   token: _codeController.text.trim(),
+      //   type: OtpType.sms,
+      // );
+      // if (mounted) Navigator.pop(context, true);
+    } on Exception catch (e) { // Changed from FirebaseAuthException
       setState(() {
-        _error = e.message;
+        _error = 'Erro ao verificar código: ${e.toString()}';
         _isLoading = false;
       });
     }

@@ -1,10 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:wishlist_app/screens/link_email_screen.dart';
-import 'package:wishlist_app/screens/link_phone_screen.dart';
+import 'package:wishlist_app/screens/link_email_screen.dart'; // Keep for now, but linking is unimplemented
+import 'package:wishlist_app/screens/link_phone_screen.dart'; // Keep for now, but linking is unimplemented
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
@@ -36,16 +35,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.uid;
+    final userId = _authService.currentUser!.id;
     final userData = await _userService.getUserProfile(userId);
-    if (userData.exists) {
-      final data = userData.data() as Map<String, dynamic>?;
-      if (data != null) {
-        _nameController.text = data['displayName'] ?? '';
-        _isPrivate = data['isPrivate'] ?? false;
-      }
-      _profileImageUrl = _authService.currentUser?.photoURL; // Directly assign URL
+    if (userData != null) {
+      _nameController.text = userData['display_name'] ?? '';
+      _isPrivate = userData['is_private'] ?? false;
     }
+    _profileImageUrl = _authService.currentUser?.userMetadata?['photoURL']; // Access from user_metadata
+
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -66,15 +63,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       try {
         await _authService.updateProfilePicture(tempFile);
-        final newUrl = _authService.currentUser?.photoURL;
+        final newUrl = _authService.currentUser?.userMetadata?['photoURL'];
         if (newUrl != null) {
-          // No need to putFile manually, CachedNetworkImage handles it
           setState(() {
             _profileImageUrl = newUrl;
           });
         }
       } catch (e) {
         // Handle error
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao carregar imagem: ${e.toString()}')),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() => _isUploading = false);
@@ -87,9 +88,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_nameController.text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.uid;
-    await _authService.currentUser?.updateDisplayName(_nameController.text.trim());
-    await _userService.updateUserProfile(userId, {'displayName': _nameController.text.trim()});
+    final userId = _authService.currentUser!.id;
+    await _authService.updateUser(displayName: _nameController.text.trim()); // Update user metadata
+    await _userService.updateUserProfile(userId, {'display_name': _nameController.text.trim()});
     setState(() => _isEditingName = false);
     if (mounted) {
       setState(() => _isLoading = false);
@@ -98,8 +99,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _savePrivacySetting(bool isPrivate) async {
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.uid;
-    await _userService.updateUserProfile(userId, {'isPrivate': isPrivate});
+    final userId = _authService.currentUser!.id;
+    await _userService.updateUserProfile(userId, {'is_private': isPrivate});
     setState(() => _isPrivate = isPrivate);
     if (mounted) {
       setState(() => _isLoading = false);
@@ -170,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(user.displayName ?? 'Sem nome', style: const TextStyle(fontSize: 20)),
+                                Text(user.userMetadata?['display_name'] ?? user.email ?? 'Sem nome', style: const TextStyle(fontSize: 20)),
                                 IconButton(
                                   icon: const Icon(Icons.edit),
                                   onPressed: () => setState(() => _isEditingName = true),
@@ -191,45 +192,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      if (user.phoneNumber == null || user.phoneNumber!.isEmpty)
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => const LinkPhoneScreen(),
-                            ));
-                          },
-                          child: const Text('Adicionar Telemóvel'),
-                        )
-                      else
-                        Text('Telemóvel: ${user.phoneNumber}'),
-                      const SizedBox(height: 16),
-                      if (user.providerData.every((p) => p.providerId != 'password'))
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => const LinkEmailScreen(),
-                            ));
-                          },
-                          child: const Text('Adicionar Email'),
-                        ),
-                      if (user.providerData.every((p) => p.providerId != 'google.com'))
-                        ElevatedButton(
-                          onPressed: () async {
-                            try {
-                              await _authService.linkGoogle();
-                              setState(() {}); // Rebuild to update the UI
-                            } on FirebaseAuthException catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(e.message ?? 'Ocorreu um erro'),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('Adicionar Google'),
-                        ),
+                      // Phone number linking (unimplemented for Supabase)
+                      // ElevatedButton(
+                      //   onPressed: () {
+                      //     Navigator.of(context).push(MaterialPageRoute(
+                      //       builder: (context) => const LinkPhoneScreen(),
+                      //     ));
+                      //   },
+                      //   child: const Text('Adicionar Telemóvel'),
+                      // ),
+                      // Email linking (unimplemented for Supabase)
+                      // ElevatedButton(
+                      //   onPressed: () {
+                      //     Navigator.of(context).push(MaterialPageRoute(
+                      //       builder: (context) => const LinkEmailScreen(),
+                      //     ));
+                      //   },
+                      //   child: const Text('Adicionar Email'),
+                      // ),
+                      // Google linking (unimplemented for Supabase)
+                      // ElevatedButton(
+                      //   onPressed: () async {
+                      //     try {
+                      //       await _authService.linkGoogle();
+                      //       setState(() {}); // Rebuild to update the UI
+                      //     } on Exception catch (e) {
+                      //       if (mounted) {
+                      //         ScaffoldMessenger.of(context).showSnackBar(
+                      //           SnackBar(
+                      //             content: Text(e.toString()),
+                      //           ),
+                      //         );
+                      //       }
+                      //     }
+                      //   },
+                      //   child: const Text('Adicionar Google'),
+                      // ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _signOut,

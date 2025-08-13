@@ -25,14 +25,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final userCredential = await _authService.createUserWithEmailAndPassword(
+      await _authService.createUserWithEmailAndPassword(
         _emailController.text.trim(),
         _passwordController.text,
       );
-      await userCredential.user?.updateDisplayName(_nomeController.text.trim());
+      // Update display name in Supabase user metadata
+      await _authService.updateUser(displayName: _nomeController.text.trim());
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/add_phone');
+      Navigator.pushReplacementNamed(context, '/home'); // Navigate to home directly
     } catch (e) {
       setState(() => _erro = 'Erro ao registar: ${e.toString()}');
     } finally {
