@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:flutter/foundation.dart';
 import 'package:wishlist_app/config.dart';
 
 class CloudinaryService {
@@ -21,7 +22,9 @@ class CloudinaryService {
       );
       return response.secureUrl;
     } on CloudinaryException catch (e) {
-      print(e.message);
+      if (kDebugMode) {
+        debugPrint('Cloudinary upload error: ${e.message}');
+      }
       return null;
     }
   }

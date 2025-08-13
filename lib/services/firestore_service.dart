@@ -70,6 +70,7 @@ class FirestoreService {
     required double price,
     required String category,
     String? link,
+    String? description,
     File? imageFile,
     String? imageUrl,
     String? itemId,
@@ -88,7 +89,9 @@ class FirestoreService {
       'price': price,
       'category': category,
       'link': link,
+      'description': description,
       'imageUrl': finalImageUrl,
+      'createdAt': FieldValue.serverTimestamp(),
     };
 
     if (itemId == null) {

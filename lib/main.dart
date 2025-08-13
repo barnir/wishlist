@@ -92,15 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_selectedIndex != 0) {
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvoked: (didPop) {
+        if (!didPop && _selectedIndex != 0) {
           setState(() {
             _selectedIndex = 0;
           });
-          return false;
         }
-        return true;
       },
       child: Scaffold(
         body: IndexedStack(

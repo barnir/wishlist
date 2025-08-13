@@ -18,15 +18,19 @@ class AuthService {
   }
 
   Future<UserCredential> signInWithGoogle() async {
-    final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
-      throw FirebaseAuthException(code: 'USER_CANCELLED');
+      throw FirebaseAuthException(
+        code: 'USER_CANCELLED',
+        message: 'User cancelled Google Sign-In'
+      );
     }
 
-    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
     
     final AuthCredential credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken!,
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
     );
 
     return await _firebaseAuth.signInWithCredential(credential);
@@ -78,8 +82,6 @@ class AuthService {
     await currentUser?.reload();
   }
 
-   // Import for kDebugMode
-
   Future<void> reauthenticateWithPassword(String password) async {
     if (currentUser == null) {
       throw FirebaseAuthException(
@@ -109,25 +111,29 @@ class AuthService {
     }
     GoogleSignInAccount? googleUser;
     try {
-      googleUser = await _googleSignIn.authenticate();
+      googleUser = await _googleSignIn.signIn();
       if (kDebugMode) {
-        print('Type of googleUser: ${googleUser.runtimeType}');
-        print('googleUser: $googleUser');
+        debugPrint('Type of googleUser: ${googleUser.runtimeType}');
+        debugPrint('googleUser: $googleUser');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error during Google authentication: $e');
+        debugPrint('Error during Google authentication: $e');
       }
       throw FirebaseAuthException(code: 'google-auth-failed', message: e.toString());
     }
 
     if (googleUser == null) {
-      throw FirebaseAuthException(code: 'USER_CANCELLED');
+      throw FirebaseAuthException(
+        code: 'USER_CANCELLED',
+        message: 'User cancelled Google Sign-In'
+      );
     }
-    final googleAuth = googleUser.authentication;
+    final googleAuth = await googleUser.authentication;
 
     final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken!,
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
     );
     await currentUser!.reauthenticateWithCredential(credential);
   }
