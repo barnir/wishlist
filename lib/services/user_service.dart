@@ -12,6 +12,10 @@ class UserService {
     return _firestore.collection(_collectionName).doc(userId).update(data);
   }
 
+  Future<void> createUserProfile(String userId, Map<String, dynamic> data) {
+    return _firestore.collection(_collectionName).doc(userId).set(data);
+  }
+
   Future<List<QueryDocumentSnapshot>> searchFriendsByContacts(List<String> phoneNumbers) async {
     final List<QueryDocumentSnapshot> friends = [];
     const batchSize = 10;
