@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/models/sort_options.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -56,12 +57,36 @@ class FirestoreService {
     await _firestore.collection(_wishlistsCollection).doc(wishlistId).delete();
   }
 
-  Stream<QuerySnapshot> getWishItems(String wishlistId) {
-    return _firestore
+  Stream<QuerySnapshot> getWishItems(String wishlistId, {String? category, SortOptions? sortOption}) {
+    Query query = _firestore
         .collection(_wishlistsCollection)
         .doc(wishlistId)
-        .collection('items')
-        .snapshots();
+        .collection('items');
+
+    if (category != null) {
+      query = query.where('category', isEqualTo: category);
+    }
+
+    if (sortOption != null) {
+      switch (sortOption) {
+        case SortOptions.priceAsc:
+          query = query.orderBy('price');
+          break;
+        case SortOptions.priceDesc:
+          query = query.orderBy('price', descending: true);
+          break;
+        case SortOptions.nameAsc:
+          query = query.orderBy('name');
+          break;
+        case SortOptions.nameDesc:
+          query = query.orderBy('name', descending: true);
+          break;
+      }
+    } else {
+      query = query.orderBy('createdAt', descending: true);
+    }
+
+    return query.snapshots();
   }
 
   Future<void> saveWishItem({
@@ -119,17 +144,33 @@ class FirestoreService {
         .delete();
   }
 
-  Stream<QuerySnapshot> getPublicUsers() {
-    return _firestore
+  Stream<QuerySnapshot> getPublicUsers({String? searchTerm}) {
+    Query query = _firestore
         .collection(_usersCollection)
-        .where('isPrivate', isEqualTo: false)
-        .snapshots();
+        .where('isPrivate', isEqualTo: false);
+
+    if (searchTerm != null && searchTerm.isNotEmpty) {
+      query = query
+          .orderBy('displayName')
+          .startAt([searchTerm])
+          .endAt(['$searchTerm\uf8ff']);
+    }
+
+    return query.snapshots();
   }
 
-  Stream<QuerySnapshot> getPublicWishlists() {
-    return _firestore
+  Stream<QuerySnapshot> getPublicWishlists({String? searchTerm}) {
+    Query query = _firestore
         .collection(_wishlistsCollection)
-        .where('private', isEqualTo: false)
-        .snapshots();
+        .where('private', isEqualTo: false);
+
+    if (searchTerm != null && searchTerm.isNotEmpty) {
+      query = query
+          .orderBy('name')
+          .startAt([searchTerm])
+          .endAt(['$searchTerm\uf8ff']);
+    }
+
+    return query.snapshots();
   }
 }

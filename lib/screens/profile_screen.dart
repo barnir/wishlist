@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/screens/link_email_screen.dart';
 import 'package:wishlist_app/screens/link_phone_screen.dart';
 import 'package:wishlist_app/services/auth_service.dart';
@@ -23,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditingName = false;
   bool _isPrivate = false;
   bool _isUploading = false;
-  Future<File?>? _imageFuture;
+  String? _profileImageUrl; // Use String for URL
 
   bool _isLoading = false;
 
@@ -43,10 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _nameController.text = data['displayName'] ?? '';
         _isPrivate = data['isPrivate'] ?? false;
       }
-      final photoURL = _authService.currentUser?.photoURL;
-      if (photoURL != null) {
-        _imageFuture = ImageCacheService.getFile(photoURL);
-      }
+      _profileImageUrl = _authService.currentUser?.photoURL; // Directly assign URL
     }
     if (mounted) {
       setState(() => _isLoading = false);
@@ -63,7 +61,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (pickedFile != null) {
       final tempFile = File(pickedFile.path);
       setState(() {
-        _imageFuture = Future.value(tempFile);
         _isUploading = true;
       });
 
@@ -71,9 +68,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _authService.updateProfilePicture(tempFile);
         final newUrl = _authService.currentUser?.photoURL;
         if (newUrl != null) {
-          await ImageCacheService.putFile(newUrl, await tempFile.readAsBytes());
+          // No need to putFile manually, CachedNetworkImage handles it
           setState(() {
-            _imageFuture = ImageCacheService.getFile(newUrl);
+            _profileImageUrl = newUrl;
           });
         }
       } catch (e) {
@@ -135,18 +132,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            FutureBuilder<File?>(
-                              future: _imageFuture,
-                              builder: (context, snapshot) {
-                                final imageFile = snapshot.data;
-                                return CircleAvatar(
-                                  radius: 50,
-                                  backgroundImage: imageFile != null ? FileImage(imageFile) : null,
-                                  child: imageFile == null && !_isUploading
-                                      ? const Icon(Icons.add_a_photo, size: 50)
-                                      : null,
-                                );
-                              },
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              backgroundImage: _profileImageUrl != null
+                                  ? CachedNetworkImageProvider(_profileImageUrl!)
+                                  : null,
+                              child: _profileImageUrl == null && !_isUploading
+                                  ? const Icon(Icons.add_a_photo, size: 50)
+                                  : null,
                             ),
                             if (_isUploading)
                               const CircularProgressIndicator(),
