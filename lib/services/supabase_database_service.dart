@@ -93,6 +93,23 @@ class SupabaseDatabaseService {
     return query;
   }
 
+  Future<Map<String, dynamic>?> getWishItem(String wishlistId, {String? itemId}) async {
+    if (itemId == null) return null;
+    try {
+      final response = await _supabaseClient
+          .from('wish_items')
+          .select()
+          .eq('wishlist_id', wishlistId)
+          .eq('id', itemId)
+          .single();
+      return response;
+    } catch (e) {
+      // Handle case where item might not exist or other errors
+      print('Error fetching wish item: $e');
+      return null;
+    }
+  }
+
   Future<void> saveWishItem({
     required String wishlistId,
     required String name,
