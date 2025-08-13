@@ -29,14 +29,33 @@ class UserService {
   // --- Methods to be refactored or re-evaluated for Supabase --- 
 
   Future<List<Map<String, dynamic>>> searchFriendsByContacts(List<String> phoneNumbers) async {
-    // This will require the 'phone_number' column in the 'users' table.
-    // Also, consider performance for large lists of phone numbers.
-    throw UnimplementedError('Search friends by contacts not yet implemented for Supabase.');
+    if (phoneNumbers.isEmpty) {
+      return [];
+    }
+    try {
+      // Supabase allows `in_` operator for lists
+      final response = await _supabaseClient
+          .from(_collectionName)
+          .select()
+          .in_('phone_number', phoneNumbers);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error searching friends by contacts: $e');
+      return [];
+    }
   }
 
   Future<void> addFriend(String userId, String friendId, String friendName) async {
-    // This requires a 'friends' table in Supabase.
-    throw UnimplementedError('Add friend not yet implemented for Supabase.');
+    try {
+      await _supabaseClient.from('friends').insert({
+        'user_id': userId,
+        'friend_id': friendId,
+        'friend_name': friendName, // Assuming you want to store friend's name in the friends table
+      });
+    } catch (e) {
+      print('Error adding friend: $e');
+      rethrow;
+    }
   }
 
   Future<void> deleteUserData(String userId) async {

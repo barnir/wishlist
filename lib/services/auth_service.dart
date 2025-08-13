@@ -165,17 +165,50 @@ class AuthService {
   }
 
   Future<void> reauthenticateWithPassword(String password) async {
-    throw UnimplementedError('Reauthentication with password not yet implemented for Supabase.');
+    if (currentUser == null || currentUser!.email == null) {
+      throw Exception('Usuário não logado ou sem e-mail para reautenticação.');
+    }
+    try {
+      await _supabaseClient.auth.signInWithPassword(
+        email: currentUser!.email!,
+        password: password,
+      );
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    }
   }
 
   Future<void> reauthenticateWithGoogle() async {
-    throw UnimplementedError('Reauthentication with Google not yet implemented for Supabase.');
+    if (currentUser == null) {
+      throw Exception('Nenhum usuário logado para reautenticação.');
+    }
+    try {
+      // Reauthenticating with Google typically involves re-initiating the OAuth flow.
+      // If the user is already logged in, this will refresh their session.
+      // This is similar to signInWithGoogle, but the context is reauthentication.
+      final AuthResponse response = await _supabaseClient.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback/',
+      );
+      // Check if the reauthentication was successful (e.g., session is valid)
+      if (response.session == null) {
+        throw Exception('Reautenticação com Google falhou.');
+      }
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    }
   }
 
   Future<void> deleteAccount() async {
-    // This will involve deleting the user from Supabase Auth and then deleting their data from the Supabase database.
+    if (currentUser == null) {
+      throw Exception('Nenhum usuário logado para deletar a conta.');
+    }
     // Supabase does not have a direct client-side delete user method for security reasons.
-    // This usually requires a server-side function or RLS policies.
-    throw UnimplementedError('Account deletion not yet implemented for Supabase.');
+    // This operation typically requires admin privileges and should be handled by a server-side function (e.g., a Supabase Edge Function).
+    // The Edge Function would:
+    // 1. Verify the user's identity (e.g., by checking their JWT).
+    // 2. Delete the user from auth.users.
+    // 3. Delete associated data from public tables (e.g., users, wishlists, wish_items) - this can be handled by RLS and cascading deletes if set up correctly.
+    throw UnimplementedError('Account deletion requires a server-side function for security reasons.');
   }
 }
