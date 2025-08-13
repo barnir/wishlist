@@ -175,15 +175,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 }
 
                 var items = snapshot.data!.docs
-                    .map((doc) => WishItem.fromFirestore(doc));
+                    .map((doc) => WishItem.fromFirestore(doc)).toList();
 
                 // Filtering
                 if (_selectedCategory != null) {
-                  items = items.where((item) => item.category == _selectedCategory);
+                  items = items.where((item) => item.category == _selectedCategory).toList();
                 }
 
                 // Sorting
-                items = items.toList(); // Convert to list for sorting
                 items.sort((a, b) {
                   switch (_sortOption) {
                     case SortOptions.priceAsc:
