@@ -69,7 +69,7 @@ class AuthService {
 
   Future<void> verifyPhoneNumber({
     required String phoneNumber,
-    required void Function(AuthCredential) verificationCompleted,
+    required void Function(dynamic) verificationCompleted, // Changed from AuthCredential
     required void Function(AuthException) verificationFailed,
     required void Function(String, int?) codeSent,
     required void Function(String) codeAutoRetrievalTimeout,
@@ -79,11 +79,11 @@ class AuthService {
     throw UnimplementedError('Phone number verification not yet implemented for Supabase.');
   }
 
-  Future<void> signInWithPhoneCredential(AuthCredential credential) async {
+  Future<void> signInWithPhoneCredential(dynamic credential) async { // Changed from AuthCredential
     throw UnimplementedError('Phone sign-in not yet implemented for Supabase.');
   }
 
-  Future<void> linkPhoneNumber(AuthCredential credential) async {
+  Future<void> linkPhoneNumber(dynamic credential) async { // Changed from AuthCredential
     throw UnimplementedError('Linking phone number not yet implemented for Supabase.');
   }
 

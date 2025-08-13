@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 class LinkEmailScreen extends StatefulWidget {
@@ -32,11 +31,11 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
       if (mounted) {
         Navigator.of(context).pop();
       }
-    } on FirebaseAuthException catch (e) {
+    } on Exception catch (e) { // Changed from FirebaseAuthException
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Ocorreu um erro')),
-        );
+          SnackBar(content: Text(e.toString())),
+        ); // Changed to e.toString() as message might not be directly available
       }
     } finally {
       if (mounted) {

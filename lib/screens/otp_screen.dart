@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 class OTPScreen extends StatefulWidget {
@@ -26,57 +25,28 @@ class _OTPScreenState extends State<OTPScreen> {
     });
 
     try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
-        smsCode: _otpController.text.trim(),
-      );
-      await _authService.linkPhoneNumber(credential);
+      // Supabase phone authentication uses signInWithOtp and verifyOtp.
+      // The current AuthService methods for phone auth are unimplemented.
+      // This part needs to be refactored once Supabase phone auth is implemented.
+      throw Exception('Autenticação por telefone não implementada para Supabase.');
+
+      // Example of how it might look with Supabase (conceptual):
+      // final AuthResponse response = await _authService.verifyOtp(
+      //   phone: '+' + widget.verificationId, // Assuming verificationId is phone number
+      //   token: _otpController.text.trim(),
+      //   type: OtpType.sms,
+      // );
+      // if (response.user != null) {
+      //   if (mounted) {
+      //     Navigator.of(context).pop();
+      //     Navigator.of(context).pop();
+      //   }
+      // }
+    } on Exception catch (e) { // Changed from FirebaseAuthException
       if (mounted) {
-        // Pop twice to go back to the profile screen
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-      }
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'account-exists-with-different-credential') {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Conta Existente'),
-            content: const Text(
-                'Este número de telemóvel já está associado a outra conta. Deseja iniciar sessão com essa conta?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  try {
-                    await _authService.signInWithPhoneCredential(e.credential!);
-                    if (mounted) {
-                      // Navigate to the home screen after signing in with the other account
-                      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-                    }
-                  } on FirebaseAuthException catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.message ?? 'Ocorreu um erro ao iniciar sessão')),
-                      );
-                    }
-                  }
-                },
-                child: const Text('Iniciar Sessão'),
-              ),
-            ],
-          ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
         );
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message ?? 'Ocorreu um erro')),
-          );
-        }
       }
     } finally {
       if (mounted) {

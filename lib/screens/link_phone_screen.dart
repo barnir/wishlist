@@ -27,36 +27,33 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
       _isLoading = true;
     });
 
-    await _authService.verifyPhoneNumber(
-      phoneNumber: _telefoneCompleto!,
-      verificationCompleted: (credential) async {
-        // Auto-retrieval or instant verification
-        await _authService.linkPhoneNumber(credential);
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      },
-      verificationFailed: (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message ?? 'Ocorreu um erro')),
-          );
-        }
-      },
-      codeSent: (verificationId, forceResendingToken) {
-        if (mounted) {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => OTPScreen(verificationId: verificationId),
-          ));
-        }
-      },
-      codeAutoRetrievalTimeout: (verificationId) {},
-    );
+    try {
+      // Supabase phone authentication uses signInWithOtp.
+      // The current AuthService methods for phone auth are unimplemented.
+      // This part needs to be refactored once Supabase phone auth is implemented.
+      throw Exception('Autenticação por telefone não implementada para Supabase.');
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+      // Example of how it might look with Supabase (conceptual):
+      // await _authService.signInWithOtp(
+      //   phone: _telefoneCompleto!,
+      // );
+      // if (mounted) {
+      //   Navigator.of(context).push(MaterialPageRoute(
+      //     builder: (context) => OTPScreen(verificationId: _telefoneCompleto!),
+      //   ));
+      // }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao enviar código: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
