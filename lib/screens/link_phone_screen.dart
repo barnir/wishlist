@@ -28,20 +28,14 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
     });
 
     try {
-      // Supabase phone authentication uses signInWithOtp.
-      // The current AuthService methods for phone auth are unimplemented.
-      // This part needs to be refactored once Supabase phone auth is implemented.
-      throw Exception('Autenticação por telefone não implementada para Supabase.');
-
-      // Example of how it might look with Supabase (conceptual):
-      // await _authService.signInWithOtp(
-      //   phone: _telefoneCompleto!,
-      // );
-      // if (mounted) {
-      //   Navigator.of(context).push(MaterialPageRoute(
-      //     builder: (context) => OTPScreen(verificationId: _telefoneCompleto!),
-      //   ));
-      // }
+      await _authService.sendPhoneOtp(
+        _telefoneCompleto!,
+      );
+      if (mounted) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => OTPScreen(phoneNumber: _telefoneCompleto!),
+        ));
+      }
     } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

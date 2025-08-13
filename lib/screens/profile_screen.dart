@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:wishlist_app/screens/link_email_screen.dart'; // Keep for now, but linking is unimplemented
-import 'package:wishlist_app/screens/link_phone_screen.dart'; // Keep for now, but linking is unimplemented
+import 'package:wishlist_app/screens/link_email_screen.dart';
+import 'package:wishlist_app/screens/link_phone_screen.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
@@ -24,6 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isPrivate = false;
   bool _isUploading = false;
   String? _profileImageUrl; // Use String for URL
+  String? _phoneNumber; // To store phone number from user profile
 
   bool _isLoading = false;
 
@@ -40,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (userData != null) {
       _nameController.text = userData['display_name'] ?? '';
       _isPrivate = userData['is_private'] ?? false;
+      _phoneNumber = userData['phone_number']; // Get phone number from user profile
     }
     _profileImageUrl = _authService.currentUser?.userMetadata?['photoURL']; // Access from user_metadata
 
@@ -94,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isEditingName = false);
     if (mounted) {
       setState(() => _isLoading = false);
-    }
+    );
   }
 
   Future<void> _savePrivacySetting(bool isPrivate) async {
@@ -192,42 +194,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // Phone number linking (unimplemented for Supabase)
-                      // ElevatedButton(
-                      //   onPressed: () {
-                      //     Navigator.of(context).push(MaterialPageRoute(
-                      //       builder: (context) => const LinkPhoneScreen(),
-                      //     ));
-                      //   },
-                      //   child: const Text('Adicionar Telemóvel'),
-                      // ),
+                      if (_phoneNumber == null || _phoneNumber!.isEmpty) // Check if phone number is linked
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => const LinkPhoneScreen(),
+                            ));
+                          },
+                          child: const Text('Adicionar Telemóvel'),
+                        )
+                      else
+                        Text('Telemóvel: $_phoneNumber'),
+                      const SizedBox(height: 16),
                       // Email linking (unimplemented for Supabase)
-                      // ElevatedButton(
-                      //   onPressed: () {
-                      //     Navigator.of(context).push(MaterialPageRoute(
-                      //       builder: (context) => const LinkEmailScreen(),
-                      //     ));
-                      //   },
-                      //   child: const Text('Adicionar Email'),
-                      // ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const LinkEmailScreen(),
+                          ));
+                        },
+                        child: const Text('Adicionar Email'),
+                      ),
                       // Google linking (unimplemented for Supabase)
-                      // ElevatedButton(
-                      //   onPressed: () async {
-                      //     try {
-                      //       await _authService.linkGoogle();
-                      //       setState(() {}); // Rebuild to update the UI
-                      //     } on Exception catch (e) {
-                      //       if (mounted) {
-                      //         ScaffoldMessenger.of(context).showSnackBar(
-                      //           SnackBar(
-                      //             content: Text(e.toString()),
-                      //           ),
-                      //         );
-                      //       }
-                      //     }
-                      //   },
-                      //   child: const Text('Adicionar Google'),
-                      // ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            // This method is still unimplemented in AuthService
+                            // await _authService.linkGoogle();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Vinculação Google não implementada.')),
+                              );
+                            }
+                            setState(() {}); // Rebuild to update the UI
+                          } on Exception catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(e.toString()),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Adicionar Google'),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _signOut,

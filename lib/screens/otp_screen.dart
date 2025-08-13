@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 class OTPScreen extends StatefulWidget {
-  final String verificationId;
+  final String phoneNumber; // Changed from verificationId
 
-  const OTPScreen({super.key, required this.verificationId});
+  const OTPScreen({super.key, required this.phoneNumber}); // Changed from verificationId
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
@@ -25,24 +25,18 @@ class _OTPScreenState extends State<OTPScreen> {
     });
 
     try {
-      // Supabase phone authentication uses signInWithOtp and verifyOtp.
-      // The current AuthService methods for phone auth are unimplemented.
-      // This part needs to be refactored once Supabase phone auth is implemented.
-      throw Exception('Autenticação por telefone não implementada para Supabase.');
-
-      // Example of how it might look with Supabase (conceptual):
-      // final AuthResponse response = await _authService.verifyOtp(
-      //   phone: '+' + widget.verificationId, // Assuming verificationId is phone number
-      //   token: _otpController.text.trim(),
-      //   type: OtpType.sms,
-      // );
-      // if (response.user != null) {
-      //   if (mounted) {
-      //     Navigator.of(context).pop();
-      //     Navigator.of(context).pop();
-      //   }
-      // }
-    } on Exception catch (e) { // Changed from FirebaseAuthException
+      final response = await _authService.verifyPhoneOtp(
+        widget.phoneNumber,
+        _otpController.text.trim(),
+      );
+      if (response.user != null) {
+        if (mounted) {
+          // Pop twice to go back to the profile screen or home screen
+          Navigator.of(context).pop(); // Pop OTPScreen
+          Navigator.of(context).pop(); // Pop TelefoneLoginScreen or LinkPhoneScreen
+        }
+      }
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),

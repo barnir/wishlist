@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/config.dart';
+import 'package:wishlist_app/services/user_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
+  final _userService = UserService();
 
   bool _isLoading = false;
   String? _erro;
@@ -43,6 +45,20 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  Future<void> _navigateToHomeOrLinkPhone() async {
+    final user = _authService.currentUser;
+    if (user != null) {
+      final userProfile = await _userService.getUserProfile(user.id);
+      if (userProfile == null || userProfile['phone_number'] == null || userProfile['phone_number'].isEmpty) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/add_phone'); // Assuming /add_phone navigates to LinkPhoneScreen
+      } else {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    }
+  }
+
   Future<void> _loginComEmail() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -54,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      await _navigateToHomeOrLinkPhone();
     } catch (e) {
       setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
     } finally {
@@ -70,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _authService.signInWithGoogle();
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      await _navigateToHomeOrLinkPhone();
     } catch (e) {
       setState(() => _erro = 'Erro ao fazer login com Google: ${e.toString()}');
     } finally {

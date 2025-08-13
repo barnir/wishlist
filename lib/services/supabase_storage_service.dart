@@ -4,8 +4,7 @@ import 'package:image/image.dart' as img; // For image manipulation
 
 class SupabaseStorageService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
-  final String _bucketName = 'wishlist-images'; // TODO: User needs to create this bucket in Supabase
-
+  final String _bucketName = 'wishlist-images';
   Future<String?> uploadImage(File imageFile, String path) async {
     try {
       // Optimize image before uploading

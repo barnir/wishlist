@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/user_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,9 +16,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmarPasswordController = TextEditingController();
   final _authService = AuthService();
+  final _userService = UserService();
 
   bool _isLoading = false;
   String? _erro;
+
+  Future<void> _navigateToHomeOrLinkPhone() async {
+    final user = _authService.currentUser;
+    if (user != null) {
+      final userProfile = await _userService.getUserProfile(user.id);
+      if (userProfile == null || userProfile['phone_number'] == null || userProfile['phone_number'].isEmpty) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/add_phone'); // Assuming /add_phone navigates to LinkPhoneScreen
+      } else {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    }
+  }
 
   Future<void> _registar() async {
     if (!_formKey.currentState!.validate()) return;
@@ -33,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _authService.updateUser(displayName: _nomeController.text.trim());
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home'); // Navigate to home directly
+      await _navigateToHomeOrLinkPhone();
     } catch (e) {
       setState(() => _erro = 'Erro ao registar: ${e.toString()}');
     } finally {
