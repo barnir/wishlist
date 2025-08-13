@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wishlist_app/screens/link_email_screen.dart';
+import 'package:wishlist_app/screens/link_phone_screen.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
@@ -35,8 +38,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userId = _authService.currentUser!.uid;
     final userData = await _userService.getUserProfile(userId);
     if (userData.exists) {
-      _nameController.text = userData.get('displayName') ?? '';
-      _isPrivate = userData.get('isPrivate') ?? false;
+      final data = userData.data() as Map<String, dynamic>?;
+      if (data != null) {
+        _nameController.text = data['displayName'] ?? '';
+        _isPrivate = data['isPrivate'] ?? false;
+      }
       final photoURL = _authService.currentUser?.photoURL;
       if (photoURL != null) {
         _imageFuture = ImageCacheService.getFile(photoURL);
@@ -60,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _imageFuture = Future.value(tempFile);
         _isUploading = true;
       });
-      
+
       try {
         await _authService.updateProfilePicture(tempFile);
         final newUrl = _authService.currentUser?.photoURL;
@@ -190,6 +196,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      if (user.phoneNumber == null || user.phoneNumber!.isEmpty)
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => const LinkPhoneScreen(),
+                            ));
+                          },
+                          child: const Text('Adicionar Telemóvel'),
+                        )
+                      else
+                        Text('Telemóvel: ${user.phoneNumber}'),
+                      const SizedBox(height: 16),
+                      if (user.providerData.every((p) => p.providerId != 'password'))
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => const LinkEmailScreen(),
+                            ));
+                          },
+                          child: const Text('Adicionar Email'),
+                        ),
+                      if (user.providerData.every((p) => p.providerId != 'google.com'))
+                        ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              await _authService.linkGoogle();
+                              setState(() {}); // Rebuild to update the UI
+                            } on FirebaseAuthException catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(e.message ?? 'Ocorreu um erro'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Adicionar Google'),
+                        ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _signOut,
