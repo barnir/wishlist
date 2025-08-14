@@ -59,7 +59,7 @@ class AuthService {
     try {
       await _supabaseClient.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback/',
+        redirectTo: kIsWeb ? null : 'com.example.wishlist_app://login-callback/',
       );
     } on AuthException catch (e) {
       throw Exception(e.message);
@@ -68,7 +68,10 @@ class AuthService {
 
   Future<void> sendPhoneOtp(String phoneNumber) async {
     try {
-      await _supabaseClient.auth.signInWithOtp(phone: phoneNumber);
+      await _supabaseClient.auth.signInWithOtp(
+        phone: phoneNumber,
+        channel: OtpChannel.whatsapp,
+      );
     } on AuthException catch (e) {
       throw Exception(e.message);
     }
@@ -182,7 +185,7 @@ class AuthService {
     try {
       await _supabaseClient.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback/',
+        redirectTo: kIsWeb ? null : 'com.example.wishlist_app://login-callback/',
       );
     } on AuthException catch (e) {
       throw Exception(e.message);
