@@ -11,9 +11,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _userService = UserService();
 
@@ -23,26 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-  }
-
-  String? _validarEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Por favor, insira o seu e-mail.';
-    }
-    if (!value.contains('@')) {
-      return 'Por favor, insira um e-mail válido.';
-    }
-    return null;
-  }
-
-  String? _validarSenha(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Por favor, insira a sua senha.';
-    }
-    if (value.length < 8) {
-      return 'A senha deve ter pelo menos 8 caracteres.';
-    }
-    return null;
   }
 
   Future<void> _navigateToHomeOrLinkPhone() async {
@@ -55,27 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
-      }
-    }
-  }
-
-  Future<void> _loginComEmail() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      await _authService.signInWithEmailAndPassword(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      if (!mounted) return;
-      await _navigateToHomeOrLinkPhone();
-    } catch (e) {
-      setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
       }
     }
   }
@@ -107,63 +63,54 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                if (_erro != null) ...[
-                  Text(_erro!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 12),
-                ],
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'E-mail'),
-                  validator: _validarEmail,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_erro != null) ...[
+                Text(
+                  _erro!,
+                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                  validator: _validarSenha,
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _loginComEmail,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Entrar com E-mail'),
-                ),
-                const SizedBox(height: 9),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.phone_android),
-                  label: const Text('Entrar com Telemóvel'),
-                  onPressed: _isLoading ? null : _loginComTelemovel,
-                ),
-                const SizedBox(height: 9),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.android),
-                  label: const Text('Entrar com Google'),
-                  onPressed: _isLoading ? null : _loginComGoogle,
-                ),
-                const SizedBox(height: 18),
-                const Divider(),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/register'),
-                  child: const Text('Não tens conta? Regista-te!'),
-                ),
+                const SizedBox(height: 20),
               ],
-            ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.chat_bubble),
+                label: const Text('Entrar com WhatsApp'),
+                onPressed: _isLoading ? null : _loginComTelemovel,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  textStyle: const TextStyle(fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.g_mobiledata, color: Colors.red),
+                label: const Text('Entrar com Google'),
+                onPressed: _isLoading ? null : _loginComGoogle,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(double.infinity, 50),
+                  textStyle: const TextStyle(fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Divider(),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/register'),
+                child: const Text('Não tens conta? Regista-te!'),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
+  
 }

@@ -48,7 +48,7 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
   Future<void> _verificarCodigo() async {
     if (_codeController.text.trim().isEmpty) {
       setState(() {
-        _error = 'Por favor, insere o código SMS recebido.';
+        _error = 'Por favor, insere o código recebido no WhatsApp.';
       });
       return;
     }
@@ -73,7 +73,7 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login com Telemóvel')),
+      appBar: AppBar(title: const Text('Login com WhatsApp')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -108,7 +108,7 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
                 controller: _codeController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Código SMS',
+                  labelText: 'Código do WhatsApp',
                   border: OutlineInputBorder(),
                 ),
               ),
