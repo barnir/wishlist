@@ -70,7 +70,7 @@ class AuthService {
     try {
       await _supabaseClient.auth.signInWithOtp(
         phone: phoneNumber,
-        channel: OtpChannel.whatsapp,
+        channel: OtpChannel.sms,
       );
     } on AuthException catch (e) {
       throw Exception(e.message);

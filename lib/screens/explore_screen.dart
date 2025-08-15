@@ -126,16 +126,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                       radius: 50,
                                     ),
                                     placeholder: (context, url) => CircleAvatar(
-                                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                      backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
                                       child: const CircularProgressIndicator(strokeWidth: 2),
                                     ),
                                     errorWidget: (context, url, error) => CircleAvatar(
-                                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                      backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
                                       child: const Icon(Icons.card_giftcard),
                                     ),
                                   )
                                 : CircleAvatar(
-                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                    backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
                                     child: const Icon(Icons.card_giftcard),
                                   ),
                           ),

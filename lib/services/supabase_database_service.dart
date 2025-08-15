@@ -105,7 +105,6 @@ class SupabaseDatabaseService {
       return response;
     } catch (e) {
       // Handle case where item might not exist or other errors
-      print('Error fetching wish item: $e');
       return null;
     }
   }

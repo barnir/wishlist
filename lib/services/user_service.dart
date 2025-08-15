@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:postgrest/postgrest.dart';
 
 class UserService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
@@ -41,7 +40,6 @@ class UserService {
           .filter('phone_number', 'in', phoneNumbers.join(','));
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error searching friends by contacts: $e');
       return [];
     }
   }
@@ -54,7 +52,6 @@ class UserService {
         'friend_name': friendName, // Assuming you want to store friend's name in the friends table
       });
     } catch (e) {
-      print('Error adding friend: $e');
       rethrow;
     }
   }

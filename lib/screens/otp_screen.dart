@@ -1,25 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 class OTPScreen extends StatefulWidget {
-  final String phoneNumber; // Changed from verificationId
+  final String phoneNumber;
 
-  const OTPScreen({super.key, required this.phoneNumber}); // Changed from verificationId
+  const OTPScreen({super.key, required this.phoneNumber});
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
 }
 
 class _OTPScreenState extends State<OTPScreen> {
-  final _otpController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   bool _isLoading = false;
+  String _otpCode = '';
 
-  Future<void> _submitOTP() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  @override
+  void initState() {
+    super.initState();
+    _listenForCode();
+  }
+
+  void _listenForCode() async {
+    await SmsAutoFill().listenForCode();
+  }
+
+  @override
+  void dispose() {
+    SmsAutoFill().unregisterListener();
+    super.dispose();
+  }
+
+  Future<void> _submitOTP(String code) async {
     setState(() {
       _isLoading = true;
     });
@@ -27,14 +40,11 @@ class _OTPScreenState extends State<OTPScreen> {
     try {
       final response = await _authService.verifyPhoneOtp(
         widget.phoneNumber,
-        _otpController.text.trim(),
+        code,
       );
-      if (response.user != null) {
-        if (mounted) {
-          // Pop twice to go back to the profile screen or home screen
-          Navigator.of(context).pop(); // Pop OTPScreen
-          Navigator.of(context).pop(); // Pop TelefoneLoginScreen or LinkPhoneScreen
-        }
+      if (response.user != null && mounted) {
+        // Navigate back to the root or the main screen after successful login
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } on Exception catch (e) {
       if (mounted) {
@@ -57,31 +67,41 @@ class _OTPScreenState extends State<OTPScreen> {
       appBar: AppBar(title: const Text('Verificar Código')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _otpController,
-                decoration: const InputDecoration(labelText: 'Código de Verificação'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira o código de verificação';
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Insira o código de 6 dígitos enviado para o seu telemóvel.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            TextFieldPinAutoFill(
+              currentCode: _otpCode,
+              codeLength: 6,
+              onCodeSubmitted: (code) {
+                 // This is called when the user submits the code manually
+              },
+              onCodeChanged: (code) {
+                _otpCode = code;
+                if (code.length == 6) {
+                  // Automatically submit when the code is filled
+                  _submitOTP(code);
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else
+              ElevatedButton(
+                onPressed: () {
+                  if (_otpCode.length == 6) {
+                    _submitOTP(_otpCode);
                   }
-                  return null;
                 },
+                child: const Text('Verificar'),
               ),
-              const SizedBox(height: 16),
-              if (_isLoading)
-                const CircularProgressIndicator()
-              else
-                ElevatedButton(
-                  onPressed: _submitOTP,
-                  child: const Text('Verificar'),
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );
