@@ -99,8 +99,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: _selectedIndex == 0,
-      onPopInvoked: (didPop) {
-        if (!didPop && _selectedIndex != 0) {
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
           setState(() {
             _selectedIndex = 0;
           });

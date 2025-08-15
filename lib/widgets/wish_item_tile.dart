@@ -32,13 +32,13 @@ class WishItemTile extends StatelessWidget {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
                   child: const CircularProgressIndicator(strokeWidth: 2),
                 );
               } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
                 // Fallback to category icon if image fails to load or is not present
                 return CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
                   child: Icon(
                     category.icon,
                     color: Theme.of(context).colorScheme.primary,

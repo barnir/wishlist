@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/screens/link_email_screen.dart';
 import 'package:wishlist_app/screens/link_phone_screen.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -137,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             CircleAvatar(
                               radius: 50,
-                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
                               backgroundImage: _profileImageUrl != null
                                   ? CachedNetworkImageProvider(_profileImageUrl!)
                                   : null,

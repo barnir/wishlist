@@ -23,8 +23,7 @@ class SupabaseStorageService {
         return _supabaseClient.storage.from(_bucketName).getPublicUrl(filePath);
       }
       return null;
-    } on StorageException catch (e) {
-      print('Supabase Storage upload error: ${e.message}');
+    } on StorageException {
       return null;
     }
   }
@@ -56,8 +55,8 @@ class SupabaseStorageService {
         final String pathInBucket = pathSegments.sublist(pathSegments.indexOf(_bucketName) + 1).join('/');
         await _supabaseClient.storage.from(_bucketName).remove([pathInBucket]);
       }
-    } on StorageException catch (e) {
-      print('Supabase Storage delete error: ${e.message}');
+    } on StorageException {
+      // Fail silently on purpose
     }
   }
 }

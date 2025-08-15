@@ -250,7 +250,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                     onChanged: (newValue) {
                       setState(() {
@@ -296,7 +296,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                this.setState(() {}); // Rebuild the main screen with the new filter/sort
+                setState(() {}); // Rebuild the main screen with the new filter/sort
               },
               child: const Text('Aplicar'),
             ),

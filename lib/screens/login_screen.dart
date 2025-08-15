@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -77,12 +76,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                icon: const Icon(Icons.chat_bubble),
-                label: const Text('Entrar com WhatsApp'),
+                icon: const Icon(Icons.sms),
+                label: const Text('Entrar com Telemóvel'),
                 onPressed: _isLoading ? null : _loginComTelemovel,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 50),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
