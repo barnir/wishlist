@@ -44,9 +44,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _authService.createUserWithEmailAndPassword(
         _emailController.text.trim(),
         _passwordController.text,
+        _nomeController.text.trim(),
       );
-      // Update display name in Supabase user metadata
-      await _authService.updateUser(displayName: _nomeController.text.trim());
 
       if (!mounted) return;
       await _navigateToHomeOrLinkPhone();
