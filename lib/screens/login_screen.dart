@@ -12,6 +12,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   final _userService = UserService();
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   bool _isLoading = false;
   String? _erro;
@@ -31,6 +34,26 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
+      }
+    }
+  }
+
+  Future<void> _loginComEmail() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      try {
+        await _authService.signInWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+        if (!mounted) return;
+        await _navigateToHomeOrLinkPhone();
+      } catch (e) {
+        setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -62,52 +85,87 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_erro != null) ...[
-                Text(
-                  _erro!,
-                  style: const TextStyle(color: Colors.red, fontSize: 16),
-                  textAlign: TextAlign.center,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_erro != null) ...[
+                  Text(
+                    _erro!,
+                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira o seu email.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira a sua password.';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _loginComEmail,
+                  child: const Text('Entrar com Email'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.sms),
+                  label: const Text('Entrar com Telemóvel'),
+                  onPressed: _isLoading ? null : _loginComTelemovel,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.g_mobiledata, color: Colors.red),
+                  label: const Text('Entrar com Google'),
+                  onPressed: _isLoading ? null : _loginComGoogle,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size(double.infinity, 50),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/register'),
+                  child: const Text('Não tens conta? Regista-te!'),
+                ),
               ],
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.sms),
-                label: const Text('Entrar com Telemóvel'),
-                onPressed: _isLoading ? null : _loginComTelemovel,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.g_mobiledata, color: Colors.red),
-                label: const Text('Entrar com Google'),
-                onPressed: _isLoading ? null : _loginComGoogle,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  minimumSize: const Size(double.infinity, 50),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Divider(),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/register'),
-                child: const Text('Não tens conta? Regista-te!'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
-
-  
 }
