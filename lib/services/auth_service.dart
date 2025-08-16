@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/supabase_storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:wishlist_app/services/user_service.dart';
@@ -24,8 +26,28 @@ class AuthService {
     }
   }
 
+  Future<void> _validatePassword(String password) async {
+    if (password.length < 6) {
+      throw Exception('A senha deve ter no mínimo 6 caracteres.');
+    }
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      throw Exception('A senha deve conter pelo menos uma letra minúscula.');
+    }
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      throw Exception('A senha deve conter pelo menos uma letra maiúscula.');
+    }
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      throw Exception('A senha deve conter pelo menos um número.');
+    }
+    if (!password.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'))) {
+      throw Exception('A senha deve conter pelo menos um símbolo.');
+    }
+  }
+
   Future<AuthResponse> createUserWithEmailAndPassword(String email, String password, String displayName) async {
     try {
+      await _validatePassword(password);
+
       final AuthResponse response = await _supabaseClient.auth.signUp(
         email: email,
         password: password,
@@ -46,16 +68,35 @@ class AuthService {
 
   Future<void> signOut() async {
     await _supabaseClient.auth.signOut();
+    await GoogleSignIn().signOut();
   }
 
   Future<void> signInWithGoogle() async {
     try {
-      await _supabaseClient.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'com.example.wishlist_app://login-callback/',
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: Config.googleSignInServerClientId,
+      );
+      final googleUser = await googleSignIn.signIn();
+      final googleAuth = await googleUser!.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+
+      if (accessToken == null) {
+        throw 'No Access Token found.';
+      }
+      if (idToken == null) {
+        throw 'No ID Token found.';
+      }
+
+      await _supabaseClient.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
       );
     } on AuthException catch (e) {
       throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString());
     }
   }
 
@@ -162,12 +203,25 @@ class AuthService {
       throw Exception('Nenhum usuário logado para reautenticação.');
     }
     try {
-      await _supabaseClient.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'com.example.wishlist_app://login-callback/',
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: Config.googleSignInServerClientId,
+      );
+      final googleUser = await googleSignIn.signIn();
+      final googleAuth = await googleUser!.authentication;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw 'No ID Token found.';
+      }
+
+      await _supabaseClient.auth.reauthenticateWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
       );
     } on AuthException catch (e) {
       throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString());
     }
   }
 
