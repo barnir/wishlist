@@ -24,32 +24,34 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
   }
 
-  Future<void> _navigateToHomeOrLinkPhone() async {
-    final user = _authService.currentUser;
-    if (user != null) {
-      final userProfile = await _userService.getUserProfile(user.id);
-      if (userProfile == null || userProfile['phone_number'] == null || userProfile['phone_number'].isEmpty) {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/add_phone'); // Assuming /add_phone navigates to LinkPhoneScreen
-      } else {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    }
-  }
-
   Future<void> _loginComEmail() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+      setState(() {
+        _isLoading = true;
+        _erro = null;
+      });
       try {
         await _authService.signInWithEmailAndPassword(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
-        if (!mounted) return;
-        await _navigateToHomeOrLinkPhone();
+        
+        // After email login, check for phone number
+        final user = _authService.currentUser;
+        if (user != null) {
+          final userProfile = await _userService.getUserProfile(user.id);
+          if (!mounted) return;
+          if (userProfile == null || userProfile['phone_number'] == null || userProfile['phone_number'].toString().isEmpty) {
+            Navigator.pushReplacementNamed(context, '/add_phone');
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        }
+
       } catch (e) {
-        setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
+        if (mounted) {
+          setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
+        }
       } finally {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -59,18 +61,32 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loginComGoogle() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _erro = null;
+    });
 
-    try {
-      await _authService.signInWithGoogle();
-      if (!mounted) return;
-      await _navigateToHomeOrLinkPhone();
-    } catch (e) {
-      setState(() => _erro = 'Erro ao fazer login com Google: ${e.toString()}');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    final result = await _authService.signInWithGoogle();
+
+    if (!mounted) return;
+
+    switch (result) {
+      case GoogleSignInResult.success:
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case GoogleSignInResult.missingPhoneNumber:
+        Navigator.pushReplacementNamed(context, '/add_phone');
+        break;
+      case GoogleSignInResult.cancelled:
+        setState(() => _erro = 'Login com Google cancelado.');
+        break;
+      case GoogleSignInResult.failed:
+        setState(() => _erro = 'Ocorreu um erro ao fazer login com o Google.');
+        break;
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -125,11 +141,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _loginComEmail,
-                  child: const Text('Entrar com Email'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
+                  child: const Text('Entrar com Email'),
                 ),
                 const SizedBox(height: 20),
                 const Divider(),

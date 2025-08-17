@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/config.dart';
-import 'package:wishlist_app/services/auth_service.dart'; // Keep this for now, will refactor later
+import 'package:wishlist_app/services/auth_service.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';

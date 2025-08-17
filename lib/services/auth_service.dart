@@ -2,11 +2,22 @@ import 'dart:io';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/supabase_storage_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
+enum GoogleSignInResult {
+  success,
+  missingPhoneNumber,
+  cancelled,
+  failed,
+}
+
 class AuthService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: Config.googleSignInServerClientId,
+  );
   final SupabaseStorageService _supabaseStorageService = SupabaseStorageService();
   final UserService _userService = UserService();
 
@@ -66,23 +77,32 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    await _googleSignIn.signOut();
     await _supabaseClient.auth.signOut();
-    await GoogleSignIn.instance.signOut();
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<GoogleSignInResult> signInWithGoogle() async {
     try {
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-        final googleUser = await GoogleSignIn.instance.signIn();
-        final googleAuth = await googleUser!.authentication;
+      if (kIsWeb) {
+        // Web implementation - does not support phone number check directly
+        await _supabaseClient.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: 'com.example.wishlist_app://login-callback',
+        );
+        // On web, we can't immediately know the result. Assume success for now.
+        // A more robust solution would involve handling the redirect and then checking.
+        return GoogleSignInResult.success;
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          return GoogleSignInResult.cancelled;
+        }
+        final googleAuth = await googleUser.authentication;
         final accessToken = googleAuth.accessToken;
         final idToken = googleAuth.idToken;
 
-        if (accessToken == null) {
-          throw 'No Access Token found.';
-        }
-        if (idToken == null) {
-          throw 'No ID Token found.';
+        if (accessToken == null || idToken == null) {
+          return GoogleSignInResult.failed;
         }
 
         await _supabaseClient.auth.signInWithIdToken(
@@ -90,17 +110,23 @@ class AuthService {
           idToken: idToken,
           accessToken: accessToken,
         );
-      } else {
-        // Web-specific sign-in
-        await _supabaseClient.auth.signInWithOAuth(
-          OAuthProvider.google,
-          scopes: 'email',
-        );
+
+        final user = _supabaseClient.auth.currentUser;
+        if (user == null) {
+          return GoogleSignInResult.failed;
+        }
+
+        final profile = await _userService.getUserProfile(user.id);
+        if (profile == null || profile['phone_number'] == null || profile['phone_number'].toString().isEmpty) {
+          return GoogleSignInResult.missingPhoneNumber;
+        }
+
+        return GoogleSignInResult.success;
       }
-    } on AuthException catch (e) {
-      throw Exception('Supabase sign-in failed: ${e.message}');
+      return GoogleSignInResult.failed; // Should not be reached
     } catch (e) {
-      throw Exception('An unexpected error occurred: $e');
+      // Catch any other exception
+      return GoogleSignInResult.failed;
     }
   }
 
@@ -207,28 +233,28 @@ class AuthService {
       throw Exception('Nenhum usuário logado para reautenticação.');
     }
     try {
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-        final googleUser = await GoogleSignIn.instance.signIn();
-        final googleAuth = await googleUser!.authentication;
+      if (kIsWeb) {
+        // Web implementation
+        await _supabaseClient.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: 'com.example.wishlist_app://login-callback',
+        );
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          throw 'A reautenticação com o Google foi cancelada.';
+        }
+        final googleAuth = await googleUser.authentication;
         final idToken = googleAuth.idToken;
 
         if (idToken == null) {
-          throw 'No ID Token found.';
+          throw 'Nenhum token de ID encontrado.';
         }
 
-        await _supabaseClient.auth.signInWithIdToken(
-          provider: OAuthProvider.google,
-          idToken: idToken,
-        );
-      } else {
-        // Web-specific reauthentication
-        await _supabaseClient.auth.signInWithOAuth(
-          OAuthProvider.google,
-          scopes: 'email',
+        await _supabaseClient.auth.reauthenticate(
         );
       }
-    }
-    on AuthException catch (e) {
+    } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
       throw Exception(e.toString());
