@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:wishlist_app/config.dart';
-import 'package:wishlist_app/services/supabase_storage_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:wishlist_app/services/supabase_storage_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
 class AuthService {
@@ -68,35 +67,40 @@ class AuthService {
 
   Future<void> signOut() async {
     await _supabaseClient.auth.signOut();
-    await GoogleSignIn().signOut();
+    await GoogleSignIn.instance.signOut();
   }
 
   Future<void> signInWithGoogle() async {
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId: Config.googleSignInServerClientId,
-      );
-      final googleUser = await googleSignIn.signIn();
-      final googleAuth = await googleUser!.authentication;
-      final accessToken = googleAuth.accessToken;
-      final idToken = googleAuth.idToken;
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        final googleUser = await GoogleSignIn.instance.signIn();
+        final googleAuth = await googleUser!.authentication;
+        final accessToken = googleAuth.accessToken;
+        final idToken = googleAuth.idToken;
 
-      if (accessToken == null) {
-        throw 'No Access Token found.';
-      }
-      if (idToken == null) {
-        throw 'No ID Token found.';
-      }
+        if (accessToken == null) {
+          throw 'No Access Token found.';
+        }
+        if (idToken == null) {
+          throw 'No ID Token found.';
+        }
 
-      await _supabaseClient.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-        accessToken: accessToken,
-      );
+        await _supabaseClient.auth.signInWithIdToken(
+          provider: OAuthProvider.google,
+          idToken: idToken,
+          accessToken: accessToken,
+        );
+      } else {
+        // Web-specific sign-in
+        await _supabaseClient.auth.signInWithOAuth(
+          OAuthProvider.google,
+          scopes: 'email',
+        );
+      }
     } on AuthException catch (e) {
-      throw Exception(e.message);
+      throw Exception('Supabase sign-in failed: ${e.message}');
     } catch (e) {
-      throw Exception(e.toString());
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
@@ -203,22 +207,28 @@ class AuthService {
       throw Exception('Nenhum usuário logado para reautenticação.');
     }
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId: Config.googleSignInServerClientId,
-      );
-      final googleUser = await googleSignIn.signIn();
-      final googleAuth = await googleUser!.authentication;
-      final idToken = googleAuth.idToken;
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        final googleUser = await GoogleSignIn.instance.signIn();
+        final googleAuth = await googleUser!.authentication;
+        final idToken = googleAuth.idToken;
 
-      if (idToken == null) {
-        throw 'No ID Token found.';
+        if (idToken == null) {
+          throw 'No ID Token found.';
+        }
+
+        await _supabaseClient.auth.signInWithIdToken(
+          provider: OAuthProvider.google,
+          idToken: idToken,
+        );
+      } else {
+        // Web-specific reauthentication
+        await _supabaseClient.auth.signInWithOAuth(
+          OAuthProvider.google,
+          scopes: 'email',
+        );
       }
-
-      await _supabaseClient.auth.reauthenticateWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-      );
-    } on AuthException catch (e) {
+    }
+    on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
       throw Exception(e.toString());
