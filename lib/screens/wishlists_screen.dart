@@ -74,7 +74,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -86,7 +86,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                     ),
                     errorWidget: (context, url, error) => Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -100,14 +100,14 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                   )
                 : Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
                       child: Icon(
                         Icons.card_giftcard,
                         size: 30,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
                       ),
                     ),
                   ),
@@ -130,7 +130,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
             ),
           ],
         ),

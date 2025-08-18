@@ -118,7 +118,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -167,7 +167,10 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Nome da Wishlist'),
+                      decoration: const InputDecoration(
+                        labelText: 'Nome da Wishlist',
+                        border: OutlineInputBorder(),
+                      ),
                       validator: (value) =>
                           (value == null || value.trim().isEmpty)
                               ? 'Insere um nome'
@@ -184,11 +187,13 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: _isLoading || _isUploading ? null : _saveWishlist,
                       child: _isLoading || _isUploading
-                          ? const CircularProgressIndicator()
+                          ? const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            )
                           : Text(widget.wishlistId == null ? 'Criar Wishlist' : 'Guardar Alterações'),
                     ),
                   ],

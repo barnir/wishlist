@@ -1,77 +1,102 @@
 # Wishlist App
 
-Aplicação de lista de desejos construída com Flutter. Permite aos utilizadores criar, gerir e partilhar as suas listas de desejos de forma fácil e intuitiva.
+A mobile application built with Flutter for managing wishlists and wish items. Users can create private or public wishlists, add items with details like name, description, price, and image, and share them. The app integrates with Supabase for backend services, including authentication, database, and storage.
 
-## ✨ Funcionalidades Principais
+## Features
 
-- **Autenticação de Utilizadores**: Registo e login seguros utilizando e-mail/palavra-passe, número de telemóvel e Google Sign-In, com o poder do Supabase.
-- **Gestão de Wishlists**: Crie, edite e elimine múltiplas listas de desejos.
-- **Adição de Itens Inteligente**: Adicione itens à sua wishlist partilhando um link de uma loja online. A aplicação extrai automaticamente o título, preço e imagem do produto.
-- **Cache de Dados e Imagens**: Para uma experiência de utilizador mais rápida e fluida, a aplicação utiliza cache para imagens e dados, sincronizando em segundo plano.
-- **Multi-plataforma**: Como uma aplicação Flutter, tem como alvo Android, iOS e Web a partir de uma única base de código.
+*   User authentication (email/password, phone, Google Sign-In).
+*   Create and manage multiple wishlists.
+*   Add, edit, and delete wish items within a wishlist.
+*   Set wishlists as private or public.
+*   Image handling for wish items (upload to Supabase Storage).
+*   Web scraping for item details (e.g., title, price, image from a URL).
+*   Caching for faster image loading.
+*   Filtering and sorting of wish items.
 
-## 🚀 Começar
+## Technologies Used
 
-Siga estas instruções para ter o projeto a correr na sua máquina local para desenvolvimento e testes.
+*   **Flutter:** UI Toolkit for building natively compiled applications for mobile, web, and desktop from a single codebase.
+*   **Dart:** Programming language used by Flutter.
+*   **Supabase:** Open-source Firebase alternative providing:
+    *   PostgreSQL Database
+    *   Authentication
+    *   Storage
+*   **`cached_network_image`:** For efficient image caching.
+*   **`url_launcher`:** For opening external URLs.
+*   **`image_picker`:** For picking images from the gallery or camera.
+*   **`google_sign_in`:** For Google authentication.
+*   **`sms_autofill`:** For SMS OTP autofill.
+*   **`http`:** For making HTTP requests (used in web scraping).
 
-### Pré-requisitos
+## Getting Started
 
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) (versão 3.8.1 ou superior)
-- Um editor de código como [VS Code](https://code.visualstudio.com/) ou [Android Studio](https://developer.android.com/studio)
-- Uma conta [Supabase](https://supabase.com) para o backend.
+### Prerequisites
 
-### Instalação
+Before you begin, ensure you have the following installed:
 
-1.  **Clone o repositório:**
-    ```sh
-    git clone <URL_DO_SEU_REPOSITÓRIO>
+*   [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel recommended)
+*   [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/wishlist_app.git
     cd wishlist_app
     ```
 
-2.  **Crie o ficheiro de configuração de ambiente:**
-    Copie o ficheiro `.env.example` para um novo ficheiro chamado `.env` e adicione as suas credenciais do Supabase.
-    ```sh
-    cp .env.example .env
-    ```
-    O seu ficheiro `.env` deverá ter o seguinte aspeto:
-    ```
-    SUPABASE_URL=https://<ID_DO_PROJETO>.supabase.co
-    SUPABASE_ANON_KEY=<SUA_CHAVE_ANON>
-    ```
-
-3.  **Instale as dependências:**
-    Execute o seguinte comando para obter todas as dependências do projeto:
-    ```sh
+2.  **Install Flutter dependencies:**
+    ```bash
     flutter pub get
     ```
 
-### Executar a Aplicação
+### Supabase Setup
 
-Para iniciar a aplicação, execute:
-```sh
+This project uses Supabase for its backend. You'll need to set up your own Supabase project.
+
+1.  **Create a Supabase Project:**
+    *   Go to [Supabase](https://supabase.com/) and create a new project.
+    *   Note down your **Project URL** and **Anon Key** from Project Settings -> API.
+
+2.  **Configure Environment Variables:**
+    *   Rename `.env.example` to `.env`.
+    *   Update the `.env` file with your Supabase project details:
+        ```
+        SUPABASE_URL=YOUR_SUPABASE_URL
+        SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+        ```
+
+3.  **Database Schema:**
+    *   You'll need to set up the necessary tables and RLS policies in your Supabase project. Refer to the `lib/services/supabase_database_service.dart` for the expected table names and columns (e.g., `users`, `wishlists`, `wish_items`).
+    *   For authentication, ensure you have enabled the desired providers (Email, Phone, Google) in your Supabase project's Authentication settings.
+
+4.  **Google Sign-In (Android/iOS):**
+    *   Follow the official `google_sign_in` plugin setup guide for [Android](https://pub.dev/packages/google_sign_in#android) and [iOS](https://pub.dev/packages/google_sign_in#ios).
+    *   For Android, download your `google-services.json` file from Firebase and place it in `android/app/`.
+
+### Running the App
+
+To run the app on a connected device or emulator:
+
+```bash
 flutter run
 ```
 
-## 🏗️ Estrutura do Projeto
+## Project Structure
 
-O código fonte da aplicação está localizado no diretório `lib/` e segue uma arquitetura simples e organizada:
+*   `lib/`: Main application source code.
+    *   `config.dart`: Application-wide configurations.
+    *   `main.dart`: Entry point of the application.
+    *   `theme.dart`: Defines the application's visual theme.
+    *   `models/`: Data models (e.g., `wishlist.dart`, `wish_item.dart`).
+    *   `screens/`: UI for different screens/pages of the app.
+    *   `services/`: Backend integration and utility services (e.g., `auth_service.dart`, `supabase_database_service.dart`, `image_cache_service.dart`, `web_scraper_service.dart`).
+    *   `widgets/`: Reusable UI components.
 
-```
-lib/
-├── models/         # Contém as classes de modelo de dados (Wishlist, WishItem, etc.).
-├── screens/        # Contém os widgets de ecrã (UI para cada página da app).
-├── services/       # Lógica de negócio, como autenticação, base de dados e serviços web.
-├── widgets/        # Widgets reutilizáveis usados em vários ecrãs.
-├── config.dart     # Configurações gerais da aplicação.
-└── main.dart       # O ponto de entrada da aplicação.
-```
+## Contributing
 
-## 📦 Dependências Principais
+Contributions are welcome! Please feel free to open issues or submit pull requests.
 
-- **[supabase_flutter](https://pub.dev/packages/supabase_flutter)**: Integração com o Supabase para autenticação e base de dados.
-- **[google_sign_in](https://pub.dev/packages/google_sign_in)**: Para autenticação com contas Google.
-- **[http](https://pub.dev/packages/http)** & **[html](https://pub.dev/packages/html)**: Para fazer scraping de dados de websites.
-- **[cached_network_image](https://pub.dev/packages/cached_network_image)**: Para carregar e guardar imagens da web em cache.
-- **[flutter_cache_manager](https://pub.dev/packages/flutter_cache_manager)**: Gestão de cache genérica.
-- **[share_plus](https://pub.dev/packages/share_plus)**: Para funcionalidades de partilha.
-- **[flutter_sharing_intent](https://pub.dev/packages/flutter_sharing_intent)**: Para receber intents de partilha de outras apps.
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

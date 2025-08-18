@@ -293,7 +293,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     ],
                     if (widget.wishlistId == null) ...[
                       if (_isLoadingWishlists)
-                        const Center(child: CircularProgressIndicator())
+                        const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
                       else
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,7 +355,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   _isCreatingWishlist
-                                      ? const CircularProgressIndicator()
+                                      ? const CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        )
                                       : ElevatedButton(
                                           onPressed: _createWishlist,
                                           child: const Text('Criar Wishlist'),
@@ -381,7 +387,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                             },
                           ),
                           if (_isUploading)
-                            const CircularProgressIndicator(),
+                            const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
                         ],
                       ),
                     ),

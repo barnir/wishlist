@@ -109,20 +109,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
                 TextFormField(
                   controller: _nomeController,
-                  decoration: InputDecoration(labelText: 'Nome'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nome',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: _validarNome,
                 ),
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _emailController,
-                  decoration: InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: _validarEmail,
                   keyboardType: TextInputType.emailAddress,
                 ),
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: InputDecoration(labelText: 'Password'),
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: _validarPassword,
                   obscureText: true,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -130,20 +139,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _confirmarPasswordController,
-                  decoration: InputDecoration(labelText: 'Confirmar Password'),
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmar Password',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: _validarConfirmaPassword,
                   obscureText: true,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                 ),
-                SizedBox(height: 18),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _registar,
-                  child: _isLoading ? CircularProgressIndicator() : Text('Registar'),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        )
+                      : const Text('Registar'),
                 ),
-                Divider(),
+                const SizedBox(height: 24),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Já tens conta? Fazer login!'),
+                  child: const Text('Já tens conta? Fazer login!'),
                 ),
               ],
             ),

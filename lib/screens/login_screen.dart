@@ -118,7 +118,10 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -130,7 +133,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -146,10 +152,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     minimumSize: const Size(double.infinity, 50),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
-                  child: const Text('Entrar com Email'),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        )
+                      : const Text('Entrar com Email'),
                 ),
-                const SizedBox(height: 20),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.sms),
                   label: const Text('Entrar com Telemóvel'),
@@ -169,8 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textStyle: const TextStyle(fontSize: 16),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/register'),
                   child: const Text('Não tens conta? Regista-te!'),

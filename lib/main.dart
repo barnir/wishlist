@@ -95,8 +95,8 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'Wishlist App',
-      theme: appTheme,
-      darkTheme: appTheme,
+      theme: lightAppTheme,
+      darkTheme: darkAppTheme,
       themeMode: ThemeMode.system, // Adapta-se ao tema do sistema
       routes: {
         '/login': (_) => const LoginScreen(),

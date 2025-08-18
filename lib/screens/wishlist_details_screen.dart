@@ -172,7 +172,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             Icon(
               Icons.add_shopping_cart_rounded,
               size: 100, // Increased size
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.7), // More prominent color
+              color: Theme.of(context).colorScheme.primary.withAlpha(179), // More prominent color
             ),
             const SizedBox(height: 24), // Increased spacing
             Text(
