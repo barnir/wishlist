@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_sharing_intent/flutter_sharing_intent.dart';
+import 'package:flutter_sharing_intent/model/sharing_file.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/auth_service.dart';
@@ -14,9 +17,11 @@ import 'screens/explore_screen.dart';
 import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
-  await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
   await Supabase.initialize(
     url: Config.supabaseUrl,
@@ -26,12 +31,62 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late StreamSubscription _intentDataStreamSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // For sharing or opening urls/text coming from outside the app while it is in the memory
+    _intentDataStreamSubscription = FlutterSharingIntent.instance.getMediaStream().listen((List<SharedFile> value) {
+      if (value.isNotEmpty) {
+        _handleSharedMedia(value);
+      }
+    });
+
+    // For sharing or opening urls/text coming from outside the app while it is closed
+    FlutterSharingIntent.instance.getInitialSharing().then((List<SharedFile> value) {
+      if (value.isNotEmpty) {
+        _handleSharedMedia(value);
+      }
+    });
+  }
+
+  void _handleSharedMedia(List<SharedFile> media) {
+    if (media.isNotEmpty) {
+      final sharedText = media.first.value;
+      if (sharedText != null) {
+        final urlRegex = RegExp(
+            r'https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+            caseSensitive: false);
+        final url = urlRegex.firstMatch(sharedText)?.group(0);
+
+        navigatorKey.currentState?.pushNamed('/add_edit_item', arguments: {
+          'name': sharedText.replaceAll(url ?? '', '').trim(),
+          'link': url,
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _intentDataStreamSubscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Wishlist App',
       theme: ThemeData(primarySwatch: Colors.blue),
       routes: {
@@ -41,17 +96,23 @@ class MyApp extends StatelessWidget {
         '/wishlists': (_) => const WishlistsScreen(),
         '/add_new_wishlist': (_) => const AddEditWishlistScreen(),
         '/add_edit_wishlist': (context) {
-          final wishlistId = ModalRoute.of(context)?.settings.arguments as String?;
+          final wishlistId =
+              ModalRoute.of(context)?.settings.arguments as String?;
           return AddEditWishlistScreen(wishlistId: wishlistId);
         },
         '/add_edit_item': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          final wishlistId = args?['wishlistId'] as String;
-          final itemId = args?['itemId'] as String?;
-          return AddEditItemScreen(wishlistId: wishlistId, itemId: itemId);
+          final args =
+              ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          return AddEditItemScreen(
+            wishlistId: args?['wishlistId'] as String?,
+            itemId: args?['itemId'] as String?,
+            name: args?['name'] as String?,
+            link: args?['link'] as String?,
+          );
         },
         '/wishlist_details': (context) {
-          final wishlistId = ModalRoute.of(context)?.settings.arguments as String;
+          final wishlistId =
+              ModalRoute.of(context)?.settings.arguments as String;
           return WishlistDetailsScreen(wishlistId: wishlistId);
         },
         '/telefoneLogin': (_) => const TelefoneLoginScreen(),

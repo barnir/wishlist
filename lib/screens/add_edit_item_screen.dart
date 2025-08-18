@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,13 +10,17 @@ import 'package:path_provider/path_provider.dart';
 import '../models/category.dart';
 
 class AddEditItemScreen extends StatefulWidget {
-  final String wishlistId;
+  final String? wishlistId;
   final String? itemId;
+  final String? name;
+  final String? link;
 
   const AddEditItemScreen({
     super.key,
-    required this.wishlistId,
+    this.wishlistId,
     this.itemId,
+    this.name,
+    this.link,
   });
 
   @override
@@ -35,40 +40,69 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Uint8List? _imageBytes;
   bool _isUploading = false;
   Future<File?>? _imageFuture;
-  String? _existingImageUrl; // Added to store original image URL
+  String? _existingImageUrl;
 
   bool _isSaving = false;
   String? _erro;
 
+  String? _selectedWishlistId;
+  List<Map<String, dynamic>> _wishlists = [];
+  bool _isLoadingWishlists = false;
+
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
+    _nameController = TextEditingController(text: widget.name);
     _descriptionController = TextEditingController();
-    _linkController = TextEditingController();
+    _linkController = TextEditingController(text: widget.link);
     _quantityController = TextEditingController(text: '1');
     _priceController = TextEditingController(text: '0');
     _selectedCategory = categories.first.name;
 
-    if (widget.itemId != null) {
+    if (widget.itemId != null && widget.wishlistId != null) {
       _loadItemData();
+    }
+
+    if (widget.wishlistId == null) {
+      _loadWishlists();
+    }
+  }
+
+  Future<void> _loadWishlists() async {
+    setState(() {
+      _isLoadingWishlists = true;
+    });
+    try {
+      final wishlists = await _supabaseDatabaseService.getWishlistsForCurrentUser();
+      setState(() {
+        _wishlists = wishlists;
+        if (_wishlists.isNotEmpty) {
+          _selectedWishlistId = _wishlists.first['id'];
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _erro = 'Erro ao carregar wishlists: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoadingWishlists = false;
+      });
     }
   }
 
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-      final itemData = await _supabaseDatabaseService.getWishItem(widget.wishlistId, itemId: widget.itemId);
+      final itemData = await _supabaseDatabaseService.getWishItem(widget.wishlistId!, itemId: widget.itemId);
 
       if (itemData != null) {
         _nameController.text = itemData['name'] ?? '';
         _descriptionController.text = itemData['description'] ?? '';
         _linkController.text = itemData['link'] ?? '';
-        // Assuming quantity is not directly stored in wish_items table, or needs to be added
-        // _quantityController.text = (itemData['quantity'] ?? 1).toString();
         _priceController.text = (itemData['price'] ?? '0').toString();
         _selectedCategory = itemData['category'] ?? categories.first.name;
-        _existingImageUrl = itemData['image_url']; // Store original image URL
+        _existingImageUrl = itemData['image_url'];
         if (_existingImageUrl != null) {
           _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
         }
@@ -110,26 +144,33 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _saveItem() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final finalWishlistId = widget.wishlistId ?? _selectedWishlistId;
+    if (finalWishlistId == null) {
+      setState(() {
+        _erro = "Por favor, selecione uma wishlist.";
+      });
+      return;
+    }
+
     setState(() => _isSaving = true);
 
-    String? finalImageUrl = _existingImageUrl; // Start with existing URL
+    String? finalImageUrl = _existingImageUrl;
     if (_imageBytes != null) {
       setState(() => _isUploading = true);
       try {
-        // Create a temporary file from bytes for upload
-        final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!); // Import path_provider
+        final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!);
 
         await _supabaseDatabaseService.saveWishItem(
-          wishlistId: widget.wishlistId,
+          wishlistId: finalWishlistId,
           name: _nameController.text.trim(),
           price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
           category: _selectedCategory!,
           link: _linkController.text.trim(),
-          imageFile: tempFileForUpload, // Pass File
+          imageFile: tempFileForUpload,
           itemId: widget.itemId,
         );
         if (finalImageUrl != null) {
-          await ImageCacheService.putFile(finalImageUrl, _imageBytes!); // Cache with new URL
+          await ImageCacheService.putFile(finalImageUrl, _imageBytes!);
           setState(() {
             _imageFuture = ImageCacheService.getFile(finalImageUrl);
           });
@@ -140,20 +181,19 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         setState(() => _isUploading = false);
       }
     } else {
-      // If no new image is picked, save without imageBytes, use existing imageUrl
       await _supabaseDatabaseService.saveWishItem(
-        wishlistId: widget.wishlistId,
+        wishlistId: finalWishlistId,
         name: _nameController.text.trim(),
         price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
         category: _selectedCategory!,
         link: _linkController.text.trim(),
-        imageUrl: _existingImageUrl, // Pass existing image URL
+        imageUrl: _existingImageUrl,
         itemId: widget.itemId,
       );
     }
 
-    if (!mounted) return; // Check if the widget is still mounted
-    Navigator.of(context).pop(true); // Indicate success
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
     if (mounted) {
       setState(() => _isSaving = false);
     }
@@ -179,6 +219,37 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     if (_erro != null) ...[
                       Text(_erro!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 16),
+                    ],
+                    if (widget.wishlistId == null) ...[
+                      if (_isLoadingWishlists)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_wishlists.isEmpty)
+                        const Text('Você ainda não tem wishlists. Crie uma primeiro!')
+                      else
+                        DropdownButtonFormField<String>(
+                          value: _selectedWishlistId,
+                          decoration: InputDecoration(
+                            labelText: 'Escolha uma Wishlist',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                          ),
+                          items: _wishlists.map((wishlist) {
+                            return DropdownMenuItem<String>(
+                              value: wishlist['id'],
+                              child: Text(wishlist['name']),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              _selectedWishlistId = newValue;
+                            });
+                          },
+                          validator: (value) =>
+                              value == null ? 'Por favor, escolha uma wishlist' : null,
+                        ),
+                      const SizedBox(height: 20),
                     ],
                     GestureDetector(
                       onTap: _isUploading ? null : _pickImage,
@@ -310,7 +381,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
                             validator: (value) {
-                              if (value == null || value.isEmpty) return null; // Price is optional
+                              if (value == null || value.isEmpty) return null;
                               final n = double.tryParse(value.replaceAll(',', '.'));
                               if (n == null || n < 0) return 'Preço inválido';
                               return null;

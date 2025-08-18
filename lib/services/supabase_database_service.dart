@@ -16,6 +16,19 @@ class SupabaseDatabaseService {
         .order('created_at', ascending: false);
   }
 
+  Future<List<Map<String, dynamic>>> getWishlistsForCurrentUser() async {
+    final userId = _supabaseClient.auth.currentUser?.id;
+    if (userId == null) {
+      return [];
+    }
+    final response = await _supabaseClient
+        .from('wishlists')
+        .select('id, name')
+        .eq('owner_id', userId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
   Future<Map<String, dynamic>?> getWishlist(String wishlistId) async {
     final response = await _supabaseClient
         .from('wishlists')
