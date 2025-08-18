@@ -7,7 +7,7 @@ import 'package:wishlist_app/config.dart';
 class WebScraperService {
   Future<Map<String, dynamic>> scrape(String url) async {
     if (Config.scraperApiKey.isEmpty) {
-      print('SCRAPER_API_KEY is not set. Using basic scraping.');
+      // print('SCRAPER_API_KEY is not set. Using basic scraping.');
       return _basicScrape(url);
     }
 
@@ -18,9 +18,14 @@ class WebScraperService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        final title = data['name'] ?? data['title'] ?? _extractTitleFromHtml(data['body']);
-        final price = _parsePrice(data['price'] ?? data['price_string']);
-        final image = data['image'] ?? data['image_url'] ?? _extractImageFromHtml(data['body'], url);
+        var title = data['name'] ?? data['title'] ?? _extractTitleFromHtml(data['body']);
+        var price = _parsePrice(data['price'] ?? data['price_string']);
+        var image = data['image'] ?? data['image_url'] ?? _extractImageFromHtml(data['body'], url);
+
+        if ((price == '0.00' || price.isEmpty) && data['body'] != null) {
+            final document = parser.parse(data['body']);
+            price = _extractPrice(document);
+        }
 
         return {
           'title': title,
@@ -28,11 +33,11 @@ class WebScraperService {
           'image': image,
         };
       } else {
-        print('ScraperAPI request failed with status: ${response.statusCode}. Falling back to basic scraping.');
+        // print('ScraperAPI request failed with status: ${response.statusCode}. Falling back to basic scraping.');
         return _basicScrape(url);
       }
     } catch (e) {
-      print('Error using ScraperAPI: $e. Falling back to basic scraping.');
+      // print('Error using ScraperAPI: $e. Falling back to basic scraping.');
       return _basicScrape(url);
     }
   }
@@ -79,6 +84,26 @@ class WebScraperService {
   }
 
   String _extractPrice(Document document) {
+    const priceSelectors = [
+      '[itemprop="price"]',
+      '[property="product:price:amount"]',
+      '.price',
+      '#price',
+      '#priceblock_ourprice',
+      '.price-tag',
+      '.product-price',
+    ];
+
+    for (var selector in priceSelectors) {
+      final priceElement = document.querySelector(selector);
+      if (priceElement != null) {
+        final price = priceElement.attributes.containsKey('content')
+            ? priceElement.attributes['content']
+            : priceElement.text;
+        if (price != null && price.isNotEmpty) return _parsePrice(price);
+      }
+    }
+    
     const priceProperties = ['product:price:amount', 'og:price:amount', 'price'];
 
     for (var prop in priceProperties) {

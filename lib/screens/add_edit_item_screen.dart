@@ -98,7 +98,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         }
       } catch (e) {
         // Handle error silently or show a message
-        print('Error scraping link: $e');
       }
     }
   }
@@ -134,7 +133,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _isCreatingWishlist = true;
     });
     try {
-<<<<<<< HEAD
       final userId = Supabase.instance.client.auth.currentUser!.id;
       final newWishlist = await _supabaseDatabaseService.saveWishlist(
         name: _newWishlistNameController.text.trim(),
@@ -148,17 +146,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           _wishlists.add(newWishlist);
           _selectedWishlistId = newWishlist['id'];
           _showCreateWishlistForm = false; // Hide the form after creation
-=======
-      final newWishlist = await _supabaseDatabaseService.saveWishlist(
-        name: _newWishlistNameController.text.trim(),
-        isPrivate: false, // Default to public for quick add
-      );
-      _newWishlistNameController.clear();
-      if (newWishlist != null) {
-        await _loadWishlists();
-        setState(() {
-          _selectedWishlistId = newWishlist['id'];
->>>>>>> fb388975b7f8894d764a4934548ec63f760a5f01
         });
       }
     } catch (e) {
@@ -172,36 +159,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     }
   }
 
-  Future<void> _showCreateWishlistDialog() async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Criar Nova Wishlist'),
-          content: TextFormField(
-            controller: _newWishlistNameController,
-            decoration: const InputDecoration(labelText: 'Nome da Wishlist'),
-            autofocus: true,
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            ElevatedButton(
-              child: const Text('Criar'),
-              onPressed: () {
-                _createWishlist();
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  
 
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);

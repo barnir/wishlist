@@ -62,11 +62,7 @@ class SupabaseDatabaseService {
     };
 
     if (wishlistId == null) {
-<<<<<<< HEAD
       data['owner_id'] = userId ?? _supabaseClient.auth.currentUser!.id;
-=======
-      data['owner_id'] = userId;
->>>>>>> fb388975b7f8894d764a4934548ec63f760a5f01
       final response = await _supabaseClient.from('wishlists').insert(data).select().single();
       return response;
     } else {
