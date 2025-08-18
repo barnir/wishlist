@@ -26,6 +26,7 @@ dependencies:
   flutter_dotenv: ^5.2.1
   
   flutter_sharing_intent: ^1.1.1
+  html: ^0.15.6
 
 dev_dependencies:
   flutter_test:

@@ -38,7 +38,7 @@ class SupabaseDatabaseService {
     return response;
   }
 
-  Future<void> saveWishlist({
+  Future<Map<String, dynamic>?> saveWishlist({
     required String name,
     required bool isPrivate,
     File? imageFile,
@@ -63,9 +63,11 @@ class SupabaseDatabaseService {
 
     if (wishlistId == null) {
       data['owner_id'] = userId;
-      await _supabaseClient.from('wishlists').insert(data);
+      final response = await _supabaseClient.from('wishlists').insert(data).select().single();
+      return response;
     } else {
       await _supabaseClient.from('wishlists').update(data).eq('id', wishlistId);
+      return null;
     }
   }
 
