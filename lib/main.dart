@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/auth_service.dart';
@@ -14,6 +15,7 @@ import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
 
 void main() async {
+  await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
