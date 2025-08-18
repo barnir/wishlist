@@ -62,7 +62,11 @@ class SupabaseDatabaseService {
     };
 
     if (wishlistId == null) {
-      data['owner_id'] = userId ?? _supabaseClient.auth.currentUser!.id;
+      final currentUserId = userId ?? _supabaseClient.auth.currentUser?.id;
+      if (currentUserId == null) {
+        throw Exception('User not authenticated. Cannot save wishlist without an owner.');
+      }
+      data['owner_id'] = currentUserId;
       final response = await _supabaseClient.from('wishlists').insert(data).select().single();
       return response;
     } else {

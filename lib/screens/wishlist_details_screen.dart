@@ -198,8 +198,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   }
 
   Widget _buildItemCard(WishItem item) {
-    final category = categories.firstWhere((c) => c.name == item.category,
-        orElse: () => categories.last);
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -225,7 +223,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Container(
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceVariant,
+                          color: colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
@@ -238,7 +236,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
                       return Container(
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceVariant,
+                          color: colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
@@ -282,7 +280,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               ),
             ),
             PopupMenuButton<String>(
-              onSelected: (value) {
+              onSelected: (value) async {
                 if (value == 'edit') {
                   Navigator.pushNamed(context, '/add_edit_item', arguments: {
                     'wishlistId': widget.wishlistId,
@@ -291,7 +289,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 } else if (value == 'delete') {
                   _deleteItem(item.id);
                 } else if (value == 'open_link' && item.link != null && item.link!.isNotEmpty) {
-                  final uri = Uri.parse(item.link!);                  if (canLaunchUrl(uri)) {
+                  final uri = Uri.parse(item.link!);                  if (await canLaunchUrl(uri)) {
                     launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
                 }

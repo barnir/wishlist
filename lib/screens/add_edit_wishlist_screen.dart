@@ -78,43 +78,39 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
     setState(() => _isLoading = true);
 
     String? finalImageUrl = _existingImageUrl; // Start with existing URL
-    if (_imageBytes != null) {
-      setState(() => _isUploading = true);
-      try {
-        // Create a temporary file from bytes for upload
-        final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!); // Import path_provider
+    File? tempFileForUpload;
 
-        await _supabaseDatabaseService.saveWishlist(
-          name: _nameController.text.trim(),
-          isPrivate: _isPrivate,
-          imageFile: tempFileForUpload, // Pass File
-          wishlistId: widget.wishlistId,
-        );
-        if (finalImageUrl != null) {
-          await ImageCacheService.putFile(finalImageUrl, _imageBytes!); // Cache with new URL
-          setState(() {
-            _imageFuture = ImageCacheService.getFile(finalImageUrl);
-          });
-        }
-      } catch (e) {
-        _showError('Erro ao carregar imagem: $e');
-      } finally {
-        setState(() => _isUploading = false);
+    try {
+      if (_imageBytes != null) {
+        setState(() => _isUploading = true);
+        // Create a temporary file from bytes for upload
+        tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!);
       }
-    } else {
-      // If no new image is picked, save without imageBytes, use existing imageUrl
+
       await _supabaseDatabaseService.saveWishlist(
         name: _nameController.text.trim(),
         isPrivate: _isPrivate,
-        imageUrl: _existingImageUrl, // Pass existing image URL
+        imageFile: tempFileForUpload, // Pass File if available
+        imageUrl: _imageBytes == null ? _existingImageUrl : null, // Pass existing URL only if no new image
         wishlistId: widget.wishlistId,
       );
-    }
 
-    if (!mounted) return;
-    Navigator.of(context).pop(true);
-    if (mounted) {
-      setState(() => _isLoading = false);
+      if (finalImageUrl != null && _imageBytes != null) { // Only cache if a new image was uploaded
+        await ImageCacheService.putFile(finalImageUrl, _imageBytes!);
+        setState(() {
+          _imageFuture = ImageCacheService.getFile(finalImageUrl);
+        });
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      _showError('Erro ao salvar wishlist: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _isUploading = false;
+      });
     }
   }
 

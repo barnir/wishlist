@@ -10,7 +10,7 @@ final ThemeData appTheme = ThemeData(
     centerTitle: true,
     elevation: 0,
   ),
-  cardTheme: CardTheme(
+  cardTheme: CardThemeData(
     elevation: 4,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

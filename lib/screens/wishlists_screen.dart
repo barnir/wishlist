@@ -26,7 +26,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
             Icon(
               Icons.card_giftcard_rounded,
               size: 100, // Increased size
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.7), // More prominent color
+              color: Theme.of(context).colorScheme.primary.withAlpha((255 * 0.7).round()), // More prominent color
             ),
             const SizedBox(height: 24), // Increased spacing
             Text(
