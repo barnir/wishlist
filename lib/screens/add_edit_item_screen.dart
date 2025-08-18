@@ -134,6 +134,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _isCreatingWishlist = true;
     });
     try {
+<<<<<<< HEAD
       final userId = Supabase.instance.client.auth.currentUser!.id;
       final newWishlist = await _supabaseDatabaseService.saveWishlist(
         name: _newWishlistNameController.text.trim(),
@@ -147,6 +148,17 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           _wishlists.add(newWishlist);
           _selectedWishlistId = newWishlist['id'];
           _showCreateWishlistForm = false; // Hide the form after creation
+=======
+      final newWishlist = await _supabaseDatabaseService.saveWishlist(
+        name: _newWishlistNameController.text.trim(),
+        isPrivate: false, // Default to public for quick add
+      );
+      _newWishlistNameController.clear();
+      if (newWishlist != null) {
+        await _loadWishlists();
+        setState(() {
+          _selectedWishlistId = newWishlist['id'];
+>>>>>>> fb388975b7f8894d764a4934548ec63f760a5f01
         });
       }
     } catch (e) {
