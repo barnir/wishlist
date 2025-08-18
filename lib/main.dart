@@ -40,22 +40,28 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late StreamSubscription _intentDataStreamSubscription;
+  List<SharedFile>? _pendingSharedData;
 
   @override
   void initState() {
     super.initState();
 
-    // For sharing or opening urls/text coming from outside the app while it is in the memory
-    _intentDataStreamSubscription = FlutterSharingIntent.instance.getMediaStream().listen((List<SharedFile> value) {
+    _intentDataStreamSubscription = 
+        FlutterSharingIntent.instance.getMediaStream().listen((List<SharedFile> value) {
       if (value.isNotEmpty) {
         _handleSharedMedia(value);
       }
     });
 
-    // For sharing or opening urls/text coming from outside the app while it is closed
     FlutterSharingIntent.instance.getInitialSharing().then((List<SharedFile> value) {
       if (value.isNotEmpty) {
-        _handleSharedMedia(value);
+        if (Supabase.instance.client.auth.currentUser != null) {
+          _handleSharedMedia(value);
+        } else {
+          setState(() {
+            _pendingSharedData = value;
+          });
+        }
       }
     });
   }
@@ -122,6 +128,12 @@ class _MyAppState extends State<MyApp> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.active) {
             if (snapshot.hasData) {
+              if (_pendingSharedData != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _handleSharedMedia(_pendingSharedData!);
+                  _pendingSharedData = null;
+                });
+              }
               return const HomeScreen();
             } else {
               return const LoginScreen();

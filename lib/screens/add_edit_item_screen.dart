@@ -1,11 +1,13 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:wishlist_app/services/web_scraper_service.dart';
+import 'package:http/http.dart' as http;
 
 import '../models/category.dart';
 
@@ -30,12 +32,14 @@ class AddEditItemScreen extends StatefulWidget {
 class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _webScraperService = WebScraperService();
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _linkController;
   late TextEditingController _quantityController;
   late TextEditingController _priceController;
+  late TextEditingController _newWishlistNameController;
   String? _selectedCategory;
   Uint8List? _imageBytes;
   bool _isUploading = false;
@@ -48,6 +52,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   String? _selectedWishlistId;
   List<Map<String, dynamic>> _wishlists = [];
   bool _isLoadingWishlists = false;
+  bool _isCreatingWishlist = false;
+  bool _showCreateWishlistForm = false;
 
   @override
   void initState() {
@@ -57,14 +63,43 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     _linkController = TextEditingController(text: widget.link);
     _quantityController = TextEditingController(text: '1');
     _priceController = TextEditingController(text: '0');
+    _newWishlistNameController = TextEditingController();
     _selectedCategory = categories.first.name;
 
     if (widget.itemId != null && widget.wishlistId != null) {
       _loadItemData();
+    } else {
+      _handleSharedLink();
     }
 
     if (widget.wishlistId == null) {
       _loadWishlists();
+    }
+  }
+
+  Future<void> _handleSharedLink() async {
+    if (widget.link != null && widget.link!.isNotEmpty) {
+      try {
+        final scrapedData = await _webScraperService.scrape(widget.link!);
+        _nameController.text = scrapedData['title'] ?? '';
+        _priceController.text = scrapedData['price'] ?? '0.00';
+        final imageUrl = scrapedData['image'];
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          final response = await http.get(Uri.parse(imageUrl));
+          if (response.statusCode == 200) {
+            final tempDir = await getTemporaryDirectory();
+            final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+            await tempFile.writeAsBytes(response.bodyBytes);
+            setState(() {
+              _imageBytes = response.bodyBytes;
+              _imageFuture = Future.value(tempFile);
+            });
+          }
+        }
+      } catch (e) {
+        // Handle error silently or show a message
+        print('Error scraping link: $e');
+      }
     }
   }
 
@@ -89,6 +124,71 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         _isLoadingWishlists = false;
       });
     }
+  }
+
+  Future<void> _createWishlist() async {
+    if (_newWishlistNameController.text.trim().isEmpty) {
+      return;
+    }
+    setState(() {
+      _isCreatingWishlist = true;
+    });
+    try {
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+      final newWishlist = await _supabaseDatabaseService.saveWishlist(
+        name: _newWishlistNameController.text.trim(),
+        isPrivate: false, // Default to public for quick add
+        userId: userId,
+      );
+      _newWishlistNameController.clear();
+      if (newWishlist != null) {
+        // No need to call _loadWishlists() again, just add the new one to the list
+        setState(() {
+          _wishlists.add(newWishlist);
+          _selectedWishlistId = newWishlist['id'];
+          _showCreateWishlistForm = false; // Hide the form after creation
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _erro = 'Erro ao criar wishlist: $e';
+      });
+    } finally {
+      setState(() {
+        _isCreatingWishlist = false;
+      });
+    }
+  }
+
+  Future<void> _showCreateWishlistDialog() async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Criar Nova Wishlist'),
+          content: TextFormField(
+            controller: _newWishlistNameController,
+            decoration: const InputDecoration(labelText: 'Nome da Wishlist'),
+            autofocus: true,
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              child: const Text('Criar'),
+              onPressed: () {
+                _createWishlist();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _loadItemData() async {
@@ -138,6 +238,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     _linkController.dispose();
     _quantityController.dispose();
     _priceController.dispose();
+    _newWishlistNameController.dispose();
     super.dispose();
   }
 
@@ -147,7 +248,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     final finalWishlistId = widget.wishlistId ?? _selectedWishlistId;
     if (finalWishlistId == null) {
       setState(() {
-        _erro = "Por favor, selecione uma wishlist.";
+        _erro = "Por favor, selecione ou crie uma wishlist.";
       });
       return;
     }
@@ -223,31 +324,71 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     if (widget.wishlistId == null) ...[
                       if (_isLoadingWishlists)
                         const Center(child: CircularProgressIndicator())
-                      else if (_wishlists.isEmpty)
-                        const Text('Você ainda não tem wishlists. Crie uma primeiro!')
                       else
-                        DropdownButtonFormField<String>(
-                          value: _selectedWishlistId,
-                          decoration: InputDecoration(
-                            labelText: 'Escolha uma Wishlist',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                          ),
-                          items: _wishlists.map((wishlist) {
-                            return DropdownMenuItem<String>(
-                              value: wishlist['id'],
-                              child: Text(wishlist['name']),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              _selectedWishlistId = newValue;
-                            });
-                          },
-                          validator: (value) =>
-                              value == null ? 'Por favor, escolha uma wishlist' : null,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_wishlists.isNotEmpty)
+                              DropdownButtonFormField<String>(
+                                value: _selectedWishlistId,
+                                decoration: InputDecoration(
+                                  labelText: 'Escolha uma Wishlist',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                ),
+                                items: _wishlists.map((wishlist) {
+                                  return DropdownMenuItem<String>(
+                                    value: wishlist['id'],
+                                    child: Text(wishlist['name']),
+                                  );
+                                }).toList(),
+                                onChanged: (newValue) {
+                                  setState(() {
+                                    _selectedWishlistId = newValue;
+                                  });
+                                },
+                                validator: (value) =>
+                                    value == null ? 'Por favor, escolha uma wishlist' : null,
+                              ),
+                            if (_wishlists.isEmpty && !_showCreateWishlistForm)
+                              Center(
+                                child: TextButton(
+                                  onPressed: () => setState(() => _showCreateWishlistForm = true),
+                                  child: const Text('Nenhuma wishlist encontrada. Crie uma nova.'),
+                                ),
+                              ),
+                            if (_showCreateWishlistForm || (_wishlists.isEmpty && _showCreateWishlistForm))
+                              Column(
+                                children: [
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    controller: _newWishlistNameController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Nome da nova wishlist',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      filled: true,
+                                    ),
+                                    validator: (value) {
+                                      if (_showCreateWishlistForm && (value == null || value.isEmpty)) {
+                                        return 'Insira um nome para a wishlist';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _isCreatingWishlist
+                                      ? const CircularProgressIndicator()
+                                      : ElevatedButton(
+                                          onPressed: _createWishlist,
+                                          child: const Text('Criar Wishlist'),
+                                        ),
+                                ],
+                              ),
+                          ],
                         ),
                       const SizedBox(height: 20),
                     ],

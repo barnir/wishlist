@@ -38,14 +38,14 @@ class SupabaseDatabaseService {
     return response;
   }
 
-  Future<void> saveWishlist({
+  Future<Map<String, dynamic>?> saveWishlist({
     required String name,
     required bool isPrivate,
+    String? userId,
     File? imageFile,
     String? imageUrl,
     String? wishlistId,
   }) async {
-    final userId = _supabaseClient.auth.currentUser!.id;
     String? finalImageUrl = imageUrl;
 
     if (imageFile != null) {
@@ -62,10 +62,12 @@ class SupabaseDatabaseService {
     };
 
     if (wishlistId == null) {
-      data['owner_id'] = userId;
-      await _supabaseClient.from('wishlists').insert(data);
+      data['owner_id'] = userId ?? _supabaseClient.auth.currentUser!.id;
+      final response = await _supabaseClient.from('wishlists').insert(data).select().single();
+      return response;
     } else {
       await _supabaseClient.from('wishlists').update(data).eq('id', wishlistId);
+      return null;
     }
   }
 
