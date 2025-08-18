@@ -61,7 +61,7 @@ class WebScraperService {
         throw Exception('Failed to load website');
       }
     } catch (e) {
-      print('Error scraping website: $e');
+      // print('Error scraping website: $e');
       return {
         'title': 'Could not fetch title',
         'price': '0.00',
