@@ -17,7 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
-  String? _erro;
 
   @override
   void initState() {
@@ -28,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
-        _erro = null;
       });
       try {
         await _authService.signInWithEmailAndPassword(
@@ -50,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       } catch (e) {
         if (mounted) {
-          setState(() => _erro = 'Erro ao fazer login: ${e.toString()}');
+          _showSnackBar('Erro ao fazer login: ${e.toString()}', isError: true);
         }
       } finally {
         if (mounted) {
@@ -63,7 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginComGoogle() async {
     setState(() {
       _isLoading = true;
-      _erro = null;
     });
 
     final result = await _authService.signInWithGoogle();
@@ -78,10 +75,10 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/add_phone');
         break;
       case GoogleSignInResult.cancelled:
-        setState(() => _erro = 'Login com Google cancelado.');
+        _showSnackBar('Login com Google cancelado.', isError: true);
         break;
       case GoogleSignInResult.failed:
-        setState(() => _erro = 'Ocorreu um erro ao fazer login com o Google.');
+        _showSnackBar('Ocorreu um erro ao fazer login com o Google.', isError: true);
         break;
     }
 
@@ -92,6 +89,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginComTelemovel() async {
     Navigator.pushNamed(context, '/telefoneLogin');
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.primary,
+      ),
+    );
   }
 
   @override
@@ -107,14 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_erro != null) ...[
-                  Text(
-                    _erro!,
-                    style: const TextStyle(color: Colors.red, fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                ],
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Email'),
@@ -148,7 +149,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text('Entrar com Email'),
                 ),
                 const SizedBox(height: 20),
-                const Divider(),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.sms),
@@ -161,18 +161,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.g_mobiledata, color: Colors.red),
+                  icon: const Icon(Icons.g_mobiledata),
                   label: const Text('Entrar com Google'),
                   onPressed: _isLoading ? null : _loginComGoogle,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
                     minimumSize: const Size(double.infinity, 50),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Divider(),
+                const SizedBox(height: 20),
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/register'),
                   child: const Text('Não tens conta? Regista-te!'),

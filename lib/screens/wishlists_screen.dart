@@ -18,25 +18,35 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   // Widget para o estado de "lista vazia"
   Widget _buildEmptyState(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.card_giftcard_rounded,
-            size: 80,
-            color: Theme.of(context).colorScheme.secondary,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Nenhuma wishlist por aqui',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Toque em "+" para criar a sua primeira!",
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.card_giftcard_rounded,
+              size: 100, // Increased size
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.7), // More prominent color
+            ),
+            const SizedBox(height: 24), // Increased spacing
+            Text(
+              'Nenhuma wishlist por aqui',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12), // Increased spacing
+            Text(
+              'Toque em "+" para criar a sua primeira!',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -63,19 +73,43 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      child: const Icon(Icons.card_giftcard, size: 30),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 30,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
                     ),
                   )
                 : Container(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    child: const Icon(Icons.card_giftcard, size: 30),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.card_giftcard,
+                        size: 30,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
                   ),
           ),
         ),
@@ -84,9 +118,20 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            WishlistTotal(wishlistId: wishlist['id']),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                WishlistTotal(wishlistId: wishlist['id']),
+                // You can add more details here if needed
+              ],
+            ),
             const SizedBox(width: 8),
-            const Icon(Icons.arrow_forward_ios, size: 16),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
           ],
         ),
         onTap: () {

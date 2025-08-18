@@ -164,21 +164,35 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.add_shopping_cart_rounded, size: 80, color: Colors.grey),
-          const SizedBox(height: 20),
-          Text(
-            'A sua wishlist está vazia',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Adicione o seu primeiro desejo!',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_shopping_cart_rounded,
+              size: 100, // Increased size
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.7), // More prominent color
+            ),
+            const SizedBox(height: 24), // Increased spacing
+            Text(
+              'A sua wishlist está vazia',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12), // Increased spacing
+            Text(
+              'Adicione o seu primeiro desejo!',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -210,15 +224,30 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Container(
-                        color: colorScheme.primary.withOpacity(0.1),
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.primary,
+                          ),
                         ),
                       );
                     } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
                       return Container(
-                        color: colorScheme.primary.withOpacity(0.1),
-                        child: Icon(category.icon, color: colorScheme.primary, size: 40),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 30,
+                            color: colorScheme.error,
+                          ),
+                        ),
                       );
                     } else {
                       return Image.file(snapshot.data!, fit: BoxFit.cover);
@@ -243,40 +272,64 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
                         '€${item.price!.toStringAsFixed(2)}',
-                        style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                        style: textTheme.titleLarge?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20),
-                  onPressed: () => Navigator.pushNamed(context, '/add_edit_item', arguments: {
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  Navigator.pushNamed(context, '/add_edit_item', arguments: {
                     'wishlistId': widget.wishlistId,
                     'itemId': item.id,
-                  }),
-                  tooltip: 'Editar',
+                  });
+                } else if (value == 'delete') {
+                  _deleteItem(item.id);
+                } else if (value == 'open_link' && item.link != null && item.link!.isNotEmpty) {
+                  final uri = Uri.parse(item.link!);                  if (canLaunchUrl(uri)) {
+                    launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined),
+                      SizedBox(width: 8),
+                      Text('Editar'),
+                    ],
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  onPressed: () => _deleteItem(item.id),
-                  tooltip: 'Eliminar',
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline),
+                      SizedBox(width: 8),
+                      Text('Eliminar'),
+                    ],
+                  ),
                 ),
                 if (item.link != null && item.link!.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.open_in_new, size: 20),
-                    onPressed: () async {
-                      final uri = Uri.parse(item.link!);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                    tooltip: 'Abrir link',
+                  const PopupMenuItem<String>(
+                    value: 'open_link',
+                    child: Row(
+                      children: [
+                        Icon(Icons.open_in_new),
+                        SizedBox(width: 8),
+                        Text('Abrir link'),
+                      ],
+                    ),
                   ),
               ],
+              icon: const Icon(Icons.more_vert),
             ),
           ],
         ),

@@ -5,6 +5,7 @@ import 'package:flutter_sharing_intent/flutter_sharing_intent.dart';
 import 'package:flutter_sharing_intent/model/sharing_file.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/config.dart';
+import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 import 'screens/login_screen.dart';
@@ -94,20 +95,8 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'Wishlist App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E88E5), // Um azul mais refinado
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E88E5),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: appTheme,
+      darkTheme: appTheme,
       themeMode: ThemeMode.system, // Adapta-se ao tema do sistema
       routes: {
         '/login': (_) => const LoginScreen(),
