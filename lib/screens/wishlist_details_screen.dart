@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/models/sort_options.dart';
+import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
-import '../widgets/wish_item_tile.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -31,7 +33,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   Future<void> _loadWishlistDetails() async {
     try {
       final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId);
-      if (wishlistData != null) {
+      if (mounted && wishlistData != null) {
         setState(() {
           _wishlistName = wishlistData['name'] ?? 'Sem nome';
           _isPrivate = wishlistData['is_private'] ?? false;
@@ -39,64 +41,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       }
     } catch (e) {
       _showSnackBar('Erro ao carregar detalhes da wishlist: $e', isError: true);
-    }
-  }
-
-  Future<void> _confirmDeleteWishlist(BuildContext context) async {
-    TextEditingController confirmController = TextEditingController();
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // User must tap button!
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Confirmar Eliminação'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text('Tem a certeza que quer eliminar a wishlist "$_wishlistName"?'),
-                const Text('Esta ação é irreversível.'),
-                const SizedBox(height: 10),
-                const Text('Para confirmar, escreva "SIM" na caixa abaixo:'),
-                TextField(
-                  controller: confirmController,
-                  decoration: const InputDecoration(hintText: 'SIM'),
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Eliminar'),
-              onPressed: () async {
-                if (confirmController.text == 'SIM') {
-                  Navigator.of(dialogContext).pop();
-                  await _deleteWishlist();
-                } else {
-                  _showSnackBar('Confirmação inválida. Escreva SIM.', isError: true);
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _deleteWishlist() async {
-    try {
-      await _supabaseDatabaseService.deleteWishlist(widget.wishlistId);
-      if (!mounted) return;
-      _showSnackBar('Wishlist "$_wishlistName" eliminada com sucesso!');
-      Navigator.of(context).pop(); // Go back to previous screen (wishlists list)
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar('Erro ao eliminar wishlist: $e', isError: true);
     }
   }
 
@@ -112,10 +56,13 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -138,24 +85,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 context,
                 '/add_edit_wishlist',
                 arguments: widget.wishlistId,
-              ).then((_) => _loadWishlistDetails()); // Reload details after editing
+              ).then((_) => _loadWishlistDetails());
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => _confirmDeleteWishlist(context),
           ),
         ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              _isPrivate ? 'Esta wishlist é privada.' : 'Esta wishlist é pública.',
-              style: const TextStyle(fontStyle: FontStyle.italic),
-            ),
-          ),
+          _buildHeader(),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _supabaseDatabaseService.getWishItems(
@@ -173,7 +110,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('Nenhum item nesta wishlist.'));
+                  return _buildEmptyState();
                 }
 
                 final items = snapshot.data!
@@ -181,23 +118,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     .toList();
 
                 return ListView.builder(
+                  padding: const EdgeInsets.only(top: 8, bottom: 80),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
-                    final item = items[index];
-                    return WishItemTile(
-                      item: item,
-                      onDelete: () => _deleteItem(item.id),
-                      onEdit: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/add_edit_item',
-                          arguments: {
-                            'wishlistId': widget.wishlistId,
-                            'itemId': item.id,
-                          },
-                        );
-                      },
-                    );
+                    return _buildItemCard(items[index]);
                   },
                 );
               },
@@ -215,6 +139,147 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         },
         tooltip: 'Adicionar novo item',
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Icon(
+            _isPrivate ? Icons.lock_outline : Icons.public_outlined,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _isPrivate ? 'Esta wishlist é privada' : 'Esta wishlist é pública',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.add_shopping_cart_rounded, size: 80, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text(
+            'A sua wishlist está vazia',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Adicione o seu primeiro desejo!',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemCard(WishItem item) {
+    final category = categories.firstWhere((c) => c.name == item.category,
+        orElse: () => categories.last);
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 80,
+              height: 80,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: FutureBuilder<File?>(
+                  future: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                      ? ImageCacheService.getFile(item.imageUrl!)
+                      : Future.value(null),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Container(
+                        color: colorScheme.primary.withOpacity(0.1),
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                      return Container(
+                        color: colorScheme.primary.withOpacity(0.1),
+                        child: Icon(category.icon, color: colorScheme.primary, size: 40),
+                      );
+                    } else {
+                      return Image.file(snapshot.data!, fit: BoxFit.cover);
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.name, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  if (item.description != null && item.description!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(item.description!, style: textTheme.bodyMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
+                  if (item.price != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        '€${item.price!.toStringAsFixed(2)}',
+                        style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  onPressed: () => Navigator.pushNamed(context, '/add_edit_item', arguments: {
+                    'wishlistId': widget.wishlistId,
+                    'itemId': item.id,
+                  }),
+                  tooltip: 'Editar',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  onPressed: () => _deleteItem(item.id),
+                  tooltip: 'Eliminar',
+                ),
+                if (item.link != null && item.link!.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.open_in_new, size: 20),
+                    onPressed: () async {
+                      final uri = Uri.parse(item.link!);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    tooltip: 'Abrir link',
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
