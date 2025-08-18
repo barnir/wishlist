@@ -19,7 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _userService = UserService();
 
   final _nameController = TextEditingController();
+  final _bioController = TextEditingController(); // New
   bool _isEditingName = false;
+  bool _isEditingBio = false; // New
   bool _isPrivate = false;
   bool _isUploading = false;
   String? _profileImageUrl; // Use String for URL
@@ -39,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userData = await _userService.getUserProfile(userId);
     if (userData != null) {
       _nameController.text = userData['display_name'] ?? '';
+      _bioController.text = userData['bio'] ?? ''; // New: Load biography
       _isPrivate = userData['is_private'] ?? false;
       _phoneNumber = userData['phone_number']; // Get phone number from user profile
     }
@@ -74,7 +77,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Handle error
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao carregar imagem: ${e.toString()}')),
+            SnackBar(
+              content: Text('Erro ao carregar imagem: ${e.toString()}'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         }
       } finally {
@@ -93,6 +99,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _authService.updateUser(displayName: _nameController.text.trim()); // Update user metadata
     await _userService.updateUserProfile(userId, {'display_name': _nameController.text.trim()});
     setState(() => _isEditingName = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveBio() async {
+    if (_bioController.text.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    final userId = _authService.currentUser!.id;
+    await _userService.updateUserProfile(userId, {'bio': _bioController.text.trim()});
+    setState(() => _isEditingBio = false);
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -122,7 +140,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Perfil')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
           : user == null
               ? const Center(child: Text('Utilizador não encontrado.'))
               : SingleChildScrollView(
@@ -145,7 +167,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   : null,
                             ),
                             if (_isUploading)
-                              const CircularProgressIndicator(),
+                              const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
                           ],
                         ),
                       ),
@@ -180,6 +204,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                             ),
                       const SizedBox(height: 8),
+                      _isEditingBio
+                          ? Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _bioController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Biografia',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    maxLines: 3,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.save),
+                                  onPressed: _saveBio,
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.cancel),
+                                  onPressed: () => setState(() => _isEditingBio = false),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _bioController.text.isNotEmpty
+                                      ? _bioController.text
+                                      : 'Adicionar biografia',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () => setState(() => _isEditingBio = true),
+                                  ),
+                                ),
+                              ],
+                            ),
+                      const SizedBox(height: 16), // Add spacing after bio
                       Text(user.email ?? 'Sem email'),
                       const SizedBox(height: 16),
                       Row(
@@ -203,16 +269,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: const Text('Adicionar Telemóvel'),
                         )
                       else
-                        Text('Telemóvel: $_phoneNumber'),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Telemóvel: $_phoneNumber'),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => const LinkPhoneScreen(),
+                                ));
+                              },
+                              child: const Text('Alterar Telemóvel'),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 16),
                       // Email linking (unimplemented for Supabase)
-                      ElevatedButton(
+                      Text(user.email ?? 'Sem email'),
+                      TextButton(
                         onPressed: () {
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (context) => const LinkEmailScreen(),
                           ));
                         },
-                        child: const Text('Adicionar Email'),
+                        child: const Text('Alterar Email'),
                       ),
                       // Google linking (unimplemented for Supabase)
                       ElevatedButton(
@@ -222,7 +302,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             // await _authService.linkGoogle();
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Vinculação Google não implementada.')),
+                                SnackBar(
+                                  content: Text(e.toString()),
+                                  backgroundColor: Theme.of(context).colorScheme.error,
+                                ),
                               );
                             }
                             setState(() {}); // Rebuild to update the UI
@@ -231,6 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(e.toString()),
+                                  backgroundColor: Theme.of(context).colorScheme.error,
                                 ),
                               );
                             }
@@ -243,6 +327,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: _signOut,
                         child: const Text('Sair'),
                       ),
+                      // Delete Account Button
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _confirmDeleteAccount,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text('Apagar Conta', style: TextStyle(color: Colors.white)),
+                      ),
                     ],
                   ),
                 ),
@@ -252,6 +343,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _bioController.dispose(); // Dispose bio controller
+    super.dispose();
+  }
+                      // Delete Account Button
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _confirmDeleteAccount,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text('Apagar Conta', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _bioController.dispose(); // Dispose bio controller
     super.dispose();
   }
 }
