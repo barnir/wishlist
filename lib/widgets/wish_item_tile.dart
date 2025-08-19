@@ -9,13 +9,19 @@ class WishItemTile extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback? onEdit;
 
-  const WishItemTile(
-      {super.key, required this.item, required this.onDelete, this.onEdit});
+  const WishItemTile({
+    super.key,
+    required this.item,
+    required this.onDelete,
+    this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final category = categories.firstWhere((c) => c.name == item.category,
-        orElse: () => categories.last);
+    final category = categories.firstWhere(
+      (c) => c.name == item.category,
+      orElse: () => categories.last,
+    );
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -32,13 +38,19 @@ class WishItemTile extends StatelessWidget {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withAlpha(26),
                   child: const CircularProgressIndicator(strokeWidth: 2),
                 );
-              } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+              } else if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  snapshot.data == null) {
                 // Fallback to category icon if image fails to load or is not present
                 return CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withAlpha(26),
                   child: Icon(
                     category.icon,
                     color: Theme.of(context).colorScheme.primary,
@@ -54,7 +66,10 @@ class WishItemTile extends StatelessWidget {
             },
           ),
         ),
-        title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          item.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -67,7 +82,8 @@ class WishItemTile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: InkWell(
-                  onTap: () { // Add function to open link
+                  onTap: () {
+                    // Add function to open link
                     // launchUrl(Uri.parse(item.link!));
                   },
                   child: Text(
@@ -109,4 +125,3 @@ class WishItemTile extends StatelessWidget {
     );
   }
 }
-

@@ -1,17 +1,33 @@
 # Wishlist App
 
+![App Screenshot](https://example.com/screenshot.png) <!-- Replace with a real screenshot or GIF -->
+
 A mobile application built with Flutter for managing wishlists and wish items. Users can create private or public wishlists, add items with details like name, description, price, and image, and share them. The app integrates with Supabase for backend services, including authentication, database, and storage.
+
+## Table of Contents
+
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Supabase Setup](#supabase-setup)
+  - [Running the App](#running-the-app)
+- [Project Structure](#project-structure)
+- [Database Schema](#database-schema)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
-*   User authentication (email/password, phone, Google Sign-In).
-*   Create and manage multiple wishlists.
-*   Add, edit, and delete wish items within a wishlist.
-*   Set wishlists as private or public.
-*   Image handling for wish items (upload to Supabase Storage).
-*   Web scraping for item details (e.g., title, price, image from a URL).
-*   Caching for faster image loading.
-*   Filtering and sorting of wish items.
+*   **User Authentication:** Secure sign-up and sign-in with email/password, phone number (OTP), and Google Sign-In.
+*   **Wishlist Management:** Create, edit, and delete multiple wishlists. Set wishlists as public or private.
+*   **Wish Item Management:** Add, edit, and delete items within a wishlist. Include details like name, description, price, image, and a link to the product page.
+*   **Image Handling:** Upload images for wish items from the gallery or camera. Images are stored in Supabase Storage.
+*   **Web Scraping:** Automatically fetch item details (title, price, image) from a URL.
+*   **Image Caching:** Efficiently cache images for faster loading and offline access.
+*   **Filtering and Sorting:** Filter wish items by category and sort them by price or name.
+*   **Social Features:** Share wishlists with friends and discover public wishlists from other users.
 
 ## Technologies Used
 
@@ -67,7 +83,7 @@ This project uses Supabase for its backend. You'll need to set up your own Supab
         ```
 
 3.  **Database Schema:**
-    *   You'll need to set up the necessary tables and RLS policies in your Supabase project. Refer to the `lib/services/supabase_database_service.dart` for the expected table names and columns (e.g., `users`, `wishlists`, `wish_items`).
+    *   You'll need to set up the necessary tables and RLS policies in your Supabase project. See the [Database Schema](#database-schema) section for more details.
     *   For authentication, ensure you have enabled the desired providers (Email, Phone, Google) in your Supabase project's Authentication settings.
 
 4.  **Google Sign-In (Android/iOS):**
@@ -93,10 +109,48 @@ flutter run
     *   `services/`: Backend integration and utility services (e.g., `auth_service.dart`, `supabase_database_service.dart`, `image_cache_service.dart`, `web_scraper_service.dart`).
     *   `widgets/`: Reusable UI components.
 
+## Database Schema
+
+### `users`
+
+| Column         | Type      | Description                                      |
+|----------------|-----------|--------------------------------------------------|
+| `id`           | `uuid`    | User ID (references `auth.users.id`)             |
+| `display_name` | `text`    | User's display name                              |
+| `email`        | `text`    | User's email address                             |
+| `phone_number` | `text`    | User's phone number                              |
+| `photo_url`    | `text`    | URL of the user's profile picture                |
+| `is_private`   | `boolean` | Whether the user's profile is private or public  |
+
+### `wishlists`
+
+| Column       | Type      | Description                                      |
+|--------------|-----------|--------------------------------------------------|
+| `id`         | `uuid`    | Wishlist ID                                      |
+| `owner_id`   | `uuid`    | ID of the user who owns the wishlist             |
+| `name`       | `text`    | Name of the wishlist                             |
+| `is_private` | `boolean` | Whether the wishlist is private or public        |
+| `image_url`  | `text`    | URL of the wishlist's cover image                |
+| `created_at` | `timestamp`| Timestamp of when the wishlist was created       |
+
+### `wish_items`
+
+| Column        | Type      | Description                                      |
+|---------------|-----------|--------------------------------------------------|
+| `id`          | `uuid`    | Wish item ID                                     |
+| `wishlist_id` | `uuid`    | ID of the wishlist this item belongs to          |
+| `name`        | `text`    | Name of the wish item                            |
+| `description` | `text`    | Description of the wish item                     |
+| `price`       | `float8`  | Price of the wish item                           |
+| `link`        | `text`    | URL to the product page                          |
+| `image_url`   | `text`    | URL of the wish item's image                     |
+| `category`    | `text`    | Category of the wish item                        |
+| `created_at`  | `timestamp`| Timestamp of when the wish item was created      |
+
 ## Contributing
 
 Contributions are welcome! Please feel free to open issues or submit pull requests.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the `LICENSE` file for details.

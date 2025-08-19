@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 final ThemeData lightAppTheme = ThemeData(
   useMaterial3: true,
   colorScheme: ColorScheme.fromSeed(
-    seedColor: Colors.deepPurple, // You can change this to your preferred primary color
+    seedColor: Colors
+        .deepPurple, // You can change this to your preferred primary color
     brightness: Brightness.light,
   ),
-  appBarTheme: const AppBarTheme(
-    centerTitle: true,
-    elevation: 0,
-  ),
+  appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
   cardTheme: CardThemeData(
     elevation: 4,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -26,10 +24,7 @@ final ThemeData darkAppTheme = ThemeData(
     seedColor: Colors.indigo, // A different seed color for dark theme
     brightness: Brightness.dark,
   ),
-  appBarTheme: const AppBarTheme(
-    centerTitle: true,
-    elevation: 0,
-  ),
+  appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
   cardTheme: CardThemeData(
     elevation: 4,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

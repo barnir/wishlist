@@ -49,14 +49,17 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    _intentDataStreamSubscription = 
-        FlutterSharingIntent.instance.getMediaStream().listen((List<SharedFile> value) {
-      if (value.isNotEmpty) {
-        _handleSharedMedia(value);
-      }
-    });
+    _intentDataStreamSubscription = FlutterSharingIntent.instance
+        .getMediaStream()
+        .listen((List<SharedFile> value) {
+          if (value.isNotEmpty) {
+            _handleSharedMedia(value);
+          }
+        });
 
-    FlutterSharingIntent.instance.getInitialSharing().then((List<SharedFile> value) {
+    FlutterSharingIntent.instance.getInitialSharing().then((
+      List<SharedFile> value,
+    ) {
       if (value.isNotEmpty) {
         if (Supabase.instance.client.auth.currentUser != null) {
           _handleSharedMedia(value);
@@ -74,14 +77,18 @@ class _MyAppState extends State<MyApp> {
       final sharedText = media.first.value;
       if (sharedText != null) {
         final urlRegex = RegExp(
-            r'https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
-            caseSensitive: false);
+          r'https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+          caseSensitive: false,
+        );
         final url = urlRegex.firstMatch(sharedText)?.group(0);
 
-        navigatorKey.currentState?.pushNamed('/add_edit_item', arguments: {
-          'name': sharedText.replaceAll(url ?? '', '').trim(),
-          'link': url,
-        });
+        navigatorKey.currentState?.pushNamed(
+          '/add_edit_item',
+          arguments: {
+            'name': sharedText.replaceAll(url ?? '', '').trim(),
+            'link': url,
+          },
+        );
       }
     }
   }
@@ -113,7 +120,8 @@ class _MyAppState extends State<MyApp> {
         },
         '/add_edit_item': (context) {
           final args =
-              ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
           return AddEditItemScreen(
             wishlistId: args?['wishlistId'] as String?,
             itemId: args?['itemId'] as String?,
@@ -142,13 +150,16 @@ class _MyAppState extends State<MyApp> {
             return FutureBuilder<Map<String, dynamic>?>(
               future: UserService().getUserProfile(snapshot.data!.id),
               builder: (context, profileSnapshot) {
-                if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                if (profileSnapshot.connectionState ==
+                    ConnectionState.waiting) {
                   return const Scaffold(
                     body: Center(child: CircularProgressIndicator()),
                   );
                 }
                 final profile = profileSnapshot.data;
-                if (profile == null || profile['phone_number'] == null || profile['phone_number'].toString().isEmpty) {
+                if (profile == null ||
+                    profile['phone_number'] == null ||
+                    profile['phone_number'].toString().isEmpty) {
                   // Phone number is missing, navigate to AddPhoneScreen
                   return const AddPhoneScreen();
                 } else {
@@ -206,10 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: _screens,
-        ),
+        body: IndexedStack(index: _selectedIndex, children: _screens),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onTabTapped,
@@ -222,10 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.public),
               label: 'Explorar',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Perfil',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
           ],
         ),
       ),

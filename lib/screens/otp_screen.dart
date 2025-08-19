@@ -48,9 +48,9 @@ class _OTPScreenState extends State<OTPScreen> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) {
@@ -79,7 +79,7 @@ class _OTPScreenState extends State<OTPScreen> {
               currentCode: _otpCode,
               codeLength: 6,
               onCodeSubmitted: (code) {
-                 // This is called when the user submits the code manually
+                // This is called when the user submits the code manually
               },
               onCodeChanged: (code) {
                 _otpCode = code;

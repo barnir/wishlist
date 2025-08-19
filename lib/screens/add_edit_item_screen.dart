@@ -88,7 +88,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           final response = await http.get(Uri.parse(imageUrl));
           if (response.statusCode == 200) {
             final tempDir = await getTemporaryDirectory();
-            final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+            final tempFile = File(
+              '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+            );
             await tempFile.writeAsBytes(response.bodyBytes);
             setState(() {
               _imageBytes = response.bodyBytes;
@@ -107,7 +109,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _isLoadingWishlists = true;
     });
     try {
-      final wishlists = await _supabaseDatabaseService.getWishlistsForCurrentUser();
+      final wishlists = await _supabaseDatabaseService
+          .getWishlistsForCurrentUser();
       setState(() {
         _wishlists = wishlists;
         if (_wishlists.isNotEmpty) {
@@ -159,12 +162,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     }
   }
 
-  
-
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-      final itemData = await _supabaseDatabaseService.getWishItem(widget.wishlistId!, itemId: widget.itemId);
+      final itemData = await _supabaseDatabaseService.getWishItem(
+        widget.wishlistId!,
+        itemId: widget.itemId,
+      );
 
       if (itemData != null) {
         _nameController.text = itemData['name'] ?? '';
@@ -229,12 +233,18 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     if (_imageBytes != null) {
       setState(() => _isUploading = true);
       try {
-        final tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!);
+        final tempFileForUpload = await File(
+          '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ).writeAsBytes(_imageBytes!);
 
         await _supabaseDatabaseService.saveWishItem(
           wishlistId: finalWishlistId,
           name: _nameController.text.trim(),
-          price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
+          price:
+              double.tryParse(
+                _priceController.text.trim().replaceAll(',', '.'),
+              ) ??
+              0.0,
           category: _selectedCategory!,
           link: _linkController.text.trim(),
           imageFile: tempFileForUpload,
@@ -255,7 +265,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       await _supabaseDatabaseService.saveWishItem(
         wishlistId: finalWishlistId,
         name: _nameController.text.trim(),
-        price: double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
+        price:
+            double.tryParse(
+              _priceController.text.trim().replaceAll(',', '.'),
+            ) ??
+            0.0,
         category: _selectedCategory!,
         link: _linkController.text.trim(),
         imageUrl: _existingImageUrl,
@@ -295,7 +309,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                       if (_isLoadingWishlists)
                         const Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       else
@@ -323,17 +339,23 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                     _selectedWishlistId = newValue;
                                   });
                                 },
-                                validator: (value) =>
-                                    value == null ? 'Por favor, escolha uma wishlist' : null,
+                                validator: (value) => value == null
+                                    ? 'Por favor, escolha uma wishlist'
+                                    : null,
                               ),
                             if (_wishlists.isEmpty && !_showCreateWishlistForm)
                               Center(
                                 child: TextButton(
-                                  onPressed: () => setState(() => _showCreateWishlistForm = true),
-                                  child: const Text('Nenhuma wishlist encontrada. Crie uma nova.'),
+                                  onPressed: () => setState(
+                                    () => _showCreateWishlistForm = true,
+                                  ),
+                                  child: const Text(
+                                    'Nenhuma wishlist encontrada. Crie uma nova.',
+                                  ),
                                 ),
                               ),
-                            if (_showCreateWishlistForm || (_wishlists.isEmpty && _showCreateWishlistForm))
+                            if (_showCreateWishlistForm ||
+                                (_wishlists.isEmpty && _showCreateWishlistForm))
                               Column(
                                 children: [
                                   const SizedBox(height: 16),
@@ -347,7 +369,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                       filled: true,
                                     ),
                                     validator: (value) {
-                                      if (_showCreateWishlistForm && (value == null || value.isEmpty)) {
+                                      if (_showCreateWishlistForm &&
+                                          (value == null || value.isEmpty)) {
                                         return 'Insira um nome para a wishlist';
                                       }
                                       return null;
@@ -356,7 +379,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                   const SizedBox(height: 12),
                                   _isCreatingWishlist
                                       ? const CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
                                         )
                                       : ElevatedButton(
                                           onPressed: _createWishlist,
@@ -379,7 +405,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                               final imageFile = snapshot.data;
                               return CircleAvatar(
                                 radius: 50,
-                                backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+                                backgroundImage: imageFile != null
+                                    ? FileImage(imageFile)
+                                    : null,
                                 child: imageFile == null && !_isUploading
                                     ? const Icon(Icons.add_a_photo, size: 50)
                                     : null,
@@ -388,7 +416,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                           ),
                           if (_isUploading)
                             const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                         ],
                       ),
@@ -403,7 +433,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         ),
                         filled: true,
                       ),
-                      validator: (value) => (value == null || value.trim().isEmpty)
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
                           ? 'Insere o nome do item'
                           : null,
                     ),
@@ -498,10 +529,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                               filled: true,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                              decimal: true,
+                            ),
                             validator: (value) {
                               if (value == null || value.isEmpty) return null;
-                              final n = double.tryParse(value.replaceAll(',', '.'));
+                              final n = double.tryParse(
+                                value.replaceAll(',', '.'),
+                              );
                               if (n == null || n < 0) return 'Preço inválido';
                               return null;
                             },

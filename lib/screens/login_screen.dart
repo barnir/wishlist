@@ -33,19 +33,20 @@ class _LoginScreenState extends State<LoginScreen> {
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
-        
+
         // After email login, check for phone number
         final user = _authService.currentUser;
         if (user != null) {
           final userProfile = await _userService.getUserProfile(user.id);
           if (!mounted) return;
-          if (userProfile == null || userProfile['phone_number'] == null || userProfile['phone_number'].toString().isEmpty) {
+          if (userProfile == null ||
+              userProfile['phone_number'] == null ||
+              userProfile['phone_number'].toString().isEmpty) {
             Navigator.pushReplacementNamed(context, '/add_phone');
           } else {
             Navigator.pushReplacementNamed(context, '/home');
           }
         }
-
       } catch (e) {
         if (mounted) {
           _showSnackBar('Erro ao fazer login: ${e.toString()}', isError: true);
@@ -78,7 +79,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _showSnackBar('Login com Google cancelado.', isError: true);
         break;
       case GoogleSignInResult.failed:
-        _showSnackBar('Ocorreu um erro ao fazer login com o Google.', isError: true);
+        _showSnackBar(
+          'Ocorreu um erro ao fazer login com o Google.',
+          isError: true,
+        );
         break;
     }
 
@@ -154,7 +158,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         )
                       : const Text('Entrar com Email'),
                 ),

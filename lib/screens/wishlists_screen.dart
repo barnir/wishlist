@@ -26,7 +26,9 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
             Icon(
               Icons.card_giftcard_rounded,
               size: 100, // Increased size
-              color: Theme.of(context).colorScheme.primary.withAlpha((255 * 0.7).round()), // More prominent color
+              color: Theme.of(context).colorScheme.primary.withAlpha(
+                (255 * 0.7).round(),
+              ), // More prominent color
             ),
             const SizedBox(height: 24), // Increased spacing
             Text(
@@ -52,7 +54,10 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   }
 
   // Widget para construir cada card da wishlist
-  Widget _buildWishlistCard(BuildContext context, Map<String, dynamic> wishlist) {
+  Widget _buildWishlistCard(
+    BuildContext context,
+    Map<String, dynamic> wishlist,
+  ) {
     final name = wishlist['name'] ?? 'Sem nome';
     final isPrivate = wishlist['is_private'] ?? false;
     final imageUrl = wishlist['image_url'];
@@ -74,7 +79,9 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -86,7 +93,9 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                     ),
                     errorWidget: (context, url, error) => Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -100,14 +109,18 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                   )
                 : Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
                       child: Icon(
                         Icons.card_giftcard,
                         size: 30,
-                        color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(153),
                       ),
                     ),
                   ),
@@ -152,7 +165,9 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Minhas Wishlists')),
-        body: const Center(child: Text('Por favor, faça login para ver suas wishlists.')),
+        body: const Center(
+          child: Text('Por favor, faça login para ver suas wishlists.'),
+        ),
       );
     }
 
@@ -180,7 +195,10 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
           final wishlists = snapshot.data!;
 
           return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 80), // Padding para o FAB
+            padding: const EdgeInsets.only(
+              top: 8,
+              bottom: 80,
+            ), // Padding para o FAB
             itemCount: wishlists.length,
             itemBuilder: (context, index) {
               return _buildWishlistCard(context, wishlists[index]);

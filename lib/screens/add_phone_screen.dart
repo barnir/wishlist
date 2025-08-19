@@ -19,7 +19,9 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
   Future<void> _sendVerificationCode() async {
     if (_telefoneCompleto == null || _telefoneCompleto!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, insira um número de telemóvel válido.')),
+        const SnackBar(
+          content: Text('Por favor, insira um número de telemóvel válido.'),
+        ),
       );
       return;
     }
@@ -30,9 +32,12 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
     try {
       await _authService.sendPhoneOtp(_telefoneCompleto!);
       if (mounted) {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => OTPScreen(phoneNumber: _telefoneCompleto!), // Pass phone number
-        ));
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) =>
+                OTPScreen(phoneNumber: _telefoneCompleto!), // Pass phone number
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

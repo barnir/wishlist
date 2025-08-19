@@ -47,8 +47,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _phoneNumber =
           userData['phone_number']; // Get phone number from user profile
     }
-    _profileImageUrl =
-        _authService.currentUser?.userMetadata?['photoURL']; // Access from user_metadata
+    _profileImageUrl = _authService
+        .currentUser
+        ?.userMetadata?['photoURL']; // Access from user_metadata
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -100,10 +101,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
     final userId = _authService.currentUser!.id;
     await _authService.updateUser(
-        displayName:
-            _nameController.text.trim()); // Update user metadata
-    await _userService
-        .updateUserProfile(userId, {'display_name': _nameController.text.trim()});
+      displayName: _nameController.text.trim(),
+    ); // Update user metadata
+    await _userService.updateUserProfile(userId, {
+      'display_name': _nameController.text.trim(),
+    });
     setState(() => _isEditingName = false);
     if (mounted) {
       setState(() => _isLoading = false);
@@ -116,8 +118,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final userId = _authService.currentUser!.id;
-      await _userService
-          .updateUserProfile(userId, {'bio': _bioController.text.trim()});
+      await _userService.updateUserProfile(userId, {
+        'bio': _bioController.text.trim(),
+      });
       if (mounted) {
         setState(() => _isEditingBio = false);
       }
@@ -172,13 +175,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ListBody(
                 children: <Widget>[
                   const Text(
-                      'Esta ação é irreversível. Todos os seus dados serão perdidos. Para confirmar, escreva "APAGAR" na caixa abaixo.'),
+                    'Esta ação é irreversível. Todos os seus dados serão perdidos. Para confirmar, escreva "APAGAR" na caixa abaixo.',
+                  ),
                   const SizedBox(height: 16),
                   if (isDeleting)
-                    const Center(child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: CircularProgressIndicator(),
-                    ))
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
                   else
                     TextField(
                       controller: confirmationController,
@@ -186,19 +192,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         labelText: 'Confirmar',
                         border: OutlineInputBorder(),
                       ),
-                      onChanged: (_) =>
-                          setDialogState(() {}), // Rebuild to check button state
+                      onChanged: (_) => setDialogState(
+                        () {},
+                      ), // Rebuild to check button state
                     ),
                 ],
               ),
             ),
             actions: [
               TextButton(
-                onPressed: isDeleting ? null : () => Navigator.of(context).pop(),
+                onPressed: isDeleting
+                    ? null
+                    : () => Navigator.of(context).pop(),
                 child: const Text('Cancelar'),
               ),
               ElevatedButton(
-                onPressed: (confirmationController.text == 'APAGAR' && !isDeleting)
+                onPressed:
+                    (confirmationController.text == 'APAGAR' && !isDeleting)
                     ? () async {
                         setDialogState(() => isDeleting = true);
                         await _deleteAccount();
@@ -207,15 +217,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                     : null,
                 style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.disabled)) {
-                        // ignore: deprecated_member_use
-                        return Colors.red.withOpacity(0.5);
-                      }
-                      return Colors.red;
-                    },
-                  ),
+                  backgroundColor: WidgetStateProperty.resolveWith<Color?>((
+                    Set<WidgetState> states,
+                  ) {
+                    if (states.contains(WidgetState.disabled)) {
+                      // ignore: deprecated_member_use
+                      return Colors.red.withOpacity(0.5);
+                    }
+                    return Colors.red;
+                  }),
                 ),
                 child: const Text('Apagar Permanentemente'),
               ),
@@ -231,13 +241,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       // Call the secure Edge Function
-      final response = await Supabase.instance.client.functions.invoke('delete-user');
+      final response = await Supabase.instance.client.functions.invoke(
+        'delete-user',
+      );
 
       if (response.status != 200) {
         // If the function returns an error status, throw an exception
         final errorData = response.data as Map<String, dynamic>?;
         throw Exception(
-            'Falha ao apagar a conta: ${errorData?['error'] ?? 'Erro desconhecido'}');
+          'Falha ao apagar a conta: ${errorData?['error'] ?? 'Erro desconhecido'}',
+        );
       }
 
       if (!mounted) return;
@@ -253,7 +266,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _authService.signOut();
       if (mounted) {
         // Pop all routes until login screen
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
       if (!mounted) return;
@@ -267,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
-    } 
+    }
     // No finally block to change isLoading, as the screen will be disposed.
   }
 
@@ -284,233 +299,244 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             )
           : user == null
-              ? const Center(child: Text('Utilizador não encontrado.'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: _isUploading ? null : _pickImage,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withAlpha(26),
-                              backgroundImage: _profileImageUrl != null
-                                  ? CachedNetworkImageProvider(_profileImageUrl!)
-                                  : null,
-                              child: _profileImageUrl == null && !_isUploading
-                                  ? const Icon(Icons.add_a_photo, size: 50)
-                                  : null,
+          ? const Center(child: Text('Utilizador não encontrado.'))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _isUploading ? null : _pickImage,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withAlpha(26),
+                          backgroundImage: _profileImageUrl != null
+                              ? CachedNetworkImageProvider(_profileImageUrl!)
+                              : null,
+                          child: _profileImageUrl == null && !_isUploading
+                              ? const Icon(Icons.add_a_photo, size: 50)
+                              : null,
+                        ),
+                        if (_isUploading)
+                          const CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
                             ),
-                            if (_isUploading)
-                              const CircularProgressIndicator(
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _isEditingName
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _nameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nome',
+                                ),
                               ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.save),
+                              onPressed: _saveName,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.cancel),
+                              onPressed: () =>
+                                  setState(() => _isEditingName = false),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              user.userMetadata?['display_name'] ??
+                                  user.email ??
+                                  'Sem nome',
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () =>
+                                  setState(() => _isEditingName = true),
+                            ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      _isEditingName
-                          ? Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _nameController,
-                                    decoration:
-                                        const InputDecoration(labelText: 'Nome'),
-                                  ),
+                  const SizedBox(height: 8),
+                  _isEditingBio
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _bioController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Biografia',
+                                  border: OutlineInputBorder(),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.save),
-                                  onPressed: _saveName,
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.cancel),
-                                  onPressed: () =>
-                                      setState(() => _isEditingName = false),
-                                ),
-                              ],
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                    user.userMetadata?['display_name'] ??
-                                        user.email ??
-                                        'Sem nome',
-                                    style: const TextStyle(fontSize: 20)),
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () =>
-                                      setState(() => _isEditingName = true),
-                                ),
-                              ],
+                                maxLines: 3,
+                              ),
                             ),
-                      const SizedBox(height: 8),
-                      _isEditingBio
-                          ? Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _bioController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Biografia',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    maxLines: 3,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.save),
-                                  onPressed: _saveBio,
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.cancel),
-                                  onPressed: () =>
-                                      setState(() => _isEditingBio = false),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _bioController.text.isNotEmpty
-                                      ? _bioController.text
-                                      : 'Adicionar biografia',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () =>
-                                        setState(() => _isEditingBio = true),
-                                  ),
-                                ),
-                              ],
+                            IconButton(
+                              icon: const Icon(Icons.save),
+                              onPressed: _saveBio,
                             ),
-                      const SizedBox(height: 16), // Add spacing after bio
-                      Text(user.email ?? 'Sem email'),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('Privado'),
-                          Switch(
-                            value: _isPrivate,
-                            onChanged: _savePrivacySetting,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      if (_phoneNumber == null ||
-                          _phoneNumber!
-                              .isEmpty) // Check if phone number is linked
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => const LinkPhoneScreen(),
-                            ));
-                          },
-                          child: const Text('Adicionar Telemóvel'),
+                            IconButton(
+                              icon: const Icon(Icons.cancel),
+                              onPressed: () =>
+                                  setState(() => _isEditingBio = false),
+                            ),
+                          ],
                         )
-                      else
-                        Column(
+                      : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Telemóvel: \$_phoneNumber'),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (context) => const LinkPhoneScreen(),
-                                ));
-                              },
-                              child: const Text('Alterar Telemóvel'),
+                            Text(
+                              _bioController.text.isNotEmpty
+                                  ? _bioController.text
+                                  : 'Adicionar biografia',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () =>
+                                    setState(() => _isEditingBio = true),
+                              ),
                             ),
                           ],
                         ),
-                      const SizedBox(height: 16),
-                      if (user.email == null || user.email!.isEmpty)
-                        Column(
-                          children: [
-                            ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  // This method is still unimplemented in AuthService
-                                  // await _authService.linkGoogle();
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text("Not implemented"),
-                                        backgroundColor:
-                                            Theme.of(context).colorScheme.error,
-                                      ),
-                                    );
-                                  }
-                                  setState(() {}); // Rebuild to update the UI
-                                } on Exception catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(e.toString()),
-                                        backgroundColor:
-                                            Theme.of(context).colorScheme.error,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              child: const Text('Adicionar Google'),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (context) => const LinkEmailScreen(),
-                                ));
-                              },
-                              child: const Text('Adicionar Email'),
-                            ),
-                          ],
-                        )
-                      else
-                        Column(
-                          children: [
-                            Text(user.email!),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (context) => const LinkEmailScreen(),
-                                ));
-                              },
-                              child: const Text('Alterar Email'),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _signOut,
-                        child: const Text('Sair'),
-                      ),
-                      // Delete Account Button
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _confirmDeleteAccount,
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red),
-                        child: const Text('Apagar Conta',
-                            style: TextStyle(color: Colors.white)),
-                      ),
+                  const SizedBox(height: 16), // Add spacing after bio
+                  Text(user.email ?? 'Sem email'),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Privado'),
+                      Switch(value: _isPrivate, onChanged: _savePrivacySetting),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  if (_phoneNumber == null ||
+                      _phoneNumber!.isEmpty) // Check if phone number is linked
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const LinkPhoneScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('Adicionar Telemóvel'),
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Telemóvel: \$_phoneNumber'),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const LinkPhoneScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('Alterar Telemóvel'),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 16),
+                  if (user.email == null || user.email!.isEmpty)
+                    Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              // This method is still unimplemented in AuthService
+                              // await _authService.linkGoogle();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text("Not implemented"),
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.error,
+                                  ),
+                                );
+                              }
+                              setState(() {}); // Rebuild to update the UI
+                            } on Exception catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(e.toString()),
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.error,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Adicionar Google'),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const LinkEmailScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('Adicionar Email'),
+                        ),
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        Text(user.email!),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const LinkEmailScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('Alterar Email'),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _signOut,
+                    child: const Text('Sair'),
+                  ),
+                  // Delete Account Button
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _confirmDeleteAccount,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: const Text(
+                      'Apagar Conta',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 

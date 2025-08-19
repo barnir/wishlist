@@ -25,9 +25,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final user = _authService.currentUser;
     if (user != null) {
       final userProfile = await _userService.getUserProfile(user.id);
-      if (userProfile == null || userProfile['phone_number'] == null || userProfile['phone_number'].isEmpty) {
+      if (userProfile == null ||
+          userProfile['phone_number'] == null ||
+          userProfile['phone_number'].isEmpty) {
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/add_phone'); // Assuming /add_phone navigates to LinkPhoneScreen
+        Navigator.pushReplacementNamed(
+          context,
+          '/add_phone',
+        ); // Assuming /add_phone navigates to LinkPhoneScreen
       } else {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
@@ -59,27 +64,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String? _validarEmail(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Email obrigatório';
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) return 'Formato de email inválido';
+    if (value == null || value.trim().isEmpty) {
+      return 'Email obrigatório';
+    }
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+      return 'Formato de email inválido';
+    }
     return null;
   }
 
   String? _validarNome(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Nome obrigatório';
-    if (value.trim().length < 2) return 'Nome demasiado curto';
+    if (value == null || value.trim().isEmpty) {
+      return 'Nome obrigatório';
+    }
+    if (value.trim().length < 2) {
+      return 'Nome demasiado curto';
+    }
     return null;
   }
 
   String? _validarPassword(String? value) {
-    if (value == null || value.length < 8) return 'Password deve ter pelo menos 8 caracteres';
-    if (!RegExp(r'[A-Z]').hasMatch(value)) return 'Password deve conter uma maiúscula';
-    if (!RegExp(r'[a-z]').hasMatch(value)) return 'Password deve conter uma minúscula';
-    if (!RegExp(r'[0-9]').hasMatch(value)) return 'Password deve conter um número';
+    if (value == null || value.length < 8) {
+      return 'Password deve ter pelo menos 8 caracteres';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password deve conter uma maiúscula';
+    }
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      return 'Password deve conter uma minúscula';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password deve conter um número';
+    }
     return null;
   }
 
   String? _validarConfirmaPassword(String? value) {
-    if (value != _passwordController.text) return 'Passwords não coincidem';
+    if (value != _passwordController.text) {
+      return 'Passwords não coincidem';
+    }
     return null;
   }
 
@@ -152,7 +175,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onPressed: _isLoading ? null : _registar,
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         )
                       : const Text('Registar'),
                 ),

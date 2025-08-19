@@ -57,14 +57,19 @@ class _TelefoneLoginScreenState extends State<TelefoneLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login com Telemóvel')), // Título corrigido
+      appBar: AppBar(
+        title: const Text('Login com Telemóvel'),
+      ), // Título corrigido
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (_error != null) ...[
-              Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 16)),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
               const SizedBox(height: 12),
             ],
             IntlPhoneField(

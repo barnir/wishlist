@@ -16,9 +16,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Explorar'),
-      ),
+      appBar: AppBar(title: const Text('Explorar')),
       body: Column(
         children: [
           Padding(
@@ -37,14 +35,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           Expanded(
-            child: ListView( // Changed to ListView to contain multiple sections
+            child: ListView(
+              // Changed to ListView to contain multiple sections
               children: [
                 const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text('Perfis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Perfis',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: _supabaseDatabaseService.getPublicUsers(searchTerm: _termoPesquisa),
+                  stream: _supabaseDatabaseService.getPublicUsers(
+                    searchTerm: _termoPesquisa,
+                  ),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -55,20 +59,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     }
 
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(child: Text('Nenhum perfil encontrado.'));
+                      return const Center(
+                        child: Text('Nenhum perfil encontrado.'),
+                      );
                     }
 
                     final profiles = snapshot.data!;
 
                     return ListView.builder(
                       shrinkWrap: true, // Important for nested ListViews
-                      physics: const NeverScrollableScrollPhysics(), // Disable scrolling for nested ListView
+                      physics:
+                          const NeverScrollableScrollPhysics(), // Disable scrolling for nested ListView
                       itemCount: profiles.length,
                       itemBuilder: (context, index) {
                         final profile = profiles[index];
-                        final displayName = profile['display_name'] as String? ?? 'Sem nome';
+                        final displayName =
+                            profile['display_name'] as String? ?? 'Sem nome';
                         return ListTile(
-                          leading: const CircleAvatar(child: Icon(Icons.person)),
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.person),
+                          ),
                           title: Text(displayName),
                           onTap: () {
                             // Navega para página de perfil do utilizador
@@ -83,10 +93,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
                 const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text('Wishlists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Wishlists',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: _supabaseDatabaseService.getPublicWishlists(searchTerm: _termoPesquisa),
+                  stream: _supabaseDatabaseService.getPublicWishlists(
+                    searchTerm: _termoPesquisa,
+                  ),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -97,14 +112,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     }
 
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(child: Text('Nenhuma wishlist encontrada.'));
+                      return const Center(
+                        child: Text('Nenhuma wishlist encontrada.'),
+                      );
                     }
 
                     final wishlists = snapshot.data!;
 
                     return ListView.builder(
                       shrinkWrap: true, // Important for nested ListViews
-                      physics: const NeverScrollableScrollPhysics(), // Disable scrolling for nested ListView
+                      physics:
+                          const NeverScrollableScrollPhysics(), // Disable scrolling for nested ListView
                       itemCount: wishlists.length,
                       itemBuilder: (context, index) {
                         final wishlist = wishlists[index];
@@ -112,7 +130,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         // ownerName is not directly available in the wishlists table in Supabase without a join.
                         // For now, we'll just display a placeholder or fetch it separately if needed.
                         final ownerName = 'Desconhecido'; // Placeholder
-                        final imageUrl = wishlist.containsKey('image_url') ? wishlist['image_url'] : null;
+                        final imageUrl = wishlist.containsKey('image_url')
+                            ? wishlist['image_url']
+                            : null;
 
                         return ListTile(
                           leading: SizedBox(
@@ -121,28 +141,44 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             child: imageUrl != null && imageUrl.isNotEmpty
                                 ? CachedNetworkImage(
                                     imageUrl: imageUrl,
-                                    imageBuilder: (context, imageProvider) => CircleAvatar(
-                                      backgroundImage: imageProvider,
-                                      radius: 50,
-                                    ),
+                                    imageBuilder: (context, imageProvider) =>
+                                        CircleAvatar(
+                                          backgroundImage: imageProvider,
+                                          radius: 50,
+                                        ),
                                     placeholder: (context, url) => CircleAvatar(
-                                      backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
-                                      child: const CircularProgressIndicator(strokeWidth: 2),
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withAlpha(26),
+                                      child: const CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     ),
-                                    errorWidget: (context, url, error) => CircleAvatar(
-                                      backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
-                                      child: const Icon(Icons.card_giftcard),
-                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        CircleAvatar(
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary.withAlpha(26),
+                                          child: const Icon(
+                                            Icons.card_giftcard,
+                                          ),
+                                        ),
                                   )
                                 : CircleAvatar(
-                                    backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withAlpha(26),
                                     child: const Icon(Icons.card_giftcard),
                                   ),
                           ),
                           title: Text(name),
                           subtitle: Text('Proprietário: $ownerName'),
                           onTap: () {
-                            Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist['id']);
+                            Navigator.pushNamed(
+                              context,
+                              '/wishlist_details',
+                              arguments: wishlist['id'],
+                            );
                           },
                         );
                       },

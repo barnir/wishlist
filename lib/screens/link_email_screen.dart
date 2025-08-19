@@ -31,7 +31,8 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
       if (mounted) {
         Navigator.of(context).pop();
       }
-    } on Exception catch (e) { // Changed from FirebaseAuthException
+    } on Exception catch (e) {
+      // Changed from FirebaseAuthException
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),

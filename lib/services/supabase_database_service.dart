@@ -3,11 +3,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/supabase_storage_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 
+/// Service for interacting with the Supabase database.
+///
+/// This service provides methods for performing CRUD operations on wishlists and wish items,
+/// as well as fetching public data.
 class SupabaseDatabaseService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
   final _supabaseStorageService = SupabaseStorageService();
 
   // Wishlists operations
+
+  /// Retrieves a stream of wishlists for the given user.
   Stream<List<Map<String, dynamic>>> getWishlists(String userId) {
     return _supabaseClient
         .from('wishlists')
@@ -16,6 +22,7 @@ class SupabaseDatabaseService {
         .order('created_at', ascending: false);
   }
 
+  /// Retrieves a list of wishlists for the current user.
   Future<List<Map<String, dynamic>>> getWishlistsForCurrentUser() async {
     final userId = _supabaseClient.auth.currentUser?.id;
     if (userId == null) {
@@ -29,6 +36,7 @@ class SupabaseDatabaseService {
     return List<Map<String, dynamic>>.from(response as List);
   }
 
+  /// Retrieves a single wishlist by its ID.
   Future<Map<String, dynamic>?> getWishlist(String wishlistId) async {
     final response = await _supabaseClient
         .from('wishlists')
@@ -38,6 +46,10 @@ class SupabaseDatabaseService {
     return response;
   }
 
+  /// Saves a wishlist to the database.
+  ///
+  /// If [wishlistId] is provided, the existing wishlist will be updated.
+  /// Otherwise, a new wishlist will be created.
   Future<Map<String, dynamic>?> saveWishlist({
     required String name,
     required bool isPrivate,
@@ -49,7 +61,10 @@ class SupabaseDatabaseService {
     String? finalImageUrl = imageUrl;
 
     if (imageFile != null) {
-      finalImageUrl = await _supabaseStorageService.uploadImage(imageFile, 'wishlist_images');
+      finalImageUrl = await _supabaseStorageService.uploadImage(
+        imageFile,
+        'wishlist_images',
+      );
       if (finalImageUrl == null) {
         throw Exception('Erro ao carregar imagem.');
       }
@@ -64,10 +79,16 @@ class SupabaseDatabaseService {
     if (wishlistId == null) {
       final currentUserId = userId ?? _supabaseClient.auth.currentUser?.id;
       if (currentUserId == null) {
-        throw Exception('User not authenticated. Cannot save wishlist without an owner.');
+        throw Exception(
+          'User not authenticated. Cannot save wishlist without an owner.',
+        );
       }
       data['owner_id'] = currentUserId;
-      final response = await _supabaseClient.from('wishlists').insert(data).select().single();
+      final response = await _supabaseClient
+          .from('wishlists')
+          .insert(data)
+          .select()
+          .single();
       return response;
     } else {
       await _supabaseClient.from('wishlists').update(data).eq('id', wishlistId);
@@ -75,12 +96,21 @@ class SupabaseDatabaseService {
     }
   }
 
+  /// Deletes a wishlist from the database.
   Future<void> deleteWishlist(String wishlistId) async {
     await _supabaseClient.from('wishlists').delete().eq('id', wishlistId);
   }
 
   // Wish items operations
-  Stream<List<Map<String, dynamic>>> getWishItems(String wishlistId, {String? category, SortOptions? sortOption}) {
+
+  /// Retrieves a stream of wish items for the given wishlist.
+  ///
+  /// The stream can be filtered by [category] and sorted by [sortOption].
+  Stream<List<Map<String, dynamic>>> getWishItems(
+    String wishlistId, {
+    String? category,
+    SortOptions? sortOption,
+  }) {
     dynamic query = _supabaseClient
         .from('wish_items')
         .select()
@@ -109,10 +139,16 @@ class SupabaseDatabaseService {
       query = query.order('created_at', ascending: false);
     }
 
-    return query.asStream().map((data) => List<Map<String, dynamic>>.from(data));
+    return query.asStream().map(
+      (data) => List<Map<String, dynamic>>.from(data),
+    );
   }
 
-  Future<Map<String, dynamic>?> getWishItem(String wishlistId, {String? itemId}) async {
+  /// Retrieves a single wish item by its ID.
+  Future<Map<String, dynamic>?> getWishItem(
+    String wishlistId, {
+    String? itemId,
+  }) async {
     if (itemId == null) return null;
     try {
       final response = await _supabaseClient
@@ -128,6 +164,10 @@ class SupabaseDatabaseService {
     }
   }
 
+  /// Saves a wish item to the database.
+  ///
+  /// If [itemId] is provided, the existing item will be updated.
+  /// Otherwise, a new item will be created.
   Future<void> saveWishItem({
     required String wishlistId,
     required String name,
@@ -142,7 +182,10 @@ class SupabaseDatabaseService {
     String? finalImageUrl = imageUrl;
 
     if (imageFile != null) {
-      finalImageUrl = await _supabaseStorageService.uploadImage(imageFile, 'item_images');
+      finalImageUrl = await _supabaseStorageService.uploadImage(
+        imageFile,
+        'item_images',
+      );
       if (finalImageUrl == null) {
         throw Exception('Erro ao carregar imagem.');
       }
@@ -165,16 +208,18 @@ class SupabaseDatabaseService {
     }
   }
 
+  /// Deletes a wish item from the database.
   Future<void> deleteWishItem(String wishlistId, String itemId) async {
     await _supabaseClient.from('wish_items').delete().eq('id', itemId);
   }
 
   // Public data operations
+
+  /// Retrieves a stream of public users.
+  ///
+  /// The stream can be filtered by [searchTerm].
   Stream<List<Map<String, dynamic>>> getPublicUsers({String? searchTerm}) {
-    var query = _supabaseClient
-        .from('users')
-        .select()
-        .eq('is_private', false);
+    var query = _supabaseClient.from('users').select().eq('is_private', false);
 
     if (searchTerm != null && searchTerm.isNotEmpty) {
       // Supabase text search is more advanced, but for simple startsWith/endsWith
@@ -183,9 +228,15 @@ class SupabaseDatabaseService {
       query = query.ilike('display_name', '$searchTerm%');
     }
 
-    return query.order('display_name', ascending: true).asStream().map((data) => List<Map<String, dynamic>>.from(data));
+    return query
+        .order('display_name', ascending: true)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data));
   }
 
+  /// Retrieves a stream of public wishlists.
+  ///
+  /// The stream can be filtered by [searchTerm].
   Stream<List<Map<String, dynamic>>> getPublicWishlists({String? searchTerm}) {
     var query = _supabaseClient
         .from('wishlists')
@@ -196,6 +247,9 @@ class SupabaseDatabaseService {
       query = query.ilike('name', '$searchTerm%');
     }
 
-    return query.order('name', ascending: true).asStream().map((data) => List<Map<String, dynamic>>.from(data));
+    return query
+        .order('name', ascending: true)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data));
   }
 }

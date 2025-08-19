@@ -37,12 +37,15 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   Future<void> _loadWishlistData() async {
     setState(() => _isLoading = true);
     try {
-      final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId!);
+      final wishlistData = await _supabaseDatabaseService.getWishlist(
+        widget.wishlistId!,
+      );
       if (wishlistData != null) {
         setState(() {
           _nameController.text = wishlistData['name'] ?? '';
           _isPrivate = wishlistData['is_private'] ?? false;
-          _existingImageUrl = wishlistData['image_url']; // Store original image URL
+          _existingImageUrl =
+              wishlistData['image_url']; // Store original image URL
           if (_existingImageUrl != null) {
             _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
           }
@@ -84,18 +87,23 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
       if (_imageBytes != null) {
         setState(() => _isUploading = true);
         // Create a temporary file from bytes for upload
-        tempFileForUpload = await File('${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg').writeAsBytes(_imageBytes!);
+        tempFileForUpload = await File(
+          '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ).writeAsBytes(_imageBytes!);
       }
 
       await _supabaseDatabaseService.saveWishlist(
         name: _nameController.text.trim(),
         isPrivate: _isPrivate,
         imageFile: tempFileForUpload, // Pass File if available
-        imageUrl: _imageBytes == null ? _existingImageUrl : null, // Pass existing URL only if no new image
+        imageUrl: _imageBytes == null
+            ? _existingImageUrl
+            : null, // Pass existing URL only if no new image
         wishlistId: widget.wishlistId,
       );
 
-      if (finalImageUrl != null && _imageBytes != null) { // Only cache if a new image was uploaded
+      if (finalImageUrl != null && _imageBytes != null) {
+        // Only cache if a new image was uploaded
         await ImageCacheService.putFile(finalImageUrl, _imageBytes!);
         setState(() {
           _imageFuture = ImageCacheService.getFile(finalImageUrl);
@@ -132,7 +140,11 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.wishlistId == null ? 'Criar Wishlist' : 'Editar Wishlist')),
+      appBar: AppBar(
+        title: Text(
+          widget.wishlistId == null ? 'Criar Wishlist' : 'Editar Wishlist',
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _isLoading && widget.wishlistId != null
@@ -152,15 +164,16 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                               final imageFile = snapshot.data;
                               return CircleAvatar(
                                 radius: 50,
-                                backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+                                backgroundImage: imageFile != null
+                                    ? FileImage(imageFile)
+                                    : null,
                                 child: imageFile == null && !_isUploading
                                     ? const Icon(Icons.add_a_photo, size: 50)
                                     : null,
                               );
                             },
                           ),
-                          if (_isUploading)
-                            const CircularProgressIndicator(),
+                          if (_isUploading) const CircularProgressIndicator(),
                         ],
                       ),
                     ),
@@ -173,8 +186,8 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                       ),
                       validator: (value) =>
                           (value == null || value.trim().isEmpty)
-                              ? 'Insere um nome'
-                              : null,
+                          ? 'Insere um nome'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -189,12 +202,20 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
-                      onPressed: _isLoading || _isUploading ? null : _saveWishlist,
+                      onPressed: _isLoading || _isUploading
+                          ? null
+                          : _saveWishlist,
                       child: _isLoading || _isUploading
                           ? const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             )
-                          : Text(widget.wishlistId == null ? 'Criar Wishlist' : 'Guardar Alterações'),
+                          : Text(
+                              widget.wishlistId == null
+                                  ? 'Criar Wishlist'
+                                  : 'Guardar Alterações',
+                            ),
                     ),
                   ],
                 ),

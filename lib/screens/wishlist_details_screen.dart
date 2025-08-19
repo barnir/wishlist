@@ -32,7 +32,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _loadWishlistDetails() async {
     try {
-      final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId);
+      final wishlistData = await _supabaseDatabaseService.getWishlist(
+        widget.wishlistId,
+      );
       if (mounted && wishlistData != null) {
         setState(() {
           _wishlistName = wishlistData['name'] ?? 'Sem nome';
@@ -172,7 +174,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             Icon(
               Icons.add_shopping_cart_rounded,
               size: 100, // Increased size
-              color: Theme.of(context).colorScheme.primary.withAlpha(179), // More prominent color
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withAlpha(179), // More prominent color
             ),
             const SizedBox(height: 24), // Increased spacing
             Text(
@@ -233,7 +237,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                           ),
                         ),
                       );
-                    } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                    } else if (snapshot.hasError ||
+                        !snapshot.hasData ||
+                        snapshot.data == null) {
                       return Container(
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest,
@@ -259,11 +265,21 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.name, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    item.name,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   if (item.description != null && item.description!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(item.description!, style: textTheme.bodyMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        item.description!,
+                        style: textTheme.bodyMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   if (item.price != null)
                     Padding(
@@ -282,14 +298,21 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             PopupMenuButton<String>(
               onSelected: (value) async {
                 if (value == 'edit') {
-                  Navigator.pushNamed(context, '/add_edit_item', arguments: {
-                    'wishlistId': widget.wishlistId,
-                    'itemId': item.id,
-                  });
+                  Navigator.pushNamed(
+                    context,
+                    '/add_edit_item',
+                    arguments: {
+                      'wishlistId': widget.wishlistId,
+                      'itemId': item.id,
+                    },
+                  );
                 } else if (value == 'delete') {
                   _deleteItem(item.id);
-                } else if (value == 'open_link' && item.link != null && item.link!.isNotEmpty) {
-                  final uri = Uri.parse(item.link!);                  if (await canLaunchUrl(uri)) {
+                } else if (value == 'open_link' &&
+                    item.link != null &&
+                    item.link!.isNotEmpty) {
+                  final uri = Uri.parse(item.link!);
+                  if (await canLaunchUrl(uri)) {
                     launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
                 }
@@ -348,7 +371,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: _selectedCategory,
-                    decoration: const InputDecoration(labelText: 'Filtrar por Categoria'),
+                    decoration: const InputDecoration(
+                      labelText: 'Filtrar por Categoria',
+                    ),
                     hint: const Text('Todas as Categorias'),
                     items: [
                       const DropdownMenuItem<String>(
@@ -412,7 +437,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                setState(() {}); // Rebuild the main screen with the new filter/sort
+                setState(
+                  () {},
+                ); // Rebuild the main screen with the new filter/sort
               },
               child: const Text('Aplicar'),
             ),
