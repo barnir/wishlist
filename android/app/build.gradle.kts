@@ -1,4 +1,12 @@
 import org.gradle.api.JavaVersion
+import java.util.Properties
+
+// Read local properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("android/local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
 
 plugins {
     id("com.android.application")
@@ -9,7 +17,7 @@ plugins {
 
 android {
     namespace = "com.example.wishlist_app"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -24,8 +32,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.wishlist_app"
-        minSdk = 23
-        targetSdk = 35
+        minSdkVersion(localProperties.getProperty("flutter.minSdkVersion")?.toInt() ?: 23)
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }

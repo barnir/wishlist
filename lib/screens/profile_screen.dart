@@ -114,12 +114,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_bioController.text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.id;
-    await _userService
-        .updateUserProfile(userId, {'bio': _bioController.text.trim()});
-    setState(() => _isEditingBio = false);
-    if (mounted) {
-      setState(() => _isLoading = false);
+    try {
+      final userId = _authService.currentUser!.id;
+      await _userService
+          .updateUserProfile(userId, {'bio': _bioController.text.trim()});
+      if (mounted) {
+        setState(() => _isEditingBio = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao guardar biografia: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -423,46 +437,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                       const SizedBox(height: 16),
-                      // Email linking (unimplemented for Supabase)
-                      Text(user.email ?? 'Sem email'),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => const LinkEmailScreen(),
-                          ));
-                        },
-                        child: const Text('Alterar Email'),
-                      ),
-                      // Google linking (unimplemented for Supabase)
-                      ElevatedButton(
-                        onPressed: () async {
-                          try {
-                            // This method is still unimplemented in AuthService
-                            // await _authService.linkGoogle();
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text("Not implemented"),
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.error,
-                                ),
-                              );
-                            }
-                            setState(() {}); // Rebuild to update the UI
-                          } on Exception catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(e.toString()),
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.error,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: const Text('Adicionar Google'),
-                      ),
+                      if (user.email == null || user.email!.isEmpty)
+                        Column(
+                          children: [
+                            ElevatedButton(
+                              onPressed: () async {
+                                try {
+                                  // This method is still unimplemented in AuthService
+                                  // await _authService.linkGoogle();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text("Not implemented"),
+                                        backgroundColor:
+                                            Theme.of(context).colorScheme.error,
+                                      ),
+                                    );
+                                  }
+                                  setState(() {}); // Rebuild to update the UI
+                                } on Exception catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(e.toString()),
+                                        backgroundColor:
+                                            Theme.of(context).colorScheme.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: const Text('Adicionar Google'),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => const LinkEmailScreen(),
+                                ));
+                              },
+                              child: const Text('Adicionar Email'),
+                            ),
+                          ],
+                        )
+                      else
+                        Column(
+                          children: [
+                            Text(user.email!),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => const LinkEmailScreen(),
+                                ));
+                              },
+                              child: const Text('Alterar Email'),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _signOut,

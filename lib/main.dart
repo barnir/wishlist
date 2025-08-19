@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/user_service.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -17,6 +18,7 @@ import 'screens/telefone_login_screen.dart';
 import 'screens/explore_screen.dart';
 import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
+import 'screens/add_phone_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -125,26 +127,45 @@ class _MyAppState extends State<MyApp> {
           return WishlistDetailsScreen(wishlistId: wishlistId);
         },
         '/telefoneLogin': (_) => const TelefoneLoginScreen(),
+        '/add_phone': (_) => const AddPhoneScreen(),
       },
       home: StreamBuilder<User?>(
         stream: AuthService().authStateChanges,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.active) {
-            if (snapshot.hasData) {
-              if (_pendingSharedData != null) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _handleSharedMedia(_pendingSharedData!);
-                  _pendingSharedData = null;
-                });
-              }
-              return const HomeScreen();
-            } else {
-              return const LoginScreen();
-            }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          if (snapshot.hasData) {
+            // User is logged in, check for phone number
+            return FutureBuilder<Map<String, dynamic>?>(
+              future: UserService().getUserProfile(snapshot.data!.id),
+              builder: (context, profileSnapshot) {
+                if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final profile = profileSnapshot.data;
+                if (profile == null || profile['phone_number'] == null || profile['phone_number'].toString().isEmpty) {
+                  // Phone number is missing, navigate to AddPhoneScreen
+                  return const AddPhoneScreen();
+                } else {
+                  // Phone number exists, proceed to home
+                  if (_pendingSharedData != null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _handleSharedMedia(_pendingSharedData!);
+                      _pendingSharedData = null;
+                    });
+                  }
+                  return const HomeScreen();
+                }
+              },
+            );
+          } else {
+            return const LoginScreen();
+          }
         },
       ),
     );
