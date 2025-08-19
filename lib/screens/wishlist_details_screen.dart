@@ -347,7 +347,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: const InputDecoration(labelText: 'Filtrar por Categoria'),
                     hint: const Text('Todas as Categorias'),
                     items: [
@@ -376,7 +376,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<SortOptions>(
-                    value: _sortOption,
+                    initialValue: _sortOption,
                     decoration: const InputDecoration(labelText: 'Ordenar por'),
                     items: const [
                       DropdownMenuItem(

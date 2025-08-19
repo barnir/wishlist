@@ -304,7 +304,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                           children: [
                             if (_wishlists.isNotEmpty)
                               DropdownButtonFormField<String>(
-                                value: _selectedWishlistId,
+                                initialValue: _selectedWishlistId,
                                 decoration: InputDecoration(
                                   labelText: 'Escolha uma Wishlist',
                                   border: OutlineInputBorder(
@@ -409,7 +409,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<String>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       decoration: InputDecoration(
                         labelText: 'Categoria',
                         border: OutlineInputBorder(

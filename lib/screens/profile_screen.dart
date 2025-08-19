@@ -192,9 +192,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         // or manually on error.
                       }
                     : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  disabledBackgroundColor: Colors.red.withOpacity(0.5),
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                    (Set<WidgetState> states) {
+                      if (states.contains(WidgetState.disabled)) {
+                        // ignore: deprecated_member_use
+                        return Colors.red.withOpacity(0.5);
+                      }
+                      return Colors.red;
+                    },
+                  ),
                 ),
                 child: const Text('Apagar Permanentemente'),
               ),
