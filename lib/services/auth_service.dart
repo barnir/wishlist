@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart';
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/supabase_storage_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
@@ -28,8 +27,7 @@ enum GoogleSignInResult {
 class AuthService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: kIsWeb ? null : Config.googleSignInServerClientId,
-    clientId: kIsWeb ? 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com' : null, // TODO: Replace with your web client ID
+    serverClientId: Config.googleSignInServerClientId,
   );
   final SupabaseStorageService _supabaseStorageService =
       SupabaseStorageService();
@@ -110,21 +108,8 @@ class AuthService {
   }
 
   /// Initiates the Google Sign-In flow.
-  ///
-  /// On mobile platforms, it checks if the user has a phone number linked to their account.
-  /// On web, it uses OAuth with a redirect.
   Future<GoogleSignInResult> signInWithGoogle() async {
     try {
-      if (kIsWeb) {
-        // Web implementation
-        await _supabaseClient.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: 'com.example.wishlist_app://login-callback',
-        );
-        return GoogleSignInResult.success;
-      }
-
-      // Mobile implementation
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         return GoogleSignInResult.cancelled;
@@ -231,8 +216,6 @@ class AuthService {
   }
 
   /// Links a Google account to the currently signed-in user's account.
-  ///
-  /// **Note:** This is a complex operation that is not fully implemented.
   Future<void> linkGoogle() async {
     if (currentUser == null) {
       throw Exception('Nenhum usuário logado para vincular a conta do Google.');
@@ -314,16 +297,6 @@ class AuthService {
       throw Exception('Nenhum usuário logado para reautenticação.');
     }
     try {
-      if (kIsWeb) {
-        // Web implementation
-        await _supabaseClient.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: 'com.example.wishlist_app://login-callback',
-        );
-        return;
-      }
-
-      // Mobile implementation
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         throw 'A reautenticação com o Google foi cancelada.';
