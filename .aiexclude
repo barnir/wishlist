@@ -1,45 +1,52 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# Gemini AI Exclusions
+# This file tells the Gemini AI agent which files and directories to ignore.
+# It helps improve efficiency and focus on relevant source code.
 
-# IntelliJ related
+# Dependency directories
+node_modules/
+.pub-cache/
+.dart_tool/
+
+# Build artifacts
+build/
+.buildlog/
+app.*.symbols
+app.*.map.json
+
+# Git directory
+.git/
+
+# IDE and editor configurations
+.idea/
+.vscode/
 *.iml
 *.ipr
 *.iws
-.idea/
+.history
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Platform-specific wrapper projects
+# These are generally not needed for high-level Flutter logic.
+/android/
+/ios/
+/windows/
+/linux/
+/macos/
+/web/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
+# Logs and temporary files
+*.log
+*.lock
+*.class
+*.pyc
+*.swp
+.DS_Store
+
+# Flutter generated files
 .flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
+**/generated_plugin_registrant.dart
+**/ios/Flutter/.last_build_id
 
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Exceptions (re-include specific important files if needed)
+# For example, to re-include the main Android manifest:
+# !/android/app/src/main/AndroidManifest.xml

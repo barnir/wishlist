@@ -6,6 +6,7 @@ import 'package:wishlist_app/screens/link_email_screen.dart';
 import 'package:wishlist_app/screens/link_phone_screen.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -43,9 +44,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _nameController.text = userData['display_name'] ?? '';
       _bioController.text = userData['bio'] ?? ''; // New: Load biography
       _isPrivate = userData['is_private'] ?? false;
-      _phoneNumber = userData['phone_number']; // Get phone number from user profile
+      _phoneNumber =
+          userData['phone_number']; // Get phone number from user profile
     }
-    _profileImageUrl = _authService.currentUser?.userMetadata?['photoURL']; // Access from user_metadata
+    _profileImageUrl =
+        _authService.currentUser?.userMetadata?['photoURL']; // Access from user_metadata
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -78,7 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erro ao carregar imagem: ${e.toString()}'),
+              content: Text('Erro ao carregar imagem: \${e.toString()}'),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -96,8 +99,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _isLoading = true);
     final userId = _authService.currentUser!.id;
-    await _authService.updateUser(displayName: _nameController.text.trim()); // Update user metadata
-    await _userService.updateUserProfile(userId, {'display_name': _nameController.text.trim()});
+    await _authService.updateUser(
+        displayName:
+            _nameController.text.trim()); // Update user metadata
+    await _userService
+        .updateUserProfile(userId, {'display_name': _nameController.text.trim()});
     setState(() => _isEditingName = false);
     if (mounted) {
       setState(() => _isLoading = false);
@@ -109,7 +115,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _isLoading = true);
     final userId = _authService.currentUser!.id;
-    await _userService.updateUserProfile(userId, {'bio': _bioController.text.trim()});
+    await _userService
+        .updateUserProfile(userId, {'bio': _bioController.text.trim()});
     setState(() => _isEditingBio = false);
     if (mounted) {
       setState(() => _isLoading = false);
@@ -131,6 +138,116 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/login');
     }
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final confirmationController = TextEditingController();
+    bool isDeleting = false; // To manage loading state within the dialog
+
+    // Unfocus any active text fields before showing the dialog
+    FocusScope.of(context).unfocus();
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false, // Prevent dismissing while deleting
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Apagar Conta'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  const Text(
+                      'Esta ação é irreversível. Todos os seus dados serão perdidos. Para confirmar, escreva "APAGAR" na caixa abaixo.'),
+                  const SizedBox(height: 16),
+                  if (isDeleting)
+                    const Center(child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(),
+                    ))
+                  else
+                    TextField(
+                      controller: confirmationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Confirmar',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) =>
+                          setDialogState(() {}), // Rebuild to check button state
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isDeleting ? null : () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: (confirmationController.text == 'APAGAR' && !isDeleting)
+                    ? () async {
+                        setDialogState(() => isDeleting = true);
+                        await _deleteAccount();
+                        // The dialog will be closed by navigation changes in _deleteAccount if successful,
+                        // or manually on error.
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  disabledBackgroundColor: Colors.red.withOpacity(0.5),
+                ),
+                child: const Text('Apagar Permanentemente'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount() async {
+    if (!mounted) return;
+
+    try {
+      // Call the secure Edge Function
+      final response = await Supabase.instance.client.functions.invoke('delete-user');
+
+      if (response.status != 200) {
+        // If the function returns an error status, throw an exception
+        final errorData = response.data as Map<String, dynamic>?;
+        throw Exception(
+            'Falha ao apagar a conta: ${errorData?['error'] ?? 'Erro desconhecido'}');
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Conta apagada com sucesso.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Sign out and navigate to login
+      await _authService.signOut();
+      if (mounted) {
+        // Pop all routes until login screen
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      // Close the dialog if it's still open on error
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst("Exception: ", "")),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } 
+    // No finally block to change isLoading, as the screen will be disposed.
   }
 
   @override
@@ -158,7 +275,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             CircleAvatar(
                               radius: 50,
-                              backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withAlpha(26),
                               backgroundImage: _profileImageUrl != null
                                   ? CachedNetworkImageProvider(_profileImageUrl!)
                                   : null,
@@ -168,7 +288,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             if (_isUploading)
                               const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                           ],
                         ),
@@ -180,7 +301,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: _nameController,
-                                    decoration: const InputDecoration(labelText: 'Nome'),
+                                    decoration:
+                                        const InputDecoration(labelText: 'Nome'),
                                   ),
                                 ),
                                 IconButton(
@@ -189,17 +311,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.cancel),
-                                  onPressed: () => setState(() => _isEditingName = false),
+                                  onPressed: () =>
+                                      setState(() => _isEditingName = false),
                                 ),
                               ],
                             )
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(user.userMetadata?['display_name'] ?? user.email ?? 'Sem nome', style: const TextStyle(fontSize: 20)),
+                                Text(
+                                    user.userMetadata?['display_name'] ??
+                                        user.email ??
+                                        'Sem nome',
+                                    style: const TextStyle(fontSize: 20)),
                                 IconButton(
                                   icon: const Icon(Icons.edit),
-                                  onPressed: () => setState(() => _isEditingName = true),
+                                  onPressed: () =>
+                                      setState(() => _isEditingName = true),
                                 ),
                               ],
                             ),
@@ -223,7 +351,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.cancel),
-                                  onPressed: () => setState(() => _isEditingBio = false),
+                                  onPressed: () =>
+                                      setState(() => _isEditingBio = false),
                                 ),
                               ],
                             )
@@ -240,7 +369,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   alignment: Alignment.centerRight,
                                   child: IconButton(
                                     icon: const Icon(Icons.edit),
-                                    onPressed: () => setState(() => _isEditingBio = true),
+                                    onPressed: () =>
+                                        setState(() => _isEditingBio = true),
                                   ),
                                 ),
                               ],
@@ -259,7 +389,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      if (_phoneNumber == null || _phoneNumber!.isEmpty) // Check if phone number is linked
+                      if (_phoneNumber == null ||
+                          _phoneNumber!
+                              .isEmpty) // Check if phone number is linked
                         ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).push(MaterialPageRoute(
@@ -272,7 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Telemóvel: $_phoneNumber'),
+                            Text('Telemóvel: \$_phoneNumber'),
                             TextButton(
                               onPressed: () {
                                 Navigator.of(context).push(MaterialPageRoute(
@@ -303,8 +435,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(e.toString()),
-                                  backgroundColor: Theme.of(context).colorScheme.error,
+                                  content: const Text("Not implemented"),
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.error,
                                 ),
                               );
                             }
@@ -314,7 +447,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(e.toString()),
-                                  backgroundColor: Theme.of(context).colorScheme.error,
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.error,
                                 ),
                               );
                             }
@@ -331,27 +465,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _confirmDeleteAccount,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                        child: const Text('Apagar Conta', style: TextStyle(color: Colors.white)),
-                      ),
-                    ],
-                  ),
-                ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _bioController.dispose(); // Dispose bio controller
-    super.dispose();
-  }
-                      // Delete Account Button
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _confirmDeleteAccount,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                        child: const Text('Apagar Conta', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red),
+                        child: const Text('Apagar Conta',
+                            style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
