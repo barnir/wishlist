@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
 import 'package:wishlist_app/config.dart';
+import 'package:wishlist_app/services/rate_limiter.dart';
 
 /// Serviço de web scraping seguro usando Edge Function do Supabase
 /// 
@@ -12,20 +13,22 @@ import 'package:wishlist_app/config.dart';
 /// - Sanitização de dados
 /// - Proteção contra SSRF
 /// - Timeout e rate limiting
-class WebScraperServiceSecure {
+class WebScraperServiceSecure with RateLimitMixin {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
 
   /// Fazer scraping de uma URL usando a Edge Function segura
-  Future<Map<String, dynamic>> scrape(String url) async {
-    try {
-      // Primeiro tentar usar a Edge Function segura
-      final result = await _scrapeWithEdgeFunction(url);
-      return result;
-    } catch (e) {
-      // Se a Edge Function falhar, usar fallback com validação
-      print('Edge Function failed, using fallback: $e');
-      return _scrapeWithFallback(url);
-    }
+  Future<Map<String, dynamic>> scrape(String url, {String? userId}) async {
+    return withRateLimit('scrape', userId: userId, operation: () async {
+      try {
+        // Primeiro tentar usar a Edge Function segura
+        final result = await _scrapeWithEdgeFunction(url);
+        return result;
+      } catch (e) {
+        // Se a Edge Function falhar, usar fallback com validação
+        print('Edge Function failed, using fallback: $e');
+        return _scrapeWithFallback(url);
+      }
+    });
   }
 
   /// Scraping usando Edge Function segura

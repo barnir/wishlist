@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:mime/mime.dart';
-import 'package:wishlist_app/services/rate_limiter.dart';
 
 /// Serviço seguro para interagir com Supabase Storage.
 ///
@@ -14,7 +13,7 @@ import 'package:wishlist_app/services/rate_limiter.dart';
 /// - Limite de tamanho de arquivo
 /// - Sanitização de nomes de arquivo
 /// - Otimização de imagens
-class SupabaseStorageServiceSecure with RateLimitMixin {
+class SupabaseStorageServiceSecure {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
   final String _bucketName = 'wishlist-images';
 
@@ -37,8 +36,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
   };
 
   /// Upload seguro de imagem com validações completas
-  Future<String?> uploadImage(File imageFile, String path, {String? userId}) async {
-    return withRateLimit('upload', userId: userId, operation: () async {
+  Future<String?> uploadImage(File imageFile, String path) async {
     try {
       // 1. Validação de tamanho
       final fileSize = await imageFile.length();
@@ -92,7 +90,6 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
       print('Upload error: $e');
       return null;
     }
-    });
   }
 
   /// Valida magic bytes do arquivo
