@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
@@ -80,7 +81,7 @@ class WebScraperServiceSecure with RateLimitMixin {
       try {
         return await _scrapeWithScraperAPI(url);
       } catch (e) {
-        print('ScraperAPI failed: $e');
+        debugPrint('ScraperAPI failed: $e');
       }
     }
 
@@ -151,7 +152,7 @@ class WebScraperServiceSecure with RateLimitMixin {
         throw Exception('Failed to load website: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error in basic scraping: $e');
+      debugPrint('Error in basic scraping: $e');
       return {
         'title': 'Could not fetch title',
         'price': '0.00',

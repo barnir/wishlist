@@ -78,7 +78,7 @@ class SkeletonText extends StatelessWidget {
 }
 
 class SkeletonWishlistCard extends StatelessWidget {
-  const SkeletonWishlistCard({Key? key}) : super(key: key);
+  const SkeletonWishlistCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +137,7 @@ class SkeletonWishlistCard extends StatelessWidget {
 }
 
 class SkeletonWishItemCard extends StatelessWidget {
-  const SkeletonWishItemCard({Key? key}) : super(key: key);
+  const SkeletonWishItemCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -201,11 +201,11 @@ class SkeletonList extends StatelessWidget {
   final EdgeInsets? padding;
 
   const SkeletonList({
-    Key? key,
+    super.key,
     required this.itemCount,
     required this.itemBuilder,
     this.padding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

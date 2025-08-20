@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:mime/mime.dart';
@@ -123,7 +123,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
     final random = DateTime.now().microsecondsSinceEpoch % 10000;
     final extension = _getExtensionFromMimeType(mimeType);
     
-    return '${timestamp}_${random}$extension';
+    return '${timestamp}_$random$extension';
   }
 
   /// Obtém extensão do tipo MIME
@@ -190,7 +190,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
           return img.encodeJpg(image, quality: 85);
       }
     } catch (e) {
-      print('Erro na otimização: $e');
+      debugPrint('Erro na otimização: $e');
       // Retornar original se otimização falhar
       return imageBytes;
     }
@@ -263,7 +263,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
       }
       return null;
     } catch (e) {
-      print('Erro no upload de URL: $e');
+      debugPrint('Erro no upload de URL: $e');
       return null;
     }
   }
@@ -319,7 +319,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
     } on SecurityException {
       return false;
     } catch (e) {
-      print('Erro ao deletar imagem: $e');
+      debugPrint('Erro ao deletar imagem: $e');
       return false;
     }
   }
@@ -348,7 +348,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
         'bucketName': _bucketName,
       };
     } catch (e) {
-      print('Erro ao obter estatísticas: $e');
+      debugPrint('Erro ao obter estatísticas: $e');
       return {};
     }
   }

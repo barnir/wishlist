@@ -9,12 +9,12 @@ class WishlistAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBackPressed;
 
   const WishlistAppBar({
-    Key? key,
+    super.key,
     required this.title,
     this.actions,
     this.showBackButton = true,
     this.onBackPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,14 +51,14 @@ class WishlistCard extends StatelessWidget {
   final double? elevation;
 
   const WishlistCard({
-    Key? key,
+    super.key,
     required this.child,
     this.margin,
     this.padding,
     this.onTap,
     this.backgroundColor,
     this.elevation,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +88,7 @@ class WishlistButton extends StatelessWidget {
   final double height;
 
   const WishlistButton({
-    Key? key,
+    super.key,
     required this.text,
     this.onPressed,
     this.isLoading = false,
@@ -96,7 +96,7 @@ class WishlistButton extends StatelessWidget {
     this.icon,
     this.width,
     this.height = 48,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +166,7 @@ class WishlistTextField extends StatelessWidget {
   final bool enabled;
 
   const WishlistTextField({
-    Key? key,
+    super.key,
     required this.label,
     this.hint,
     this.controller,
@@ -178,7 +178,7 @@ class WishlistTextField extends StatelessWidget {
     this.maxLines = 1,
     this.maxLength,
     this.enabled = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -213,13 +213,13 @@ class WishlistEmptyState extends StatelessWidget {
   final VoidCallback? onAction;
 
   const WishlistEmptyState({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
     this.actionText,
     this.onAction,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -273,10 +273,10 @@ class WishlistLoadingIndicator extends StatelessWidget {
   final double size;
 
   const WishlistLoadingIndicator({
-    Key? key,
+    super.key,
     this.message,
     this.size = 24,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -334,13 +334,13 @@ class AnimatedLoadingButton extends StatefulWidget {
   final Color? loadingColor;
 
   const AnimatedLoadingButton({
-    Key? key,
+    super.key,
     required this.child,
     this.onPressed,
     this.isLoading = false,
     this.duration = const Duration(milliseconds: 200),
     this.loadingColor,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedLoadingButton> createState() => _AnimatedLoadingButtonState();
@@ -423,7 +423,7 @@ class AnimatedListTile extends StatefulWidget {
   final int index;
 
   const AnimatedListTile({
-    Key? key,
+    super.key,
     this.leading,
     required this.title,
     this.subtitle,
@@ -431,7 +431,7 @@ class AnimatedListTile extends StatefulWidget {
     this.onTap,
     this.duration = const Duration(milliseconds: 300),
     required this.index,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedListTile> createState() => _AnimatedListTileState();
