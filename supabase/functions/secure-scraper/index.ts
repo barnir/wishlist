@@ -1,38 +1,96 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 
-// Lista de domínios permitidos para scraping
-const ALLOWED_DOMAINS = [
+// Lista massiva de domínios confiáveis para scraping
+const TRUSTED_DOMAINS = [
+  // === MARKETPLACES GLOBAIS ===
   // Amazon (todas as regiões)
-  'amazon.com', 'amazon.pt', 'amazon.es', 'amazon.fr', 'amazon.co.uk', 'amazon.de', 'amazon.it',
+  'amazon.com', 'amazon.pt', 'amazon.es', 'amazon.fr', 'amazon.co.uk', 
+  'amazon.de', 'amazon.it', 'amazon.ca', 'amazon.com.br', 'amazon.in',
+  'amazon.com.mx', 'amazon.co.jp', 'amazon.com.au', 'amazon.sg',
   // eBay (todas as regiões)
-  'ebay.com', 'ebay.pt', 'ebay.es', 'ebay.fr', 'ebay.co.uk', 'ebay.de', 'ebay.it',
-  // Plataformas internacionais populares
-  'aliexpress.com', 'aliexpress.us', 'pt.aliexpress.com',
-  'shein.com', 'pt.shein.com', 'es.shein.com', 'fr.shein.com',
-  'wish.com', 'pt.wish.com',
-  'temu.com', 'pt.temu.com',
-  'banggood.com', 'pt.banggood.com',
-  'gearbest.com',
-  'dhgate.com',
-  // Lojas portuguesas/espanholas
-  'mercadolivre.pt', 'mercadolivre.com.br',
-  'fnac.pt', 'fnac.com', 'fnac.es', 'fnac.fr',
-  'worten.pt', 'worten.es',
-  'pcdiga.pt',
-  'globaldata.pt',
-  'novoatalho.pt',
-  'continente.pt',
-  'elcorteingles.pt', 'elcorteingles.es',
-  'mediamarkt.pt', 'mediamarkt.es',
-  'radiopopular.pt',
-  'kuantokusta.pt',
-  // Outras lojas populares
-  'zalando.pt', 'zalando.es', 'zalando.fr',
-  'hm.com', 'zara.com',
-  'nike.com', 'adidas.com', 'adidas.pt',
-  'booking.com', 'hotels.com',
-  'leroy.pt', 'leroymerlin.es'
+  'ebay.com', 'ebay.pt', 'ebay.es', 'ebay.fr', 'ebay.co.uk', 
+  'ebay.de', 'ebay.it', 'ebay.ca', 'ebay.com.au', 'ebay.in',
+  // AliExpress
+  'aliexpress.com', 'aliexpress.us', 'pt.aliexpress.com', 'es.aliexpress.com',
+  'fr.aliexpress.com', 'de.aliexpress.com', 'it.aliexpress.com',
+  // Outros marketplaces asiáticos
+  'shein.com', 'pt.shein.com', 'es.shein.com', 'fr.shein.com', 'de.shein.com',
+  'wish.com', 'pt.wish.com', 'es.wish.com',
+  'temu.com', 'pt.temu.com', 'es.temu.com',
+  'banggood.com', 'pt.banggood.com', 'es.banggood.com',
+  'gearbest.com', 'dhgate.com', 'lightinthebox.com',
+  
+  // === LOJAS PORTUGUESAS ===
+  'fnac.pt', 'worten.pt', 'pcdiga.pt', 'globaldata.pt', 'novoatalho.pt',
+  'continente.pt', 'radiopopular.pt', 'kuantokusta.pt', 'chupamobile.pt',
+  'bertrand.pt', 'staples.pt', 'ikea.com', 'leroy.pt',
+  'celeiro.pt', 'prozis.com', 'mango.com', 'parfois.com',
+  
+  // === LOJAS ESPANHOLAS ===
+  'elcorteingles.es', 'mediamarkt.es', 'worten.es', 'fnac.es',
+  'carrefour.es', 'alcampo.es', 'leroymerlin.es', 'pccomponentes.com',
+  
+  // === MODA INTERNACIONAL ===
+  'zara.com', 'hm.com', 'uniqlo.com', 'gap.com', 'forever21.com',
+  'asos.com', 'boohoo.com', 'prettylittlething.com', 'missguided.com',
+  'zalando.pt', 'zalando.es', 'zalando.fr', 'zalando.de', 'zalando.it',
+  'aboutyou.pt', 'aboutyou.es', 'aboutyou.fr', 'aboutyou.de',
+  
+  // === DESPORTO ===
+  'nike.com', 'adidas.com', 'adidas.pt', 'puma.com', 'reebok.com',
+  'underarmour.com', 'newbalance.com', 'asics.com', 'vans.com',
+  'converse.com', 'timberland.com', 'sportzone.pt', 'intersport.pt',
+  
+  // === ELETRÔNICOS ===
+  'apple.com', 'samsung.com', 'sony.com', 'lg.com', 'philips.com',
+  'asus.com', 'hp.com', 'dell.com', 'lenovo.com', 'acer.com',
+  'bestbuy.com', 'newegg.com', 'bhphotovideo.com',
+  
+  // === CASA E JARDIM ===
+  'ikea.com', 'homedepot.com', 'lowes.com', 'wayfair.com',
+  'overstock.com', 'bedbathandbeyond.com', 'williams-sonoma.com',
+  
+  // === LIVROS ===
+  'bookdepository.com', 'waterstones.com', 'barnesandnoble.com',
+  'thriftbooks.com', 'abebooks.com', 'bertrand.pt',
+  
+  // === BELEZA ===
+  'sephora.com', 'ulta.com', 'beautylish.com', 'lookfantastic.com',
+  'feelunique.com', 'strawberrynet.com', 'douglas.pt', 'douglas.es',
+  
+  // === VIAGENS ===
+  'booking.com', 'expedia.com', 'hotels.com', 'trivago.com',
+  'airbnb.com', 'vrbo.com', 'momondo.com', 'kayak.com',
+  
+  // === MERCADO LIVRE ===
+  'mercadolivre.pt', 'mercadolivre.com.br', 'mercadolibre.com.ar',
+  'mercadolibre.com.mx', 'mercadolibre.cl', 'mercadolibre.com.co',
+  
+  // === OUTROS EUROPEUS ===
+  'bol.com', 'coolblue.nl', 'otto.de', 'alternate.de',
+  'conforama.fr', 'darty.fr', 'cdiscount.fr', 'rue-du-commerce.com',
+  'pixmania.com', 'grosbill.com', 'ldlc.com'
+];
+
+// Padrões suspeitos que devemos sempre bloquear
+const SUSPICIOUS_PATTERNS = [
+  'localhost', '127.0.0.1', '0.0.0.0', '192.168.',
+  'file://', 'data:', 'javascript:', 'vbscript:',
+  '.onion', 'bit.ly', 'tinyurl', 'ow.ly', 't.co'
+];
+
+// Indicadores de sites de e-commerce legítimos
+const ECOMMERCE_INDICATORS = [
+  'shop', 'store', 'loja', 'tienda', 'boutique', 'market',
+  'buy', 'sell', 'commerce', 'retail', 'outlet',
+  'fashion', 'clothing', 'electronics', 'books', 'games'
+];
+
+// TLD confiáveis para e-commerce
+const TRUSTED_TLDS = [
+  '.com', '.pt', '.es', '.fr', '.de', '.it', '.co.uk',
+  '.net', '.org', '.eu', '.shop', '.store'
 ];
 
 // User-Agent para parecer um browser real
@@ -107,15 +165,25 @@ function validateAndNormalizeUrl(url: string): string {
     }
     
     const urlObj = new URL(normalizedUrl);
-    
-    // Verificar se o domínio está na lista de permitidos
     const hostname = urlObj.hostname.toLowerCase();
-    const isAllowed = ALLOWED_DOMAINS.some(domain => 
+    
+    // Verificar padrões suspeitos primeiro
+    const isSuspicious = SUSPICIOUS_PATTERNS.some(pattern => 
+      hostname.includes(pattern)
+    );
+    
+    if (isSuspicious) {
+      throw new Error(`Domínio suspeito bloqueado: ${hostname}`);
+    }
+    
+    // Verificar se é domínio confiável
+    const isTrusted = TRUSTED_DOMAINS.some(domain => 
       hostname === domain || hostname.endsWith('.' + domain)
     );
     
-    if (!isAllowed) {
-      throw new Error(`Domínio não permitido: ${hostname}. Domínios permitidos: ${ALLOWED_DOMAINS.join(', ')}`);
+    // Se não for confiável, usar validação inteligente
+    if (!isTrusted && !isValidEcommerceDomain(hostname)) {
+      throw new Error(`Domínio não suportado: ${hostname}. Para segurança, apenas lojas verificadas ou com indicadores de e-commerce são permitidas.`);
     }
     
     // Verificar protocolo HTTPS (mais seguro)
@@ -131,6 +199,19 @@ function validateAndNormalizeUrl(url: string): string {
     }
     throw error;
   }
+}
+
+function isValidEcommerceDomain(hostname: string): boolean {
+  // Verificar se contém indicadores de e-commerce
+  const hasEcommerceIndicator = ECOMMERCE_INDICATORS.some(indicator => 
+    hostname.includes(indicator)
+  );
+  
+  // Verificar se tem TLD confiável
+  const hasTrustedTld = TRUSTED_TLDS.some(tld => hostname.endsWith(tld));
+  
+  // Permitir se tem indicador de e-commerce E TLD confiável
+  return hasEcommerceIndicator && hasTrustedTld;
 }
 
 async function scrapeWithSanitization(url: string): Promise<ScrapedData> {

@@ -64,29 +64,48 @@ class WebScraperServiceSecure with RateLimitMixin {
     }
   }
 
-  /// Fallback para scraping básico com validação de domínios
+  /// Fallback para scraping básico com validação inteligente
   Future<Map<String, dynamic>> _scrapeWithFallback(String url) async {
+    final uri = Uri.parse(url);
+    final hostname = uri.host.toLowerCase();
+    final isTrusted = _isTrustedDomain(hostname);
+    
     // Validar domínio antes de fazer scraping
     if (!_isAllowedDomain(url)) {
       return {
-        'title': 'Domínio não permitido',
+        'title': 'Domínio não suportado: $hostname',
         'price': '0.00', 
         'image': '',
-        'error': 'Domain not allowed for scraping'
+        'error': 'Domain not supported for secure scraping',
+        'warning': 'Este domínio não está na nossa lista de lojas verificadas'
       };
     }
-
+    
+    // Variável para armazenar resultado
+    Map<String, dynamic> result = {};
+    
     // Se ScraperAPI estiver configurado, usar como fallback
     if (Config.scraperApiKey.isNotEmpty) {
       try {
-        return await _scrapeWithScraperAPI(url);
+        result = await _scrapeWithScraperAPI(url);
       } catch (e) {
         debugPrint('ScraperAPI failed: $e');
+        result = await _basicScrape(url);
       }
+    } else {
+      // Último recurso: scraping básico
+      result = await _basicScrape(url);
     }
-
-    // Último recurso: scraping básico
-    return await _basicScrape(url);
+    
+    // Adicionar aviso se não for domínio totalmente confiável
+    if (!isTrusted) {
+      result['warning'] = 'Loja não verificada - dados podem não estar completos';
+      result['domain_status'] = 'unverified';
+    } else {
+      result['domain_status'] = 'verified';
+    }
+    
+    return result;
   }
 
   /// Scraping usando ScraperAPI (fallback)
