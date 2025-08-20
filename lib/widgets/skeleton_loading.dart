@@ -7,11 +7,11 @@ class SkeletonLoading extends StatelessWidget {
   final Color? highlightColor;
 
   const SkeletonLoading({
-    Key? key,
+    super.key,
     required this.child,
     this.baseColor,
     this.highlightColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +29,11 @@ class SkeletonCard extends StatelessWidget {
   final BorderRadius? borderRadius;
 
   const SkeletonCard({
-    Key? key,
+    super.key,
     this.width,
     this.height,
     this.borderRadius,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +56,11 @@ class SkeletonText extends StatelessWidget {
   final BorderRadius? borderRadius;
 
   const SkeletonText({
-    Key? key,
+    super.key,
     this.width,
     this.height = 16,
     this.borderRadius,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +90,7 @@ class SkeletonWishlistCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -147,7 +147,7 @@ class SkeletonWishItemCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [

@@ -14,7 +14,7 @@ class LazyImage extends StatelessWidget {
   final Duration fadeOutDuration;
 
   const LazyImage({
-    Key? key,
+    super.key,
     required this.imageUrl,
     this.width,
     this.height,
@@ -24,7 +24,7 @@ class LazyImage extends StatelessWidget {
     this.errorWidget,
     this.fadeInDuration = const Duration(milliseconds: 300),
     this.fadeOutDuration = const Duration(milliseconds: 300),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -108,14 +108,14 @@ class LazyImageWithSkeleton extends StatelessWidget {
   final Widget? errorWidget;
 
   const LazyImageWithSkeleton({
-    Key? key,
+    super.key,
     required this.imageUrl,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.errorWidget,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

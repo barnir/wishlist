@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/error_service.dart';
 
@@ -450,7 +451,7 @@ class CacheService {
       }
 
       if (cleanedEntries > 0) {
-        print('Cache cleanup: removed $cleanedEntries expired entries');
+        debugPrint('Cache cleanup: removed $cleanedEntries expired entries');
       }
     } catch (e) {
       ErrorService.logError('cleanup_expired_cache', e, StackTrace.current);

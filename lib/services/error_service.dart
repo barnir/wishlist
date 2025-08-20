@@ -112,7 +112,7 @@ class ErrorService {
   static void logError(String context, dynamic error, StackTrace? stackTrace) {
     final category = getErrorCategory(error);
     // Log error with timestamp for debugging
-    print('[$category] $context: $error at ${DateTime.now().toIso8601String()}');
+    debugPrint('[$category] $context: $error at ${DateTime.now().toIso8601String()}');
     
     // Log entry for debugging (commented out to avoid unused variable warning)
     // final logEntry = {
@@ -125,10 +125,10 @@ class ErrorService {
 
     // Log estruturado para debugging
     if (kDebugMode) {
-      print('🚨 ERROR [$category] in $context:');
-      print('   Error: ${error.toString()}');
+      debugPrint('🚨 ERROR [$category] in $context:');
+      debugPrint('   Error: ${error.toString()}');
       if (stackTrace != null) {
-        print('   StackTrace: ${stackTrace.toString()}');
+        debugPrint('   StackTrace: ${stackTrace.toString()}');
       }
     }
 
@@ -248,7 +248,7 @@ class ErrorService {
     
     // Storage pode ser recuperável
     if (category == _storageError && error is StorageException) {
-      return ![413, 415].contains(error.statusCode); // Arquivo muito grande ou tipo inválido
+      return !['413', '415'].contains(error.statusCode); // Arquivo muito grande ou tipo inválido
     }
     
     return false;

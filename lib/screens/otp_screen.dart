@@ -27,7 +27,7 @@ class _OTPScreenState extends State<OTPScreen> {
       await SmsAutoFill().listenForCode();
     } catch (e) {
       // Handle any errors with SMS auto-fill
-      print('Error setting up SMS auto-fill: $e');
+      debugPrint('Error setting up SMS auto-fill: $e');
     }
   }
 
@@ -93,7 +93,7 @@ class _OTPScreenState extends State<OTPScreen> {
                 setState(() {
                   _otpCode = code ?? '';
                 });
-                if (code != null && code.length == 6) {
+                if (code != null && code.isNotEmpty && code.length == 6) {
                   // Automatically submit when the code is filled
                   _submitOTP(code);
                 }

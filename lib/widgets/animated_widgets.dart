@@ -7,12 +7,12 @@ class AnimatedFadeIn extends StatefulWidget {
   final bool show;
 
   const AnimatedFadeIn({
-    Key? key,
+    super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 300),
     this.curve = Curves.easeInOut,
     this.show = true,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedFadeIn> createState() => _AnimatedFadeInState();
@@ -79,14 +79,14 @@ class AnimatedSlideIn extends StatefulWidget {
   final bool show;
 
   const AnimatedSlideIn({
-    Key? key,
+    super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 300),
     this.curve = Curves.easeInOut,
     this.begin = const Offset(0, 0.3),
     this.end = Offset.zero,
     this.show = true,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedSlideIn> createState() => _AnimatedSlideInState();
@@ -153,14 +153,14 @@ class AnimatedScale extends StatefulWidget {
   final bool show;
 
   const AnimatedScale({
-    Key? key,
+    super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 300),
     this.curve = Curves.easeInOut,
     this.begin = 0.8,
     this.end = 1.0,
     this.show = true,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedScale> createState() => _AnimatedScaleState();
@@ -227,14 +227,14 @@ class AnimatedCard extends StatefulWidget {
   final Decoration? decoration;
 
   const AnimatedCard({
-    Key? key,
+    super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 400),
     this.curve = Curves.easeInOut,
     this.show = true,
     this.padding,
     this.decoration,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedCard> createState() => _AnimatedCardState();

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:mime/mime.dart';
@@ -20,8 +19,8 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
   final String _bucketName = 'wishlist-images';
 
   // Configurações de segurança
-  static const int MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  static const List<String> ALLOWED_MIME_TYPES = [
+  static const int maxFileSize = 5 * 1024 * 1024; // 5MB
+  static const List<String> allowedMimeTypes = [
     'image/jpeg',
     'image/jpg',
     'image/png',
@@ -30,7 +29,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
   ];
   
   // Magic bytes para validação de arquivos
-  static const Map<String, List<int>> MAGIC_BYTES = {
+  static const Map<String, List<int>> magicBytes = {
     'image/jpeg': [0xFF, 0xD8, 0xFF],
     'image/png': [0x89, 0x50, 0x4E, 0x47],
     'image/webp': [0x52, 0x49, 0x46, 0x46],
@@ -43,14 +42,14 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
     try {
       // 1. Validação de tamanho
       final fileSize = await imageFile.length();
-      if (fileSize > MAX_FILE_SIZE) {
-        throw SecurityException('Arquivo muito grande. Máximo: ${MAX_FILE_SIZE ~/ (1024 * 1024)}MB');
+      if (fileSize > maxFileSize) {
+        throw SecurityException('Arquivo muito grande. Máximo: ${maxFileSize ~/ (1024 * 1024)}MB');
       }
 
       // 2. Validação de tipo MIME
       final mimeType = lookupMimeType(imageFile.path);
-      if (mimeType == null || !ALLOWED_MIME_TYPES.contains(mimeType)) {
-        throw SecurityException('Tipo de arquivo não permitido. Tipos permitidos: ${ALLOWED_MIME_TYPES.join(', ')}');
+      if (mimeType == null || !allowedMimeTypes.contains(mimeType)) {
+        throw SecurityException('Tipo de arquivo não permitido. Tipos permitidos: ${allowedMimeTypes.join(', ')}');
       }
 
       // 3. Validação de magic bytes
@@ -98,7 +97,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
 
   /// Valida magic bytes do arquivo
   bool _validateMagicBytes(Uint8List bytes, String mimeType) {
-    final expectedMagicBytes = MAGIC_BYTES[mimeType];
+    final expectedMagicBytes = magicBytes[mimeType];
     if (expectedMagicBytes == null) return false;
     
     if (bytes.length < expectedMagicBytes.length) return false;
@@ -226,13 +225,13 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
       final bytes = await _consolidateHttpClientResponseBytes(response);
       
       // Validar tamanho
-      if (bytes.length > MAX_FILE_SIZE) {
+      if (bytes.length > maxFileSize) {
         throw SecurityException('Imagem muito grande');
       }
 
       // Detectar tipo MIME
       final mimeType = _detectMimeTypeFromBytes(bytes);
-      if (mimeType == null || !ALLOWED_MIME_TYPES.contains(mimeType)) {
+      if (mimeType == null || !allowedMimeTypes.contains(mimeType)) {
         throw SecurityException('Tipo de imagem não permitido');
       }
 
@@ -283,7 +282,7 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
     if (bytes.length < 4) return null;
     
     // Verificar magic bytes para cada tipo
-    for (final entry in MAGIC_BYTES.entries) {
+    for (final entry in magicBytes.entries) {
       if (_validateMagicBytes(bytes, entry.key)) {
         return entry.key;
       }
