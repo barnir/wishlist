@@ -13,8 +13,9 @@ class RateLimiter {
   static final Map<String, Queue<DateTime>> _requestCache = {};
   
   // Configurações padrão
-  static const int _defaultMaxRequests = 10;
-  static const Duration _defaultWindow = Duration(minutes: 1);
+  // Configurações padrão (não usadas diretamente, mas mantidas para referência)
+  // static const int _defaultMaxRequests = 10;
+  // static const Duration _defaultWindow = Duration(minutes: 1);
   
   // Configurações específicas por endpoint
   static const Map<String, RateLimitConfig> _endpointConfigs = {
@@ -60,7 +61,7 @@ class RateLimiter {
       
       if (requests.isNotEmpty) {
         final oldestRequest = requests.first;
-        final config = _getConfig(endpoint);
+        // final config = _getConfig(endpoint);
         final nextAvailable = oldestRequest.add(config.window);
         final waitTime = nextAvailable.difference(DateTime.now());
         

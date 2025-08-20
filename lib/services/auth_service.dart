@@ -3,7 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:wishlist_app/config.dart';
-import 'package:wishlist_app/services/supabase_storage_service.dart';
+import 'package:wishlist_app/services/supabase_storage_service_secure.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
 enum GoogleSignInResult {
@@ -18,7 +18,7 @@ class AuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     serverClientId: Config.googleSignInServerClientId,
   );
-  final SupabaseStorageService _supabaseStorageService = SupabaseStorageService();
+  final SupabaseStorageServiceSecure _supabaseStorageService = SupabaseStorageServiceSecure();
   final UserService _userService = UserService();
 
   Stream<User?> get authStateChanges => _supabaseClient.auth.onAuthStateChange.map((data) => data.session?.user);

@@ -5,6 +5,7 @@ import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/services/rate_limiter.dart';
+import 'package:wishlist_app/services/error_service.dart';
 
 /// Serviço de web scraping seguro usando Edge Function do Supabase
 /// 
@@ -23,11 +24,11 @@ class WebScraperServiceSecure with RateLimitMixin {
         // Primeiro tentar usar a Edge Function segura
         final result = await _scrapeWithEdgeFunction(url);
         return result;
-      } catch (e) {
-        // Se a Edge Function falhar, usar fallback com validação
-        print('Edge Function failed, using fallback: $e');
-        return _scrapeWithFallback(url);
-      }
+          } catch (e) {
+      // Se a Edge Function falhar, usar fallback com validação
+      ErrorService.logError('web_scraping_edge_function', e, StackTrace.current);
+      return _scrapeWithFallback(url);
+    }
     });
   }
 

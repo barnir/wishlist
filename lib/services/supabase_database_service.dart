@@ -1,55 +1,61 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:wishlist_app/services/supabase_storage_service.dart';
+import 'package:wishlist_app/services/error_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
+import 'package:wishlist_app/services/supabase_storage_service.dart';
 
-/// Service for interacting with the Supabase database.
-///
-/// This service provides methods for performing CRUD operations on wishlists and wish items,
-/// as well as fetching public data.
+/// Serviço otimizado para operações de banco de dados
+/// Implementa queries eficientes com JOINs e paginação
 class SupabaseDatabaseService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
-  final _supabaseStorageService = SupabaseStorageService();
+  final _supabaseStorageService = SupabaseStorageServiceSecure();
 
-  // Wishlists operations
+  // =====================================================
+  // MÉTODOS LEGACY - COMPATIBILIDADE COM CÓDIGO EXISTENTE
+  // =====================================================
 
-  /// Retrieves a stream of wishlists for the given user.
+  /// Busca wishlists do usuário (método legacy)
   Stream<List<Map<String, dynamic>>> getWishlists(String userId) {
-    return _supabaseClient
-        .from('wishlists')
-        .stream(primaryKey: ['id'])
-        .eq('owner_id', userId)
-        .order('created_at', ascending: false);
+    return getWishlistsWithCounts(userId);
   }
 
-  /// Retrieves a list of wishlists for the current user.
+  /// Busca wishlists para usuário atual (método legacy)
   Future<List<Map<String, dynamic>>> getWishlistsForCurrentUser() async {
     final userId = _supabaseClient.auth.currentUser?.id;
     if (userId == null) {
       return [];
     }
-    final response = await _supabaseClient
-        .from('wishlists')
-        .select('id, name')
-        .eq('owner_id', userId)
-        .order('created_at', ascending: false);
-    return List<Map<String, dynamic>>.from(response as List);
+    
+    try {
+      final response = await _supabaseClient
+          .from('wishlists')
+          .select('id, name')
+          .eq('owner_id', userId)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      ErrorService.logError('get_wishlists_for_current_user', e, StackTrace.current);
+      return [];
+    }
   }
 
-  /// Retrieves a single wishlist by its ID.
+  /// Busca wishlist específica (método legacy)
   Future<Map<String, dynamic>?> getWishlist(String wishlistId) async {
-    final response = await _supabaseClient
-        .from('wishlists')
-        .select()
-        .eq('id', wishlistId)
-        .single();
-    return response;
+    try {
+      final response = await _supabaseClient
+          .from('wishlists')
+          .select()
+          .eq('id', wishlistId)
+          .single();
+      return response;
+    } catch (e) {
+      ErrorService.logError('get_wishlist', e, StackTrace.current);
+      return null;
+    }
   }
 
-  /// Saves a wishlist to the database.
-  ///
-  /// If [wishlistId] is provided, the existing wishlist will be updated.
-  /// Otherwise, a new wishlist will be created.
+  /// Salva wishlist (método legacy)
   Future<Map<String, dynamic>?> saveWishlist({
     required String name,
     required bool isPrivate,
@@ -96,55 +102,25 @@ class SupabaseDatabaseService {
     }
   }
 
-  /// Deletes a wishlist from the database.
+  /// Deleta wishlist (método legacy)
   Future<void> deleteWishlist(String wishlistId) async {
-    await _supabaseClient.from('wishlists').delete().eq('id', wishlistId);
+    try {
+      await _supabaseClient.from('wishlists').delete().eq('id', wishlistId);
+    } catch (e) {
+      ErrorService.logError('delete_wishlist', e, StackTrace.current);
+    }
   }
 
-  // Wish items operations
-
-  /// Retrieves a stream of wish items for the given wishlist.
-  ///
-  /// The stream can be filtered by [category] and sorted by [sortOption].
+  /// Busca wish items (método legacy)
   Stream<List<Map<String, dynamic>>> getWishItems(
     String wishlistId, {
     String? category,
     SortOptions? sortOption,
   }) {
-    dynamic query = _supabaseClient
-        .from('wish_items')
-        .select()
-        .eq('wishlist_id', wishlistId);
-
-    if (category != null) {
-      query = query.eq('category', category);
-    }
-
-    if (sortOption != null) {
-      switch (sortOption) {
-        case SortOptions.priceAsc:
-          query = query.order('price', ascending: true);
-          break;
-        case SortOptions.priceDesc:
-          query = query.order('price', ascending: false);
-          break;
-        case SortOptions.nameAsc:
-          query = query.order('name', ascending: true);
-          break;
-        case SortOptions.nameDesc:
-          query = query.order('name', ascending: false);
-          break;
-      }
-    } else {
-      query = query.order('created_at', ascending: false);
-    }
-
-    return query.asStream().map(
-      (data) => List<Map<String, dynamic>>.from(data),
-    );
+    return getWishItemsPaginated(wishlistId, category: category, sortOption: sortOption);
   }
 
-  /// Retrieves a single wish item by its ID.
+  /// Busca wish item específico (método legacy)
   Future<Map<String, dynamic>?> getWishItem(
     String wishlistId, {
     String? itemId,
@@ -159,15 +135,12 @@ class SupabaseDatabaseService {
           .single();
       return response;
     } catch (e) {
-      // Handle case where item might not exist or other errors
+      ErrorService.logError('get_wish_item', e, StackTrace.current);
       return null;
     }
   }
 
-  /// Saves a wish item to the database.
-  ///
-  /// If [itemId] is provided, the existing item will be updated.
-  /// Otherwise, a new item will be created.
+  /// Salva wish item (método legacy)
   Future<void> saveWishItem({
     required String wishlistId,
     required String name,
@@ -208,23 +181,20 @@ class SupabaseDatabaseService {
     }
   }
 
-  /// Deletes a wish item from the database.
+  /// Deleta wish item (método legacy)
   Future<void> deleteWishItem(String wishlistId, String itemId) async {
-    await _supabaseClient.from('wish_items').delete().eq('id', itemId);
+    try {
+      await _supabaseClient.from('wish_items').delete().eq('id', itemId);
+    } catch (e) {
+      ErrorService.logError('delete_wish_item', e, StackTrace.current);
+    }
   }
 
-  // Public data operations
-
-  /// Retrieves a stream of public users.
-  ///
-  /// The stream can be filtered by [searchTerm].
-  Stream<List<Map<String, dynamic>>> getPublicUsers({String? searchTerm}) {
+  /// Busca usuários públicos (método legacy)
+  Stream<List<Map<String, dynamic>>> getPublicUsersLegacy({String? searchTerm}) {
     var query = _supabaseClient.from('users').select().eq('is_private', false);
 
     if (searchTerm != null && searchTerm.isNotEmpty) {
-      // Supabase text search is more advanced, but for simple startsWith/endsWith
-      // you might use `ilike` or `like` with wildcards, or FTS.
-      // For now, a basic filter:
       query = query.ilike('display_name', '$searchTerm%');
     }
 
@@ -234,10 +204,8 @@ class SupabaseDatabaseService {
         .map((data) => List<Map<String, dynamic>>.from(data));
   }
 
-  /// Retrieves a stream of public wishlists.
-  ///
-  /// The stream can be filtered by [searchTerm].
-  Stream<List<Map<String, dynamic>>> getPublicWishlists({String? searchTerm}) {
+  /// Busca wishlists públicas (método legacy)
+  Stream<List<Map<String, dynamic>>> getPublicWishlistsLegacy({String? searchTerm}) {
     var query = _supabaseClient
         .from('wishlists')
         .select()
@@ -252,4 +220,503 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data));
   }
+
+  // =====================================================
+  // 1. QUERIES OTIMIZADAS PARA WISHLISTS
+  // =====================================================
+
+  /// Busca wishlists do usuário com contagem de items em uma query
+  Stream<List<Map<String, dynamic>>> getWishlistsWithCounts(String userId) {
+    return _supabaseClient
+        .from('wishlists')
+        .select('''
+          *,
+          wish_items(count)
+        ''')
+        .eq('owner_id', userId)
+        .order('created_at', ascending: false)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data))
+        .handleError((e) {
+          ErrorService.logError('get_wishlists_with_counts', e, StackTrace.current);
+          return <Map<String, dynamic>>[];
+        });
+  }
+
+  /// Busca wishlist específica com todos os items em uma query
+  Future<Map<String, dynamic>?> getWishlistWithItems(String wishlistId) async {
+    try {
+      final response = await _supabaseClient
+          .from('wishlists')
+          .select('''
+            *,
+            wish_items(*)
+          ''')
+          .eq('id', wishlistId)
+          .single();
+      
+      return response;
+    } catch (e) {
+      ErrorService.logError('get_wishlist_with_items', e, StackTrace.current);
+      return null;
+    }
+  }
+
+  /// Busca wishlists públicas com informações do usuário
+  Stream<List<Map<String, dynamic>>> getPublicWishlists({int limit = 20}) {
+    return _supabaseClient
+        .from('wishlists')
+        .select('''
+          *,
+          users!wishlists_owner_id_fkey(
+            id,
+            display_name,
+            photo_url,
+            is_private
+          ),
+          wish_items(count)
+        ''')
+        .eq('is_private', false)
+        .order('created_at', ascending: false)
+        .limit(limit)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data))
+        .handleError((e) {
+          ErrorService.logError('get_public_wishlists', e, StackTrace.current);
+          return <Map<String, dynamic>>[];
+        });
+  }
+
+  // =====================================================
+  // 2. QUERIES OTIMIZADAS PARA WISH_ITEMS
+  // =====================================================
+
+  /// Busca items com paginação e filtros otimizados
+  Stream<List<Map<String, dynamic>>> getWishItemsPaginated(
+    String wishlistId, {
+    int page = 0,
+    int limit = 20,
+    String? category,
+    SortOptions? sortOption,
+  }) {
+    try {
+      dynamic query = _supabaseClient
+          .from('wish_items')
+          .select()
+          .eq('wishlist_id', wishlistId);
+
+      // Aplicar filtros
+      if (category != null && category.isNotEmpty) {
+        query = query.eq('category', category);
+      }
+
+      // Aplicar ordenação
+      query = _applySortOption(query, sortOption);
+
+      // Aplicar paginação
+      query = query.range(page * limit, (page + 1) * limit - 1);
+
+      return query
+          .asStream()
+          .map((data) => List<Map<String, dynamic>>.from(data))
+          .handleError((e) {
+            ErrorService.logError('get_wish_items_paginated', e, StackTrace.current);
+            return <Map<String, dynamic>>[];
+          });
+    } catch (e) {
+      ErrorService.logError('get_wish_items_paginated', e, StackTrace.current);
+      return Stream.value(<Map<String, dynamic>>[]);
+    }
+  }
+
+  /// Busca items por categoria com estatísticas
+  Future<Map<String, dynamic>> getItemsByCategory(String wishlistId) async {
+    try {
+      final response = await _supabaseClient
+          .from('wish_items')
+          .select('category, price')
+          .eq('wishlist_id', wishlistId);
+
+      // Processar estatísticas
+      final Map<String, List<double>> categoryPrices = {};
+      double totalValue = 0;
+
+      for (final item in response) {
+        final category = item['category'] as String;
+        final price = (item['price'] as num?)?.toDouble() ?? 0;
+
+        categoryPrices.putIfAbsent(category, () => []).add(price);
+        totalValue += price;
+      }
+
+      // Calcular estatísticas por categoria
+      final Map<String, Map<String, dynamic>> categoryStats = {};
+      categoryPrices.forEach((category, prices) {
+        final avgPrice = prices.isNotEmpty ? prices.reduce((a, b) => a + b) / prices.length : 0;
+        final minPrice = prices.isNotEmpty ? prices.reduce((a, b) => a < b ? a : b) : 0;
+        final maxPrice = prices.isNotEmpty ? prices.reduce((a, b) => a > b ? a : b) : 0;
+
+        categoryStats[category] = {
+          'count': prices.length,
+          'avg_price': avgPrice,
+          'min_price': minPrice,
+          'max_price': maxPrice,
+          'total_value': prices.reduce((a, b) => a + b),
+        };
+      });
+
+      return {
+        'categories': categoryStats,
+        'total_items': response.length,
+        'total_value': totalValue,
+      };
+    } catch (e) {
+      ErrorService.logError('get_items_by_category', e, StackTrace.current);
+      return {};
+    }
+  }
+
+  // =====================================================
+  // 3. QUERIES OTIMIZADAS PARA USERS
+  // =====================================================
+
+  /// Busca usuários públicos com estatísticas
+  Stream<List<Map<String, dynamic>>> getPublicUsers({int limit = 20}) {
+    return _supabaseClient
+        .from('users')
+        .select('''
+          id,
+          display_name,
+          photo_url,
+          created_at,
+          wishlists(count)
+        ''')
+        .eq('is_private', false)
+        .order('created_at', ascending: false)
+        .limit(limit)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data))
+        .handleError((e) {
+          ErrorService.logError('get_public_users', e, StackTrace.current);
+          return <Map<String, dynamic>>[];
+        });
+  }
+
+  /// Busca perfil do usuário com estatísticas completas
+  Future<Map<String, dynamic>?> getUserProfileWithStats(String userId) async {
+    try {
+      final response = await _supabaseClient
+          .from('users')
+          .select('''
+            *,
+            wishlists(count),
+            wishlists!wishlists_owner_id_fkey(
+              id,
+              name,
+              is_private,
+              created_at,
+              wish_items(count)
+            )
+          ''')
+          .eq('id', userId)
+          .single();
+
+      // Calcular estatísticas
+      final wishlists = List<Map<String, dynamic>>.from(response['wishlists'] ?? []);
+      final totalWishlists = wishlists.length;
+      final publicWishlists = wishlists.where((w) => w['is_private'] == false).length;
+      int totalItems = 0;
+      for (final w in wishlists) {
+        totalItems += (w['wish_items']?[0]?['count'] as int?) ?? 0;
+      }
+
+      response['stats'] = {
+        'total_wishlists': totalWishlists,
+        'public_wishlists': publicWishlists,
+        'private_wishlists': totalWishlists - publicWishlists,
+        'total_items': totalItems,
+      };
+
+      return response;
+    } catch (e) {
+      ErrorService.logError('get_user_profile_with_stats', e, StackTrace.current);
+      return null;
+    }
+  }
+
+  // =====================================================
+  // 4. QUERIES OTIMIZADAS PARA FRIENDS
+  // =====================================================
+
+  /// Busca amigos com informações completas
+  Stream<List<Map<String, dynamic>>> getFriendsWithInfo(String userId) {
+    return _supabaseClient
+        .from('friends')
+        .select('''
+          *,
+          users!friends_friend_id_fkey(
+            id,
+            display_name,
+            photo_url,
+            is_private,
+            created_at
+          )
+        ''')
+        .eq('user_id', userId)
+        .order('added_at', ascending: false)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data))
+        .handleError((e) {
+          ErrorService.logError('get_friends_with_info', e, StackTrace.current);
+          return <Map<String, dynamic>>[];
+        });
+  }
+
+  /// Busca amigos mútuos (quem me adicionou)
+  Stream<List<Map<String, dynamic>>> getMutualFriends(String userId) async* {
+    try {
+      // Buscar quem eu adicionei
+      final myFriends = await _supabaseClient
+          .from('friends')
+          .select('friend_id')
+          .eq('user_id', userId);
+
+      if (myFriends.isEmpty) {
+        yield [];
+        return;
+      }
+
+      final myFriendIds = myFriends.map((f) => f['friend_id']).toList();
+
+      // Buscar quem me adicionou de volta
+      await for (final data in _supabaseClient
+          .from('friends')
+          .select('''
+            *,
+            users!friends_user_id_fkey(
+              id,
+              display_name,
+              photo_url,
+              is_private
+            )
+          ''')
+          .eq('friend_id', userId)
+          .filter('user_id', 'in', '(${myFriendIds.map((id) => "'$id'").join(',')})')
+          .order('added_at', ascending: false)
+          .asStream()
+          .map((data) => List<Map<String, dynamic>>.from(data))) {
+        yield data;
+      }
+    } catch (e) {
+      ErrorService.logError('get_mutual_friends', e, StackTrace.current);
+      yield [];
+    }
+  }
+
+  // =====================================================
+  // 5. BUSCA FULL-TEXT OTIMIZADA
+  // =====================================================
+
+  /// Busca full-text em wishlists
+  Stream<List<Map<String, dynamic>>> searchWishlists(String query, {int limit = 20}) {
+    return _supabaseClient
+        .from('wishlists')
+        .select('''
+          *,
+          users!wishlists_owner_id_fkey(
+            id,
+            display_name,
+            photo_url
+          ),
+          wish_items(count)
+        ''')
+        .textSearch('name', query, config: 'portuguese')
+        .eq('is_private', false)
+        .order('created_at', ascending: false)
+        .limit(limit)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data))
+        .handleError((e) {
+          ErrorService.logError('search_wishlists', e, StackTrace.current);
+          return <Map<String, dynamic>>[];
+        });
+  }
+
+  /// Busca full-text em wish_items
+  Stream<List<Map<String, dynamic>>> searchWishItems(String query, {int limit = 20}) {
+    return _supabaseClient
+        .from('wish_items')
+        .select('''
+          *,
+          wishlists!wish_items_wishlist_id_fkey(
+            id,
+            name,
+            is_private,
+            users!wishlists_owner_id_fkey(
+              id,
+              display_name
+            )
+          )
+        ''')
+        .textSearch('name', query, config: 'portuguese')
+        .eq('wishlists.is_private', false)
+        .order('created_at', ascending: false)
+        .limit(limit)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data))
+        .handleError((e) {
+          ErrorService.logError('search_wish_items', e, StackTrace.current);
+          return <Map<String, dynamic>>[];
+        });
+  }
+
+  /// Busca full-text em usuários
+  Stream<List<Map<String, dynamic>>> searchUsers(String query, {int limit = 20}) {
+    return _supabaseClient
+        .from('users')
+        .select('''
+          id,
+          display_name,
+          photo_url,
+          bio,
+          created_at,
+          wishlists(count)
+        ''')
+        .textSearch('display_name', query, config: 'portuguese')
+        .eq('is_private', false)
+        .order('created_at', ascending: false)
+        .limit(limit)
+        .asStream()
+        .map((data) => List<Map<String, dynamic>>.from(data))
+        .handleError((e) {
+          ErrorService.logError('search_users', e, StackTrace.current);
+          return <Map<String, dynamic>>[];
+        });
+  }
+
+  // =====================================================
+  // 6. ESTATÍSTICAS E MÉTRICAS
+  // =====================================================
+
+  /// Obtém estatísticas gerais da aplicação
+  Future<Map<String, dynamic>> getAppStats() async {
+    try {
+      // Executar queries paralelas para estatísticas
+      final futures = await Future.wait([
+        _supabaseClient.from('users').select('id'),
+        _supabaseClient.from('wishlists').select('id'),
+        _supabaseClient.from('wish_items').select('id'),
+        _supabaseClient.from('friends').select('id'),
+      ]);
+
+      return {
+        'total_users': futures[0].length,
+        'total_wishlists': futures[1].length,
+        'total_items': futures[2].length,
+        'total_friendships': futures[3].length,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      ErrorService.logError('get_app_stats', e, StackTrace.current);
+      return {};
+    }
+  }
+
+  /// Obtém estatísticas do usuário
+  Future<Map<String, dynamic>> getUserStats(String userId) async {
+    try {
+      final futures = await Future.wait([
+        _supabaseClient
+            .from('wishlists')
+            .select('id, is_private')
+            .eq('owner_id', userId),
+        _supabaseClient
+            .from('wish_items')
+            .select('price')
+            .eq('wishlists.owner_id', userId),
+        _supabaseClient
+            .from('friends')
+            .select('id')
+            .eq('user_id', userId),
+      ]);
+
+      final wishlists = futures[0] as List;
+      final items = futures[1] as List;
+      final friends = futures[2] as List;
+
+      // Calcular valores totais
+      double totalValue = 0;
+      for (final item in items) {
+        totalValue += (item['price'] as num?)?.toDouble() ?? 0;
+      }
+
+      return {
+        'total_wishlists': wishlists.length,
+        'public_wishlists': wishlists.where((w) => w['is_private'] == false).length,
+        'private_wishlists': wishlists.where((w) => w['is_private'] == true).length,
+        'total_items': items.length,
+        'total_value': totalValue,
+        'total_friends': friends.length,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      ErrorService.logError('get_user_stats', e, StackTrace.current);
+      return {};
+    }
+  }
+
+  // =====================================================
+  // 7. FUNÇÕES AUXILIARES
+  // =====================================================
+
+  /// Aplica opções de ordenação na query
+  dynamic _applySortOption(
+    dynamic query,
+    SortOptions? sortOption,
+  ) {
+    switch (sortOption) {
+      case SortOptions.priceAsc:
+        return query.order('price', ascending: true);
+      case SortOptions.priceDesc:
+        return query.order('price', ascending: false);
+      case SortOptions.nameAsc:
+        return query.order('name', ascending: true);
+      case SortOptions.nameDesc:
+        return query.order('name', ascending: false);
+      default:
+        return query.order('created_at', ascending: false);
+    }
+  }
+}
+
+// =====================================================
+// 8. ENUMS E TIPOS
+// =====================================================
+
+/// Configurações de paginação
+class PaginationConfig {
+  final int page;
+  final int limit;
+  final String? cursor;
+
+  const PaginationConfig({
+    this.page = 0,
+    this.limit = 20,
+    this.cursor,
+  });
+}
+
+/// Resultado de uma query paginada
+class PaginatedResult<T> {
+  final List<T> data;
+  final bool hasMore;
+  final String? nextCursor;
+  final int totalCount;
+
+  const PaginatedResult({
+    required this.data,
+    required this.hasMore,
+    this.nextCursor,
+    required this.totalCount,
+  });
 }

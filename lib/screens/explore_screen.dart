@@ -46,7 +46,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                 ),
                 StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: _supabaseDatabaseService.getPublicUsers(
+                  stream: _supabaseDatabaseService.getPublicUsersLegacy(
                     searchTerm: _termoPesquisa,
                   ),
                   builder: (context, snapshot) {
@@ -99,7 +99,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                 ),
                 StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: _supabaseDatabaseService.getPublicWishlists(
+                  stream: _supabaseDatabaseService.getPublicWishlistsLegacy(
                     searchTerm: _termoPesquisa,
                   ),
                   builder: (context, snapshot) {

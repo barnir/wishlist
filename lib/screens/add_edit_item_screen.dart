@@ -32,7 +32,7 @@ class AddEditItemScreen extends StatefulWidget {
 class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _supabaseDatabaseService = SupabaseDatabaseService();
-  final _webScraperService = WebScraperService();
+  final _webScraperService = WebScraperServiceSecure();
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;

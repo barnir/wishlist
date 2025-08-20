@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/models/sort_options.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 

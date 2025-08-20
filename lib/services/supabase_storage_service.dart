@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:mime/mime.dart';
 import 'package:wishlist_app/services/rate_limiter.dart';
+import 'package:wishlist_app/services/error_service.dart';
 
 /// Serviço seguro para interagir com Supabase Storage.
 ///
@@ -83,13 +84,13 @@ class SupabaseStorageServiceSecure with RateLimitMixin {
       }
       return null;
     } on StorageException catch (e) {
-      print('Storage error: ${e.message}');
+      ErrorService.logError('storage_upload', e, StackTrace.current);
       return null;
     } on SecurityException catch (e) {
-      print('Security validation failed: ${e.message}');
+      ErrorService.logError('security_validation', e, StackTrace.current);
       return null;
     } catch (e) {
-      print('Upload error: $e');
+      ErrorService.logError('upload_general', e, StackTrace.current);
       return null;
     }
     });

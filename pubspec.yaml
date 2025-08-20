@@ -24,6 +24,8 @@ dependencies:
   sms_autofill: ^2.3.0
   image: ^4.0.17
   flutter_dotenv: ^5.2.1
+  shared_preferences: ^2.2.2
+  mime: ^1.0.4
   
   flutter_sharing_intent: ^1.1.1
   html: ^0.15.6
