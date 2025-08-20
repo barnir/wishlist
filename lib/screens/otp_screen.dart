@@ -42,20 +42,26 @@ class _OTPScreenState extends State<OTPScreen> {
       _isLoading = true;
     });
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     try {
       final response = await _authService.verifyPhoneOtp(
         widget.phoneNumber,
         code,
       );
-      if (response.user != null && mounted) {
-        // Navigate to home screen and clear the navigation stack
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      if (response.user != null) {
+        if (mounted) {
+          // Navigate to home screen and clear the navigation stack
+          navigator.pushNamedAndRemoveUntil('/', (route) => false);
+        }
       }
     } on Exception catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -119,19 +125,22 @@ class _OTPScreenState extends State<OTPScreen> {
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () async {
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
                       try {
                         await _authService.sendPhoneOtp(widget.phoneNumber);
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Código reenviado com sucesso!'),
-                          ),
-                        );
+                        if (mounted) {
+                          scaffoldMessenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Código reenviado com sucesso!'),
+                            ),
+                          );
+                        }
                       } catch (e) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Erro ao reenviar: ${e.toString()}')),
-                        );
+                        if (mounted) {
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(content: Text('Erro ao reenviar: ${e.toString()}')),
+                          );
+                        }
                       }
                     },
                     child: const Text('Reenviar Código'),

@@ -21,19 +21,44 @@ import 'package:wishlist_app/services/error_service.dart';
 /// - Validação de domínios para reduzir chamadas desnecessárias
 class WebScraperServiceSecure with RateLimitMixin {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
+  
+  // Cache local para economizar chamadas à Edge Function (plano gratuito)
+  static final Map<String, Map<String, dynamic>> _cache = {};
+  static const Duration _cacheExpiry = Duration(hours: 24); // Cache por 24h
 
   /// Fazer scraping de uma URL usando a Edge Function segura
+  /// 
+  /// ⚠️ OTIMIZADO PARA PLANO GRATUITO:
+  /// - Cache local para evitar re-scraping da mesma URL
+  /// - Rate limiting para não exceder limites
+  /// - Fallback para scraping básico (sem custo)
   Future<Map<String, dynamic>> scrape(String url, {String? userId}) async {
     return withRateLimit('scrape', userId: userId, operation: () async {
       try {
+        // Verificar cache primeiro (economiza chamadas à Edge Function)
+        final cachedResult = _getFromCache(url);
+        if (cachedResult != null) {
+          debugPrint('📦 Cache hit for URL: $url');
+          return cachedResult;
+        }
+        
         // Primeiro tentar usar a Edge Function segura
         final result = await _scrapeWithEdgeFunction(url);
+        
+        // Guardar no cache (economiza futuras chamadas)
+        _saveToCache(url, result);
+        
         return result;
-          } catch (e) {
-      // Se a Edge Function falhar, usar fallback com validação
-      ErrorService.logError('web_scraping_edge_function', e, StackTrace.current);
-      return _scrapeWithFallback(url);
-    }
+      } catch (e) {
+        // Se a Edge Function falhar, usar fallback com validação
+        ErrorService.logError('web_scraping_edge_function', e, StackTrace.current);
+        final fallbackResult = await _scrapeWithFallback(url);
+        
+        // Guardar resultado do fallback no cache também
+        _saveToCache(url, fallbackResult);
+        
+        return fallbackResult;
+      }
     });
   }
 
@@ -88,16 +113,19 @@ class WebScraperServiceSecure with RateLimitMixin {
     // Variável para armazenar resultado
     Map<String, dynamic> result = {};
     
-    // Se ScraperAPI estiver configurado, usar como fallback
-    if (Config.scraperApiKey.isNotEmpty) {
+    // ⚠️ PLANO GRATUITO: ScraperAPI tem apenas 1k requests/mês
+    // Usar apenas como último recurso para domínios confiáveis
+    if (Config.scraperApiKey.isNotEmpty && isTrusted) {
       try {
+        debugPrint('🔄 Using ScraperAPI (free tier: 1k requests/month)');
         result = await _scrapeWithScraperAPI(url);
       } catch (e) {
         debugPrint('ScraperAPI failed: $e');
         result = await _basicScrape(url);
       }
     } else {
-      // Último recurso: scraping básico
+      // Para domínios não confiáveis ou sem ScraperAPI, usar scraping básico
+      debugPrint('🔄 Using basic scraping (no external API cost)');
       result = await _basicScrape(url);
     }
     
@@ -580,5 +608,38 @@ class WebScraperServiceSecure with RateLimitMixin {
     if (url.startsWith('http')) return url;
     final uri = Uri.parse(baseUrl);
     return uri.resolve(url).toString();
+  }
+  
+  /// Métodos de cache para economizar chamadas à Edge Function
+  Map<String, dynamic>? _getFromCache(String url) {
+    final cacheEntry = _cache[url];
+    if (cacheEntry != null) {
+      final timestamp = cacheEntry['timestamp'] as DateTime?;
+      if (timestamp != null && 
+          DateTime.now().difference(timestamp) < _cacheExpiry) {
+        return cacheEntry['data'] as Map<String, dynamic>;
+      } else {
+        // Cache expirado, remover
+        _cache.remove(url);
+      }
+    }
+    return null;
+  }
+  
+  void _saveToCache(String url, Map<String, dynamic> data) {
+    _cache[url] = {
+      'data': data,
+      'timestamp': DateTime.now(),
+    };
+    
+    // Limpar cache antigo se ficar muito grande (economizar memória)
+    if (_cache.length > 100) {
+      final now = DateTime.now();
+      _cache.removeWhere((key, value) {
+        final timestamp = value['timestamp'] as DateTime?;
+        return timestamp != null && 
+               now.difference(timestamp) > _cacheExpiry;
+      });
+    }
   }
 }

@@ -17,13 +17,16 @@ class RateLimiter {
   // static const int _defaultMaxRequests = 10;
   // static const Duration _defaultWindow = Duration(minutes: 1);
   
-  // Configurações específicas por endpoint
+  // ⚠️ CONFIGURAÇÕES OTIMIZADAS PARA PLANO GRATUITO:
+  // - Supabase: 500k Edge Function calls/mês
+  // - ScraperAPI: 1k requests/mês
+  // - Rate limiting conservador para não exceder limites
   static const Map<String, RateLimitConfig> _endpointConfigs = {
-    'scrape': RateLimitConfig(maxRequests: 5, window: Duration(minutes: 2)),
-    'upload': RateLimitConfig(maxRequests: 3, window: Duration(minutes: 5)),
-    'auth': RateLimitConfig(maxRequests: 5, window: Duration(minutes: 10)),
-    'search': RateLimitConfig(maxRequests: 20, window: Duration(minutes: 1)),
-    'default': RateLimitConfig(maxRequests: 10, window: Duration(minutes: 1)),
+    'scrape': RateLimitConfig(maxRequests: 3, window: Duration(minutes: 5)), // Conservador
+    'upload': RateLimitConfig(maxRequests: 2, window: Duration(minutes: 10)), // Muito conservador
+    'auth': RateLimitConfig(maxRequests: 3, window: Duration(minutes: 15)), // Conservador
+    'search': RateLimitConfig(maxRequests: 10, window: Duration(minutes: 2)), // Moderado
+    'default': RateLimitConfig(maxRequests: 5, window: Duration(minutes: 5)), // Conservador
   };
 
   /// Verifica se uma requisição pode ser feita
