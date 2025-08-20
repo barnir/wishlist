@@ -10,11 +10,15 @@ import 'package:wishlist_app/services/error_service.dart';
 
 /// Serviço de web scraping seguro usando Edge Function do Supabase
 /// 
-/// Esta versão usa a Edge Function 'secure-scraper' que implementa:
-/// - Validação de domínios permitidos
-/// - Sanitização de dados
-/// - Proteção contra SSRF
-/// - Timeout e rate limiting
+/// ⚠️ LIMITAÇÕES PLANO GRATUITO:
+/// - Supabase: 500k Edge Function calls/mês
+/// - ScraperAPI: 1k requests/mês (fallback)
+/// 
+/// OTIMIZAÇÕES IMPLEMENTADAS:
+/// - Cache local para evitar re-scraping
+/// - Rate limiting inteligente
+/// - Fallback para scraping básico (sem API externa)
+/// - Validação de domínios para reduzir chamadas desnecessárias
 class WebScraperServiceSecure with RateLimitMixin {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
 
