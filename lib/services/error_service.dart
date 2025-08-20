@@ -111,7 +111,8 @@ class ErrorService {
   /// Loga erro para debugging
   static void logError(String context, dynamic error, StackTrace? stackTrace) {
     final category = getErrorCategory(error);
-    final timestamp = DateTime.now().toIso8601String();
+    // Log error with timestamp for debugging
+    print('[$category] $context: $error at ${DateTime.now().toIso8601String()}');
     
     // Log entry for debugging (commented out to avoid unused variable warning)
     // final logEntry = {
@@ -176,13 +177,13 @@ class ErrorService {
   /// Trata erros de storage
   static String _handleStorageError(StorageException error) {
     switch (error.statusCode) {
-      case 413:
+      case '413':
         return 'Arquivo muito grande. Use um arquivo menor.';
-      case 415:
+      case '415':
         return 'Tipo de arquivo não suportado. Use JPG, PNG ou WebP.';
-      case 403:
+      case '403':
         return 'Sem permissão para fazer upload.';
-      case 404:
+      case '404':
         return 'Arquivo não encontrado.';
       default:
         return 'Erro de arquivo: ${error.message}';
