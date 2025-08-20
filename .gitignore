@@ -126,3 +126,4 @@ app.*.symbols
 
 # Supabase
 supabase/.temp/
+supabase_scripts/

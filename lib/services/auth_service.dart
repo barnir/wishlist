@@ -65,9 +65,11 @@ class AuthService {
       );
       final user = response.user;
       if (user != null) {
+        // Create profile but phone_number will be required later
         await _userService.createUserProfile(user.id, {
           'email': email,
           'display_name': displayName,
+          'phone_number': null, // Will be required to be set later
         });
       }
       return response;
@@ -117,7 +119,17 @@ class AuthService {
         }
 
         final profile = await _userService.getUserProfile(user.id);
-        if (profile == null || profile['phone_number'] == null || profile['phone_number'].toString().isEmpty) {
+        if (profile == null) {
+          // Create profile for Google user but require phone number
+          await _userService.createUserProfile(user.id, {
+            'email': user.email,
+            'display_name': user.userMetadata?['display_name'] ?? user.email?.split('@')[0],
+            'phone_number': null, // Will be required to be set
+          });
+          return GoogleSignInResult.missingPhoneNumber;
+        }
+        
+        if (profile['phone_number'] == null || profile['phone_number'].toString().isEmpty) {
           return GoogleSignInResult.missingPhoneNumber;
         }
 
@@ -165,11 +177,12 @@ class AuthService {
       // Profile exists, just update the phone number
       await _userService.updateUserProfile(user.id, {'phone_number': phoneNumber});
     } else {
-      // Profile doesn't exist, create it
+      // Profile doesn't exist, create it with phone number
+      // Email is optional when using phone login
       await _userService.createUserProfile(user.id, {
         'phone_number': phoneNumber,
-        'email': user.email,
-        'display_name': user.userMetadata?['display_name'],
+        'email': user.email, // Can be null for phone-only users
+        'display_name': user.userMetadata?['display_name'] ?? 'User',
       });
     }
   }
@@ -266,5 +279,27 @@ class AuthService {
       throw Exception('Nenhum usuário logado para deletar a conta.');
     }
     throw UnimplementedError('Account deletion requires a server-side function for security reasons.');
+  }
+
+  /// Validates if the current user has a phone number configured
+  Future<bool> hasPhoneNumber() async {
+    final user = currentUser;
+    if (user == null) return false;
+    
+    final profile = await _userService.getUserProfile(user.id);
+    return profile != null && 
+           profile['phone_number'] != null && 
+           profile['phone_number'].toString().isNotEmpty;
+  }
+
+  /// Validates if the current user has an email configured
+  Future<bool> hasEmail() async {
+    final user = currentUser;
+    if (user == null) return false;
+    
+    final profile = await _userService.getUserProfile(user.id);
+    return profile != null && 
+           profile['email'] != null && 
+           profile['email'].toString().isNotEmpty;
   }
 }

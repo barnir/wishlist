@@ -23,7 +23,12 @@ class _OTPScreenState extends State<OTPScreen> {
   }
 
   void _listenForCode() async {
-    await SmsAutoFill().listenForCode();
+    try {
+      await SmsAutoFill().listenForCode();
+    } catch (e) {
+      // Handle any errors with SMS auto-fill
+      print('Error setting up SMS auto-fill: $e');
+    }
   }
 
   @override
@@ -43,8 +48,8 @@ class _OTPScreenState extends State<OTPScreen> {
         code,
       );
       if (response.user != null && mounted) {
-        // Navigate back to the root or the main screen after successful login
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        // Navigate to home screen and clear the navigation stack
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
     } on Exception catch (e) {
       if (mounted) {
@@ -75,31 +80,68 @@ class _OTPScreenState extends State<OTPScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            TextFieldPinAutoFill(
+            PinFieldAutoFill(
               currentCode: _otpCode,
               codeLength: 6,
               onCodeSubmitted: (code) {
                 // This is called when the user submits the code manually
+                if (code != null) {
+                  _submitOTP(code);
+                }
               },
               onCodeChanged: (code) {
-                _otpCode = code;
-                if (code.length == 6) {
+                setState(() {
+                  _otpCode = code ?? '';
+                });
+                if (code != null && code.length == 6) {
                   // Automatically submit when the code is filled
                   _submitOTP(code);
                 }
               },
+              decoration: BoxLooseDecoration(
+                strokeColorBuilder: FixedColorBuilder(Colors.grey.shade300),
+                bgColorBuilder: FixedColorBuilder(Colors.white),
+                gapSpace: 8,
+                strokeWidth: 1,
+              ),
             ),
             const SizedBox(height: 24),
             if (_isLoading)
               const CircularProgressIndicator()
             else
-              ElevatedButton(
-                onPressed: () {
-                  if (_otpCode.length == 6) {
-                    _submitOTP(_otpCode);
-                  }
-                },
-                child: const Text('Verificar'),
+              Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_otpCode.length == 6) {
+                        _submitOTP(_otpCode);
+                      }
+                    },
+                    child: const Text('Verificar'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () async {
+                      try {
+                        await _authService.sendPhoneOtp(widget.phoneNumber);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Código reenviado com sucesso!'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erro ao reenviar: ${e.toString()}')),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Reenviar Código'),
+                  ),
+                ],
               ),
           ],
         ),
