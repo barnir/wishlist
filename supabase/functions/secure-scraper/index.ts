@@ -3,8 +3,19 @@ import { corsHeaders } from "../_shared/cors.ts"
 
 // Lista de domínios permitidos para scraping
 const ALLOWED_DOMAINS = [
-  'amazon.com', 'amazon.pt', 'amazon.es', 'amazon.fr', 'amazon.co.uk',
-  'ebay.com', 'ebay.pt', 'ebay.es', 'ebay.fr', 'ebay.co.uk',
+  // Amazon (todas as regiões)
+  'amazon.com', 'amazon.pt', 'amazon.es', 'amazon.fr', 'amazon.co.uk', 'amazon.de', 'amazon.it',
+  // eBay (todas as regiões)
+  'ebay.com', 'ebay.pt', 'ebay.es', 'ebay.fr', 'ebay.co.uk', 'ebay.de', 'ebay.it',
+  // Plataformas internacionais populares
+  'aliexpress.com', 'aliexpress.us', 'pt.aliexpress.com',
+  'shein.com', 'pt.shein.com', 'es.shein.com', 'fr.shein.com',
+  'wish.com', 'pt.wish.com',
+  'temu.com', 'pt.temu.com',
+  'banggood.com', 'pt.banggood.com',
+  'gearbest.com',
+  'dhgate.com',
+  // Lojas portuguesas/espanholas
   'mercadolivre.pt', 'mercadolivre.com.br',
   'fnac.pt', 'fnac.com', 'fnac.es', 'fnac.fr',
   'worten.pt', 'worten.es',
@@ -15,7 +26,13 @@ const ALLOWED_DOMAINS = [
   'elcorteingles.pt', 'elcorteingles.es',
   'mediamarkt.pt', 'mediamarkt.es',
   'radiopopular.pt',
-  'kuantokusta.pt'
+  'kuantokusta.pt',
+  // Outras lojas populares
+  'zalando.pt', 'zalando.es', 'zalando.fr',
+  'hm.com', 'zara.com',
+  'nike.com', 'adidas.com', 'adidas.pt',
+  'booking.com', 'hotels.com',
+  'leroy.pt', 'leroymerlin.es'
 ];
 
 // User-Agent para parecer um browser real
@@ -219,18 +236,28 @@ function extractTitle(html: string): string {
 }
 
 function extractPrice(html: string): { price: string; currency: string } {
-  // Padrões comuns para preços
+  // Padrões melhorados para preços internacionais
   const pricePatterns = [
-    /€\s*(\d+(?:[.,]\d{2})?)/g,
-    /(\d+(?:[.,]\d{2})?)\s*€/g,
-    /EUR\s*(\d+(?:[.,]\d{2})?)/g,
-    /(\d+(?:[.,]\d{2})?)\s*EUR/g,
-    /\$\s*(\d+(?:[.,]\d{2})?)/g,
-    /(\d+(?:[.,]\d{2})?)\s*\$/g,
-    /£\s*(\d+(?:[.,]\d{2})?)/g,
-    /(\d+(?:[.,]\d{2})?)\s*£/g,
-    /price[^>]*>.*?(\d+(?:[.,]\d{2})?).*?€/gi,
-    /valor[^>]*>.*?(\d+(?:[.,]\d{2})?).*?€/gi
+    // Euro
+    /€\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g,
+    /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\s*€/g,
+    /EUR\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g,
+    /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\s*EUR/g,
+    // Dólar americano
+    /\$\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g,
+    /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\s*\$/g,
+    /USD\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g,
+    /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\s*USD/g,
+    // Libra britânica
+    /£\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g,
+    /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\s*£/g,
+    /GBP\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g,
+    // Seletores de preço com classes comuns
+    /price[^>]*>.*?(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/gi,
+    /valor[^>]*>.*?(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/gi,
+    /cost[^>]*>.*?(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/gi,
+    // Padrões genéricos melhorados
+    /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g
   ];
   
   const currencyMap: { [key: string]: string } = {

@@ -162,34 +162,141 @@ class WebScraperServiceSecure with RateLimitMixin {
     }
   }
 
-  /// Validar se o domínio é permitido
+  /// Validar se o domínio é permitido ou usar fallback inteligente
   bool _isAllowedDomain(String url) {
-    const allowedDomains = [
-      'amazon.com', 'amazon.pt', 'amazon.es', 'amazon.fr', 'amazon.co.uk',
-      'ebay.com', 'ebay.pt', 'ebay.es', 'ebay.fr', 'ebay.co.uk',
-      'mercadolivre.pt', 'mercadolivre.com.br',
-      'fnac.pt', 'fnac.com', 'fnac.es', 'fnac.fr',
-      'worten.pt', 'worten.es',
-      'pcdiga.pt',
-      'globaldata.pt',
-      'novoatalho.pt',
-      'continente.pt',
-      'elcorteingles.pt', 'elcorteingles.es',
-      'mediamarkt.pt', 'mediamarkt.es',
-      'radiopopular.pt',
-      'kuantokusta.pt'
-    ];
-
     try {
       final uri = Uri.parse(url);
       final hostname = uri.host.toLowerCase();
       
-      return allowedDomains.any((domain) => 
-        hostname == domain || hostname.endsWith('.$domain')
-      );
+      // Primeiro verificar lista de domínios confiáveis
+      if (_isTrustedDomain(hostname)) {
+        return true;
+      }
+      
+      // Se não estiver na lista, usar validação inteligente
+      return _isValidEcommerceDomain(hostname);
     } catch (e) {
       return false;
     }
+  }
+  
+  /// Lista massiva de domínios confiáveis
+  bool _isTrustedDomain(String hostname) {
+    const trustedDomains = [
+      // === MARKETPLACES GLOBAIS ===
+      // Amazon (todas as regiões)
+      'amazon.com', 'amazon.pt', 'amazon.es', 'amazon.fr', 'amazon.co.uk', 
+      'amazon.de', 'amazon.it', 'amazon.ca', 'amazon.com.br', 'amazon.in',
+      'amazon.com.mx', 'amazon.co.jp', 'amazon.com.au', 'amazon.sg',
+      // eBay (todas as regiões)
+      'ebay.com', 'ebay.pt', 'ebay.es', 'ebay.fr', 'ebay.co.uk', 
+      'ebay.de', 'ebay.it', 'ebay.ca', 'ebay.com.au', 'ebay.in',
+      // AliExpress
+      'aliexpress.com', 'aliexpress.us', 'pt.aliexpress.com', 'es.aliexpress.com',
+      'fr.aliexpress.com', 'de.aliexpress.com', 'it.aliexpress.com',
+      // Outros marketplaces asiáticos
+      'shein.com', 'pt.shein.com', 'es.shein.com', 'fr.shein.com', 'de.shein.com',
+      'wish.com', 'pt.wish.com', 'es.wish.com',
+      'temu.com', 'pt.temu.com', 'es.temu.com',
+      'banggood.com', 'pt.banggood.com', 'es.banggood.com',
+      'gearbest.com', 'dhgate.com', 'lightinthebox.com',
+      
+      // === LOJAS PORTUGUESAS ===
+      'fnac.pt', 'worten.pt', 'pcdiga.pt', 'globaldata.pt', 'novoatalho.pt',
+      'continente.pt', 'radiopopular.pt', 'kuantokusta.pt', 'chupamobile.pt',
+      'bertrand.pt', 'staples.pt', 'ikea.com', 'leroy.pt',
+      'celeiro.pt', 'prozis.com', 'mango.com', 'parfois.com',
+      
+      // === LOJAS ESPANHOLAS ===
+      'elcorteingles.es', 'mediamarkt.es', 'worten.es', 'fnac.es',
+      'carrefour.es', 'alcampo.es', 'leroymerlin.es', 'pccomponentes.com',
+      
+      // === MODA INTERNACIONAL ===
+      'zara.com', 'hm.com', 'uniqlo.com', 'gap.com', 'forever21.com',
+      'asos.com', 'boohoo.com', 'prettylittlething.com', 'missguided.com',
+      'zalando.pt', 'zalando.es', 'zalando.fr', 'zalando.de', 'zalando.it',
+      'aboutyou.pt', 'aboutyou.es', 'aboutyou.fr', 'aboutyou.de',
+      'lamoda.pt', 'lamoda.es', 'modivo.pt', 'modivo.es',
+      
+      // === DESPORTO ===
+      'nike.com', 'adidas.com', 'adidas.pt', 'puma.com', 'reebok.com',
+      'underarmour.com', 'newbalance.com', 'asics.com', 'vans.com',
+      'converse.com', 'timberland.com', 'sportzone.pt', 'intersport.pt',
+      
+      // === ELETRÔNICOS ===
+      'apple.com', 'samsung.com', 'sony.com', 'lg.com', 'philips.com',
+      'asus.com', 'hp.com', 'dell.com', 'lenovo.com', 'acer.com',
+      'bestbuy.com', 'newegg.com', 'bhphotovideo.com',
+      
+      // === CASA E JARDIM ===
+      'ikea.com', 'homedepot.com', 'lowes.com', 'wayfair.com',
+      'overstock.com', 'bedbathandbeyond.com', 'williams-sonoma.com',
+      
+      // === LIVROS ===
+      'bookdepository.com', 'waterstones.com', 'barnesandnoble.com',
+      'thriftbooks.com', 'abebooks.com', 'bertrand.pt',
+      
+      // === BELEZA ===
+      'sephora.com', 'ulta.com', 'beautylish.com', 'lookfantastic.com',
+      'feelunique.com', 'strawberrynet.com', 'douglas.pt', 'douglas.es',
+      
+      // === VIAGENS ===
+      'booking.com', 'expedia.com', 'hotels.com', 'trivago.com',
+      'airbnb.com', 'vrbo.com', 'momondo.com', 'kayak.com',
+      
+      // === MERCADO LIVRE ===
+      'mercadolivre.pt', 'mercadolivre.com.br', 'mercadolibre.com.ar',
+      'mercadolibre.com.mx', 'mercadolibre.cl', 'mercadolibre.com.co',
+      
+      // === OUTROS EUROPEUS ===
+      'bol.com', 'coolblue.nl', 'otto.de', 'alternate.de',
+      'conforama.fr', 'darty.fr', 'cdiscount.fr', 'rue-du-commerce.com',
+      'pixmania.com', 'grosbill.com', 'ldlc.com'
+    ];
+    
+    return trustedDomains.any((domain) => 
+      hostname == domain || hostname.endsWith('.$domain')
+    );
+  }
+  
+  /// Validação inteligente para domínios de e-commerce
+  bool _isValidEcommerceDomain(String hostname) {
+    // Padrões suspeitos que devemos evitar
+    const suspiciousPatterns = [
+      'localhost', '127.0.0.1', '0.0.0.0', '192.168.',
+      'file://', 'data:', 'javascript:', 'vbscript:',
+      '.onion', 'bit.ly', 'tinyurl', 'ow.ly', 't.co'
+    ];
+    
+    // Verificar se é um domínio suspeito
+    for (final pattern in suspiciousPatterns) {
+      if (hostname.contains(pattern)) {
+        return false;
+      }
+    }
+    
+    // Padrões que indicam sites de e-commerce legítimos
+    const ecommerceIndicators = [
+      'shop', 'store', 'loja', 'tienda', 'boutique', 'market',
+      'buy', 'sell', 'commerce', 'retail', 'outlet',
+      'fashion', 'clothing', 'electronics', 'books', 'games'
+    ];
+    
+    // Verificar se contém indicadores de e-commerce
+    final hasEcommerceIndicator = ecommerceIndicators.any((indicator) => 
+      hostname.contains(indicator)
+    );
+    
+    // TLD confiáveis para e-commerce
+    const trustedTlds = [
+      '.com', '.pt', '.es', '.fr', '.de', '.it', '.co.uk',
+      '.net', '.org', '.eu', '.shop', '.store'
+    ];
+    
+    final hasTrustedTld = trustedTlds.any((tld) => hostname.endsWith(tld));
+    
+    // Permitir se tem indicador de e-commerce E TLD confiável
+    return hasEcommerceIndicator && hasTrustedTld;
   }
 
   /// Sanitizar texto removendo caracteres perigosos
@@ -258,13 +365,41 @@ class WebScraperServiceSecure with RateLimitMixin {
 
   String _extractPrice(Document document) {
     const priceSelectors = [
+      // Padrões gerais
       '[itemprop="price"]',
       '[property="product:price:amount"]',
       '.price',
       '#price',
-      '#priceblock_ourprice',
-      '.price-tag',
       '.product-price',
+      '.price-tag',
+      '.current-price',
+      '.sale-price',
+      // Amazon
+      '#priceblock_ourprice',
+      '#priceblock_dealprice',
+      '.a-price-whole',
+      '.a-offscreen',
+      // AliExpress
+      '.product-price-value',
+      '.price-current',
+      '.price-sale',
+      '[data-spm-anchor-id*="price"]',
+      // Shein
+      '.original-price',
+      '.sale-price',
+      '.price-sale',
+      '.she-price',
+      // Wish
+      '.price-current',
+      '.ProductCard__price',
+      // Temu
+      '.goods-price',
+      '.price-text',
+      // Seletores específicos adicionais
+      '[class*="price"]',
+      '[id*="price"]',
+      '.cost',
+      '.amount'
     ];
 
     for (var selector in priceSelectors) {
@@ -307,16 +442,46 @@ class WebScraperServiceSecure with RateLimitMixin {
       return _resolveUrl(imageUrl, baseUrl);
     }
 
+    // Verificar meta tags adicionais
+    imageUrl = document
+        .querySelector('meta[name="twitter:image"]')
+        ?.attributes['content'];
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      return _resolveUrl(imageUrl, baseUrl);
+    }
+
     const commonImageContainers = [
       'div.product-image',
       'div.product-gallery',
       'div.image',
       'figure',
+      // Amazon
+      '#landingImage',
+      '.a-dynamic-image',
+      '#imgTagWrapperId img',
+      // AliExpress
+      '.image-view img',
+      '.product-image img',
+      '[data-role="image"] img',
+      // Shein
+      '.product-intro__head-gallery img',
+      '.crop-image-container img',
+      '.she-swiper-slide img',
+      // Wish
+      '.ProductCard__image img',
+      '.product-image-container img',
+      // Temu
+      '.goods-gallery img',
+      '.main-image img',
+      // Seletores genéricos melhorados
+      '[class*="product"] img',
+      '[class*="gallery"] img',
+      '[class*="main"] img'
     ];
     for (var container in commonImageContainers) {
-      final imageElement = document.querySelector('$container img');
+      final imageElement = document.querySelector(container);
       if (imageElement != null) {
-        imageUrl = imageElement.attributes['src'];
+        imageUrl = imageElement.attributes['src'] ?? imageElement.attributes['data-src'];
         if (imageUrl != null && imageUrl.isNotEmpty) {
           return _resolveUrl(imageUrl, baseUrl);
         }
@@ -351,15 +516,41 @@ class WebScraperServiceSecure with RateLimitMixin {
     if (price is num) return price.toStringAsFixed(2);
 
     String priceString = price.toString();
-    priceString = priceString.replaceAll(RegExp(r'[^0-9.,]'), '');
-    priceString = priceString.replaceAll(',', '.');
-
-    try {
-      final parsedPrice = double.parse(priceString);
-      return parsedPrice.toStringAsFixed(2);
-    } catch (e) {
-      return '0.00';
+    
+    // Suporte para diferentes formatos de preço
+    // Remover texto antes e depois dos números
+    final priceRegex = RegExp(r'(\d{1,3}(?:[.,]\d{3})*[.,]\d{2}|\d+[.,]\d{2}|\d+)');
+    final match = priceRegex.firstMatch(priceString);
+    
+    if (match != null) {
+      String cleanPrice = match.group(0)!;
+      
+      // Normalizar separadores decimais
+      if (cleanPrice.contains(',') && cleanPrice.contains('.')) {
+        // Formato europeu: 1.234,56
+        cleanPrice = cleanPrice.replaceAll('.', '').replaceAll(',', '.');
+      } else if (cleanPrice.contains(',')) {
+        // Pode ser 1,234.56 (US) ou 1234,56 (EU)
+        final commaIndex = cleanPrice.lastIndexOf(',');
+        final afterComma = cleanPrice.substring(commaIndex + 1);
+        if (afterComma.length == 2) {
+          // Formato europeu: 1234,56
+          cleanPrice = cleanPrice.replaceAll(',', '.');
+        } else {
+          // Formato americano: 1,234.56
+          cleanPrice = cleanPrice.replaceAll(',', '');
+        }
+      }
+      
+      try {
+        final parsedPrice = double.parse(cleanPrice);
+        return parsedPrice.toStringAsFixed(2);
+      } catch (e) {
+        debugPrint('Error parsing price: $cleanPrice');
+      }
     }
+    
+    return '0.00';
   }
 
   String _resolveUrl(String url, String baseUrl) {
