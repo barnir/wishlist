@@ -129,8 +129,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.trim().isEmpty) {
                       return 'Por favor, insira o seu email.';
+                    }
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
+                      return 'Formato de email inválido.';
                     }
                     return null;
                   },
