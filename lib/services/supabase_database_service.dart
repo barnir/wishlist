@@ -598,6 +598,30 @@ class SupabaseDatabaseService {
   // 6. ESTATÍSTICAS E MÉTRICAS
   // =====================================================
 
+  /// Busca perfil de utilizador por ID
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    try {
+      final profile = await _supabaseClient
+          .from('profiles')
+          .select('id, email, display_name, phone_number, created_at')
+          .eq('id', userId)
+          .maybeSingle();
+      
+      return profile;
+    } catch (e) {
+      ErrorService.logError('getUserProfile', e, StackTrace.current);
+      return null;
+    }
+  }
+  
+  /// Busca wishlists públicas de um utilizador específico
+  Stream<List<Map<String, dynamic>>> getPublicWishlistsForUser(String userId) {
+    return _supabaseClient
+        .from('wishlists')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false);
+  }
+
   /// Obtém estatísticas gerais da aplicação
   Future<Map<String, dynamic>> getAppStats() async {
     try {

@@ -8,6 +8,10 @@ import '../models/wish_item.dart';
 import '../models/category.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
+import '../services/wish_item_status_service.dart';
+import '../models/wish_item_status.dart';
+import '../widgets/item_status_dialog.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -20,6 +24,9 @@ class WishlistDetailsScreen extends StatefulWidget {
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _statusService = WishItemStatusService();
+  
+  bool _isOwner = false;
 
   String _wishlistName = 'Carregando...';
   bool _isPrivate = false;
@@ -30,6 +37,23 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   void initState() {
     super.initState();
     _loadWishlistDetails();
+    _checkOwnership();
+  }
+  
+  Future<void> _checkOwnership() async {
+    try {
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId == null) return;
+      
+      final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId);
+      if (wishlistData != null && mounted) {
+        setState(() {
+          _isOwner = wishlistData['user_id'] == currentUserId;
+        });
+      }
+    } catch (e) {
+      // Falhar silenciosamente
+    }
   }
 
   Future<void> _loadWishlistDetails() async {
@@ -326,6 +350,248 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildItemStatusBadges(WishItemWithStatus itemWithStatus) {
+    final badges = <Widget>[];
+    
+    // Para o dono: mostrar se o item foi comprado (mas só se visível)
+    if (_isOwner && itemWithStatus.isVisiblyPurchased) {
+      badges.add(
+        Container(
+          margin: EdgeInsets.only(bottom: UIConstants.spacingS),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.green.withAlpha(51),
+            borderRadius: BorderRadius.circular(UIConstants.radiusS),
+            border: Border.all(color: Colors.green, width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: UIConstants.iconSizeS,
+                color: Colors.green,
+              ),
+              Spacing.horizontalXS,
+              Text(
+                'Presente comprado',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Para amigos: mostrar atividade dos outros amigos + meu status
+    if (!_isOwner) {
+      // Meu status
+      if (itemWithStatus.hasMyStatus) {
+        final myStatus = itemWithStatus.myStatus!;
+        badges.add(
+          Container(
+            margin: EdgeInsets.only(bottom: UIConstants.spacingS),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withAlpha(51),
+              borderRadius: BorderRadius.circular(UIConstants.radiusS),
+              border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  myStatus.status == ItemPurchaseStatus.purchased 
+                      ? Icons.check_circle 
+                      : Icons.bookmark,
+                  size: UIConstants.iconSizeS,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                Spacing.horizontalXS,
+                Text(
+                  'Tu: ${myStatus.status.shortDisplayName}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      
+      // Atividade de outros amigos
+      if (itemWithStatus.hasFriendActivity) {
+        final friendCount = itemWithStatus.friendInterestCount;
+        badges.add(
+          Container(
+            margin: EdgeInsets.only(bottom: UIConstants.spacingS),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.withAlpha(51),
+              borderRadius: BorderRadius.circular(UIConstants.radiusS),
+              border: Border.all(color: Colors.orange, width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.people,
+                  size: UIConstants.iconSizeS,
+                  color: Colors.orange,
+                ),
+                Spacing.horizontalXS,
+                Text(
+                  '$friendCount ${friendCount == 1 ? 'amigo interessado' : 'amigos interessados'}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+    
+    return badges;
+  }
+
+  Widget _buildItemActions(WishItem item, WishItemWithStatus? itemWithStatus) {
+    if (_isOwner) {
+      // Menu para o dono da wishlist
+      return PopupMenuButton<String>(
+        onSelected: (value) async {
+          if (value == 'edit') {
+            Navigator.pushNamed(
+              context,
+              '/add_edit_item',
+              arguments: {
+                'wishlistId': widget.wishlistId,
+                'itemId': item.id,
+              },
+            );
+          } else if (value == 'delete') {
+            _deleteItem(item.id);
+          } else if (value == 'open_link' &&
+              item.link != null &&
+              item.link!.isNotEmpty) {
+            final uri = Uri.parse(item.link!);
+            if (await canLaunchUrl(uri)) {
+              launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          }
+        },
+        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+          const PopupMenuItem<String>(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit_outlined),
+                SizedBox(width: 8),
+                Text('Editar'),
+              ],
+            ),
+          ),
+          const PopupMenuItem<String>(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline),
+                SizedBox(width: 8),
+                Text('Eliminar'),
+              ],
+            ),
+          ),
+          if (item.link != null && item.link!.isNotEmpty)
+            const PopupMenuItem<String>(
+              value: 'open_link',
+              child: Row(
+                children: [
+                  Icon(Icons.open_in_new),
+                  SizedBox(width: 8),
+                  Text('Abrir link'),
+                ],
+              ),
+            ),
+        ],
+        icon: const Icon(Icons.more_vert),
+      );
+    } else {
+      // Menu para amigos
+      return PopupMenuButton<String>(
+        onSelected: (value) async {
+          if (value == 'mark_present') {
+            await _showItemStatusDialog(item, itemWithStatus?.myStatus);
+          } else if (value == 'open_link' &&
+              item.link != null &&
+              item.link!.isNotEmpty) {
+            final uri = Uri.parse(item.link!);
+            if (await canLaunchUrl(uri)) {
+              launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          }
+        },
+        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+          PopupMenuItem<String>(
+            value: 'mark_present',
+            child: Row(
+              children: [
+                Icon(
+                  itemWithStatus?.hasMyStatus == true 
+                      ? Icons.edit 
+                      : Icons.card_giftcard,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  itemWithStatus?.hasMyStatus == true 
+                      ? 'Editar presente' 
+                      : 'Marcar como presente',
+                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                ),
+              ],
+            ),
+          ),
+          if (item.link != null && item.link!.isNotEmpty)
+            const PopupMenuItem<String>(
+              value: 'open_link',
+              child: Row(
+                children: [
+                  Icon(Icons.open_in_new),
+                  SizedBox(width: 8),
+                  Text('Abrir link'),
+                ],
+              ),
+            ),
+        ],
+        icon: const Icon(Icons.more_vert),
+      );
+    }
+  }
+
+  Future<void> _showItemStatusDialog(WishItem item, WishItemStatus? currentStatus) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => ItemStatusDialog(
+        wishItemId: item.id,
+        itemName: item.name,
+        currentStatus: currentStatus,
+        isOwner: _isOwner,
+      ),
+    );
+    
+    // Se houve mudança, atualizar a UI
+    if (result == true && mounted) {
+      setState(() {});
+    }
   }
 
   void _showFilterDialog() {

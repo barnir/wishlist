@@ -19,6 +19,9 @@ import 'screens/explore_screen.dart';
 import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
 import 'screens/add_phone_screen.dart';
+import 'screens/friends_screen.dart';
+import 'screens/friend_suggestions_screen.dart';
+import 'screens/user_profile_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -137,6 +140,11 @@ class _MyAppState extends State<MyApp> {
         },
         '/telefoneLogin': (_) => const TelefoneLoginScreen(),
         '/add_phone': (_) => const AddPhoneScreen(),
+        '/friend_suggestions': (_) => const FriendSuggestionsScreen(),
+        '/user_profile': (context) {
+          final userId = ModalRoute.of(context)?.settings.arguments as String;
+          return UserProfileScreen(userId: userId);
+        },
       },
       home: StreamBuilder<User?>(
         stream: AuthService().authStateChanges,
@@ -199,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = const [
     WishlistsScreen(),
     ExploreScreen(),
+    FriendsScreen(),
     ProfileScreen(),
   ];
 
@@ -224,6 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onTabTapped,
+          type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.list_alt),
@@ -233,7 +243,14 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.public),
               label: 'Explorar',
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: 'Amigos',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person), 
+              label: 'Perfil'
+            ),
           ],
         ),
       ),

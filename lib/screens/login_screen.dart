@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
+import '../constants/ui_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -113,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(title: const Text('Entrar na Wishlist')),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: UIConstants.paddingL,
           child: Form(
             key: _formKey,
             child: Column(
@@ -134,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 12),
+                Spacing.m,
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(
@@ -149,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                Spacing.l,
                 ElevatedButton(
                   onPressed: _isLoading ? null : _loginComEmail,
                   style: ElevatedButton.styleFrom(
@@ -164,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         )
                       : const Text('Entrar com Email'),
                 ),
-                const SizedBox(height: 24),
+                Spacing.l,
                 ElevatedButton.icon(
                   icon: const Icon(Icons.sms),
                   label: const Text('Entrar com Telemóvel'),
@@ -174,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textStyle: const TextStyle(fontSize: 16),
                   ),
                 ),
-                const SizedBox(height: 12),
+                Spacing.m,
                 ElevatedButton.icon(
                   icon: const Icon(Icons.g_mobiledata),
                   label: const Text('Entrar com Google'),
@@ -184,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textStyle: const TextStyle(fontSize: 16),
                   ),
                 ),
-                const SizedBox(height: 24),
+                Spacing.l,
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/register'),
                   child: const Text('Não tens conta? Regista-te!'),
