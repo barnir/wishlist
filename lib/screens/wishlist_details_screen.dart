@@ -6,6 +6,8 @@ import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
+import '../widgets/ui_components.dart';
+import '../constants/ui_constants.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -120,7 +122,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     .toList();
 
                 return ListView.builder(
-                  padding: const EdgeInsets.only(top: 8, bottom: 80),
+                  padding: UIConstants.listPadding,
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     return _buildItemCard(items[index]);
@@ -147,14 +149,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: UIConstants.paddingM,
       child: Row(
         children: [
           Icon(
             _isPrivate ? Icons.lock_outline : Icons.public_outlined,
             color: Theme.of(context).textTheme.bodySmall?.color,
           ),
-          const SizedBox(width: 8),
+          Spacing.horizontalS,
           Text(
             _isPrivate ? 'Esta wishlist é privada' : 'Esta wishlist é pública',
             style: Theme.of(context).textTheme.bodyMedium,
@@ -165,39 +167,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_shopping_cart_rounded,
-              size: 100, // Increased size
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withAlpha(179), // More prominent color
-            ),
-            const SizedBox(height: 24), // Increased spacing
-            Text(
-              'A sua wishlist está vazia',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12), // Increased spacing
-            Text(
-              'Adicione o seu primeiro desejo!',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return WishlistEmptyState(
+      icon: Icons.add_shopping_cart_rounded,
+      title: 'A sua wishlist está vazia',
+      subtitle: 'Adicione o seu primeiro desejo!',
     );
   }
 
@@ -205,20 +178,17 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return WishlistCard(
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: UIConstants.paddingM,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 80,
-              height: 80,
+              width: UIConstants.imageSizeL,
+              height: UIConstants.imageSizeL,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(UIConstants.radiusS),
                 child: FutureBuilder<File?>(
                   future: item.imageUrl != null && item.imageUrl!.isNotEmpty
                       ? ImageCacheService.getFile(item.imageUrl!)
@@ -228,11 +198,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       return Container(
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
                         ),
                         child: Center(
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: UIConstants.strokeWidthMedium,
                             color: colorScheme.primary,
                           ),
                         ),
@@ -243,12 +213,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       return Container(
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
                         ),
                         child: Center(
                           child: Icon(
                             Icons.broken_image,
-                            size: 30,
+                            size: UIConstants.iconSizeL,
                             color: colorScheme.error,
                           ),
                         ),
@@ -260,7 +230,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            Spacing.horizontalM,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +243,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   ),
                   if (item.description != null && item.description!.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
+                      padding: EdgeInsets.only(top: UIConstants.spacingXS),
                       child: Text(
                         item.description!,
                         style: textTheme.bodyMedium,
@@ -283,7 +253,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     ),
                   if (item.price != null)
                     Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
+                      padding: EdgeInsets.only(top: UIConstants.spacingS),
                       child: Text(
                         '€${item.price!.toStringAsFixed(2)}',
                         style: textTheme.titleLarge?.copyWith(
@@ -323,7 +293,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   child: Row(
                     children: [
                       Icon(Icons.edit_outlined),
-                      SizedBox(width: 8),
+                      Spacing.horizontalS,
                       Text('Editar'),
                     ],
                   ),
@@ -333,7 +303,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                   child: Row(
                     children: [
                       Icon(Icons.delete_outline),
-                      SizedBox(width: 8),
+                      Spacing.horizontalS,
                       Text('Eliminar'),
                     ],
                   ),
@@ -344,7 +314,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     child: Row(
                       children: [
                         Icon(Icons.open_in_new),
-                        SizedBox(width: 8),
+                        Spacing.horizontalS,
                         Text('Abrir link'),
                       ],
                     ),
@@ -399,7 +369,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 20),
+                  Spacing.l,
                   DropdownButtonFormField<SortOptions>(
                     initialValue: _sortOption,
                     decoration: const InputDecoration(labelText: 'Ordenar por'),

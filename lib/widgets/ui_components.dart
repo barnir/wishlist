@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/ui_constants.dart';
 
 /// Widgets UI reutilizáveis para manter consistência na aplicação
 
@@ -53,11 +54,11 @@ class WishlistCard extends StatelessWidget {
   const WishlistCard({
     super.key,
     required this.child,
-    this.margin,
-    this.padding,
+    this.margin = UIConstants.cardMargin,
+    this.padding = UIConstants.paddingM,
     this.onTap,
     this.backgroundColor,
-    this.elevation,
+    this.elevation = UIConstants.elevationM,
   });
 
   @override
@@ -66,11 +67,14 @@ class WishlistCard extends StatelessWidget {
       margin: margin,
       elevation: elevation,
       color: backgroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
         child: Padding(
-          padding: padding ?? const EdgeInsets.all(16),
+          padding: padding!,
           child: child,
         ),
       ),
@@ -95,19 +99,14 @@ class WishlistButton extends StatelessWidget {
     this.isPrimary = true,
     this.icon,
     this.width,
-    this.height = 48,
+    this.height = UIConstants.buttonHeightM,
   });
 
   @override
   Widget build(BuildContext context) {
     final buttonStyle = isPrimary
-        ? ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          )
-        : OutlinedButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.primary,
-          );
+        ? AppButtonStyles.primaryButton(context)
+        : AppButtonStyles.secondaryButton(context);
 
     final button = isPrimary
         ? ElevatedButton(
@@ -141,8 +140,8 @@ class WishlistButton extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 8),
+          Icon(icon, size: UIConstants.iconSizeS),
+          Spacing.horizontalS,
           Text(text),
         ],
       );
@@ -196,10 +195,10 @@ class WishlistTextField extends StatelessWidget {
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UIConstants.radiusM),
         ),
         filled: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: UIConstants.paddingHorizontalM + UIConstants.paddingVerticalM,
       ),
     );
   }
@@ -225,18 +224,18 @@ class WishlistEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: UIConstants.paddingL,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 100,
+              size: UIConstants.iconSizeXXL,
               color: Theme.of(context).colorScheme.primary.withAlpha(
-                (255 * 0.7).round(),
+                (255 * UIConstants.opacityLight).round(),
               ),
             ),
-            const SizedBox(height: 24),
+            Spacing.l,
             Text(
               title,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -245,7 +244,7 @@ class WishlistEmptyState extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
+            Spacing.m,
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -254,7 +253,7 @@ class WishlistEmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             if (actionText != null && onAction != null) ...[
-              const SizedBox(height: 24),
+              Spacing.l,
               WishlistButton(
                 text: actionText!,
                 onPressed: onAction,
@@ -275,7 +274,7 @@ class WishlistLoadingIndicator extends StatelessWidget {
   const WishlistLoadingIndicator({
     super.key,
     this.message,
-    this.size = 24,
+    this.size = UIConstants.iconSizeM,
   });
 
   @override
@@ -288,14 +287,14 @@ class WishlistLoadingIndicator extends StatelessWidget {
             width: size,
             height: size,
             child: CircularProgressIndicator(
-              strokeWidth: 2,
+              strokeWidth: UIConstants.strokeWidthMedium,
               valueColor: AlwaysStoppedAnimation<Color>(
                 Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
           if (message != null) ...[
-            const SizedBox(height: 16),
+            Spacing.m,
             Text(
               message!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(

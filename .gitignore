@@ -107,6 +107,17 @@ unlinked_spec.ds
 # Coverage
 coverage/
 
+# Testing
+test_scripts/
+*.mocks.dart
+integration_test/reports/
+integration_test/screenshots/
+integration_test/*.log
+test/reports/
+test/coverage/
+test/screenshots/
+test
+
 # Symbols
 app.*.symbols
 

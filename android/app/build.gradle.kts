@@ -32,7 +32,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.wishlist_app"
-        minSdkVersion(localProperties.getProperty("flutter.minSdkVersion")?.toInt() ?: 23)
+        minSdkVersion(24)
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"

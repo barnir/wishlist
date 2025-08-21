@@ -3,6 +3,8 @@ import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/wishlist_total.dart';
+import '../widgets/ui_components.dart';
+import '../constants/ui_constants.dart';
 
 class WishlistsScreen extends StatefulWidget {
   const WishlistsScreen({super.key});
@@ -17,39 +19,10 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
 
   // Widget para o estado de "lista vazia"
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.card_giftcard_rounded,
-              size: 100, // Increased size
-              color: Theme.of(context).colorScheme.primary.withAlpha(
-                (255 * 0.7).round(),
-              ), // More prominent color
-            ),
-            const SizedBox(height: 24), // Increased spacing
-            Text(
-              'Nenhuma wishlist por aqui',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12), // Increased spacing
-            Text(
-              'Toque em "+" para criar a sua primeira!',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return WishlistEmptyState(
+      icon: Icons.card_giftcard_rounded,
+      title: 'Nenhuma wishlist por aqui',
+      subtitle: 'Toque em "+" para criar a sua primeira!',
     );
   }
 
@@ -62,17 +35,14 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     final isPrivate = wishlist['is_private'] ?? false;
     final imageUrl = wishlist['image_url'];
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return WishlistCard(
       child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
+        contentPadding: UIConstants.paddingM,
         leading: SizedBox(
-          width: 56,
-          height: 56,
+          width: UIConstants.imageSizeM,
+          height: UIConstants.imageSizeM,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(UIConstants.radiusS),
             child: imageUrl != null && imageUrl.isNotEmpty
                 ? CachedNetworkImage(
                     imageUrl: imageUrl,
@@ -82,11 +52,11 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                         color: Theme.of(
                           context,
                         ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(UIConstants.radiusS),
                       ),
                       child: Center(
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                          strokeWidth: UIConstants.strokeWidthMedium,
                           color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
@@ -96,12 +66,12 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                         color: Theme.of(
                           context,
                         ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(UIConstants.radiusS),
                       ),
                       child: Center(
                         child: Icon(
                           Icons.broken_image,
-                          size: 30,
+                          size: UIConstants.iconSizeL,
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),
@@ -117,7 +87,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                     child: Center(
                       child: Icon(
                         Icons.card_giftcard,
-                        size: 30,
+                        size: UIConstants.iconSizeL,
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withAlpha(153),
@@ -139,10 +109,10 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                 // You can add more details here if needed
               ],
             ),
-            const SizedBox(width: 8),
+            Spacing.horizontalS,
             Icon(
               Icons.arrow_forward_ios,
-              size: 16,
+              size: UIConstants.iconSizeS,
               color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
             ),
           ],
@@ -195,10 +165,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
           final wishlists = snapshot.data!;
 
           return ListView.builder(
-            padding: const EdgeInsets.only(
-              top: 8,
-              bottom: 80,
-            ), // Padding para o FAB
+            padding: UIConstants.listPadding,
             itemCount: wishlists.length,
             itemBuilder: (context, index) {
               return _buildWishlistCard(context, wishlists[index]);
