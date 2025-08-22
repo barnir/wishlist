@@ -9,6 +9,9 @@
       "Bash(./gradlew:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "W:\\Dev"
+    ]
   }
 }

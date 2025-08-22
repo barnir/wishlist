@@ -134,6 +134,7 @@ app.*.symbols
 
 # IDE specific
 .idea/
+.claude/
 
 # Session progress files
 PROGRESS_SESSION.md
