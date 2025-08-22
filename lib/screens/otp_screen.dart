@@ -17,6 +17,7 @@ class OTPScreen extends StatefulWidget {
 class _OTPScreenState extends State<OTPScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
+  bool _hasSubmitted = false; // Prevent multiple submissions
   String _otpCode = '';
 
   @override
@@ -103,8 +104,15 @@ class _OTPScreenState extends State<OTPScreen> {
   }
 
   Future<void> _submitOTP(String code) async {
+    // Prevent multiple submissions
+    if (_hasSubmitted || _isLoading) {
+      debugPrint('Submission ignored - already processing: hasSubmitted=$_hasSubmitted, isLoading=$_isLoading');
+      return;
+    }
+    
     setState(() {
       _isLoading = true;
+      _hasSubmitted = true;
     });
 
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -131,6 +139,10 @@ class _OTPScreenState extends State<OTPScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          // Only reset hasSubmitted on error (success will navigate away)
+          if (response?.user == null) {
+            _hasSubmitted = false;
+          }
         });
       }
     }
@@ -182,12 +194,8 @@ class _OTPScreenState extends State<OTPScreen> {
                   // Only auto-submit if the code contains only digits
                   if (RegExp(r'^\d{6}$').hasMatch(code)) {
                     debugPrint('Auto-submitting code: $code');
-                    // Add a small delay to ensure it's the complete code
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      if (_otpCode == code && code.length == 6) {
-                        _submitOTP(code);
-                      }
-                    });
+                    // Submit immediately for SMS auto-fill
+                    _submitOTP(code);
                   } else {
                     debugPrint('Invalid code format (not 6 digits): $code');
                   }

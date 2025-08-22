@@ -42,14 +42,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userData = await _userService.getUserProfile(userId);
     if (userData != null) {
       _nameController.text = userData['display_name'] ?? '';
-      _bioController.text = userData['bio'] ?? ''; // New: Load biography
+      _bioController.text = userData['bio'] ?? '';
       _isPrivate = userData['is_private'] ?? false;
-      _phoneNumber =
-          userData['phone_number']; // Get phone number from user profile
+      _phoneNumber = userData['phone_number'];
     }
-    _profileImageUrl = _authService
-        .currentUser
-        ?.userMetadata?['photoURL']; // Access from user_metadata
+    
+    // Load profile image from user metadata (Google profile photo if available)
+    _profileImageUrl = _authService.currentUser?.userMetadata?['photoURL'];
 
     if (mounted) {
       setState(() => _isLoading = false);
