@@ -26,9 +26,14 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
   
   void _loadUserInfo() {
     final user = _authService.currentUser;
+    debugPrint('=== AddPhoneScreen Debug ===');
+    debugPrint('Current user: $user');
+    debugPrint('User email: ${user?.email}');
+    debugPrint('User metadata: ${user?.userMetadata}');
     setState(() {
       _userEmail = user?.email ?? 'Utilizador logado';
     });
+    debugPrint('Set _userEmail to: $_userEmail');
   }
 
   Future<void> _sendVerificationCode() async {

@@ -167,7 +167,7 @@ class WishItemStatusService {
       // Obter status dos itens
       var query = _supabase
           .from('wish_item_statuses')
-          .select('*, profiles!user_id(display_name)')
+          .select('*, users!user_id(display_name)')
           .inFilter('wish_item_id', itemIds);
 
       // Se só queremos status visíveis ao dono

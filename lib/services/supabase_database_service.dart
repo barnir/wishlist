@@ -602,7 +602,7 @@ class SupabaseDatabaseService {
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
       final profile = await _supabaseClient
-          .from('profiles')
+          .from('users')
           .select('id, email, display_name, phone_number, created_at')
           .eq('id', userId)
           .maybeSingle();

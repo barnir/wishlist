@@ -117,8 +117,8 @@ class _OTPScreenState extends State<OTPScreen> {
       );
       if (response.user != null) {
         if (mounted) {
-          // Navigate to home screen and clear the navigation stack
-          navigator.pushNamedAndRemoveUntil('/wishlists', (route) => false);
+          // Navigate to home screen (which will show the main app with navigation) and clear the navigation stack
+          navigator.pushNamedAndRemoveUntil('/', (route) => false);
         }
       }
     } on Exception catch (e) {

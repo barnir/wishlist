@@ -222,7 +222,7 @@ class ContactsService {
         final batch = phoneNumbers.skip(i).take(batchSize).toList();
         
         final batchResults = await _supabase
-            .from('profiles')
+            .from('users')
             .select('id, display_name, phone_number')
             .inFilter('phone_number', batch);
             
