@@ -16,6 +16,20 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
   bool _isLoading = false;
   bool _showPhoneForm = false;
   String? _telefoneCompleto;
+  String? _userEmail;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+  
+  void _loadUserInfo() {
+    final user = _authService.currentUser;
+    setState(() {
+      _userEmail = user?.email ?? 'Utilizador logado';
+    });
+  }
 
   Future<void> _sendVerificationCode() async {
     if (_telefoneCompleto == null || _telefoneCompleto!.isEmpty) {
@@ -88,6 +102,33 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
+        if (_userEmail != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.account_circle, color: Colors.blue.shade600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Logado como: $_userEmail',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.blue.shade800,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         const Text(
           'Para completar o registo, é necessário verificar um número de telemóvel.',
           style: TextStyle(

@@ -54,6 +54,10 @@ class AuthService {
     }
   }
 
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+  }
+
   Future<AuthResponse> createUserWithEmailAndPassword(String email, String password, String displayName) async {
     try {
       await _validatePassword(password);
@@ -66,8 +70,14 @@ class AuthService {
       final user = response.user;
       if (user != null) {
         // Create profile but phone_number will be required later
+        // Validate email format before saving
+        String? emailToSave = email;
+        if (emailToSave != null && !_isValidEmail(emailToSave)) {
+          throw Exception('Formato de email inválido.');
+        }
+        
         await _userService.createUserProfile(user.id, {
-          'email': email,
+          'email': emailToSave,
           'display_name': displayName,
           'phone_number': null, // Will be required to be set later
         });
@@ -121,8 +131,14 @@ class AuthService {
         final profile = await _userService.getUserProfile(user.id);
         if (profile == null) {
           // Create profile for Google user but require phone number
+          // Validate email format before saving
+          String? emailToSave = user.email;
+          if (emailToSave != null && !_isValidEmail(emailToSave)) {
+            emailToSave = null; // Don't save invalid email
+          }
+          
           await _userService.createUserProfile(user.id, {
-            'email': user.email,
+            'email': emailToSave,
             'display_name': user.userMetadata?['display_name'] ?? user.email?.split('@')[0],
             'phone_number': null, // Will be required to be set
           });
@@ -171,19 +187,34 @@ class AuthService {
   }
 
   Future<void> _createOrUpdateUserProfileForPhone(User user, String phoneNumber) async {
-    final existingProfile = await _userService.getUserProfile(user.id);
+    try {
+      final existingProfile = await _userService.getUserProfile(user.id);
 
-    if (existingProfile != null) {
-      // Profile exists, just update the phone number
-      await _userService.updateUserProfile(user.id, {'phone_number': phoneNumber});
-    } else {
-      // Profile doesn't exist, create it with phone number
-      // Email is optional when using phone login
-      await _userService.createUserProfile(user.id, {
-        'phone_number': phoneNumber,
-        'email': user.email, // Can be null for phone-only users
-        'display_name': user.userMetadata?['display_name'] ?? 'User',
-      });
+      if (existingProfile != null) {
+        // Profile exists, just update the phone number
+        await _userService.updateUserProfile(user.id, {'phone_number': phoneNumber});
+      } else {
+        // Profile doesn't exist, create it with phone number
+        // Validate email format before saving
+        String? emailToSave = user.email;
+        if (emailToSave != null && !_isValidEmail(emailToSave)) {
+          emailToSave = null; // Don't save invalid email
+        }
+        
+        await _userService.createUserProfile(user.id, {
+          'phone_number': phoneNumber,
+          'email': emailToSave,
+          'display_name': user.userMetadata?['display_name'] ?? 'User',
+        });
+      }
+    } catch (e) {
+      // Log the error and rethrow with more context
+      if (kDebugMode) {
+        print('Error creating/updating user profile for phone: $e');
+        print('User email: ${user.email}');
+        print('Phone number: $phoneNumber');
+      }
+      rethrow;
     }
   }
 

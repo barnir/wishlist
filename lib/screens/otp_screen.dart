@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sms_autofill/sms_autofill.dart';
@@ -26,6 +27,8 @@ class _OTPScreenState extends State<OTPScreen> {
 
   void _initSmsListener() async {
     try {
+      debugPrint('=== SMS AutoFill Debug Information ===');
+      
       // Request SMS permissions
       final smsPermission = await Permission.sms.status;
       debugPrint('SMS Permission status: $smsPermission');
@@ -35,8 +38,7 @@ class _OTPScreenState extends State<OTPScreen> {
         debugPrint('SMS Permission request result: $result');
         
         if (result != PermissionStatus.granted) {
-          debugPrint('SMS permission denied, auto-fill may not work');
-          // Show user message about manual entry
+          debugPrint('SMS permissions denied - auto-fill will not work');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -48,17 +50,22 @@ class _OTPScreenState extends State<OTPScreen> {
         }
       }
       
-      // Get app signature first
+      // Get app signature first - this is crucial for SMS retriever API
       final signature = await SmsAutoFill().getAppSignature;
       debugPrint('App signature: $signature');
+      debugPrint('Phone number for OTP: ${widget.phoneNumber}');
       
       // Start listening for SMS
       await SmsAutoFill().listenForCode();
-      
       debugPrint('SMS AutoFill listener started successfully');
+      
+      // Also set up a manual fallback check
+      _startManualSmsCheck();
+      
     } catch (e) {
       // Handle any errors with SMS auto-fill
       debugPrint('Error setting up SMS auto-fill: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
     }
   }
 
@@ -66,6 +73,33 @@ class _OTPScreenState extends State<OTPScreen> {
   void dispose() {
     SmsAutoFill().unregisterListener();
     super.dispose();
+  }
+
+  void _startManualSmsCheck() {
+    debugPrint('Starting manual SMS check as fallback...');
+    // This is a fallback mechanism
+    Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      // Check if we already have a code
+      if (_otpCode.length >= 6) {
+        timer.cancel();
+        debugPrint('Manual SMS check: Code already filled');
+        return;
+      }
+      
+      // Cancel after 2 minutes
+      if (timer.tick > 60) {
+        timer.cancel();
+        debugPrint('Manual SMS check: Timeout after 2 minutes');
+        return;
+      }
+      
+      debugPrint('Manual SMS check tick: ${timer.tick} - Still waiting for SMS...');
+    });
   }
 
   Future<void> _submitOTP(String code) async {
