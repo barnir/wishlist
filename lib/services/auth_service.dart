@@ -137,9 +137,12 @@ class AuthService {
             emailToSave = null; // Don't save invalid email
           }
           
+          // Extract the best display name from Google user data
+          String displayName = _extractDisplayNameFromGoogle(user, googleUser);
+          
           await _userService.createUserProfile(user.id, {
             'email': emailToSave,
-            'display_name': user.userMetadata?['display_name'] ?? user.email?.split('@')[0],
+            'display_name': displayName,
             'phone_number': null, // Will be required to be set
           });
           return GoogleSignInResult.missingPhoneNumber;
@@ -332,5 +335,28 @@ class AuthService {
     return profile != null && 
            profile['email'] != null && 
            profile['email'].toString().isNotEmpty;
+  }
+
+  /// Extracts the best display name from Google user data
+  String _extractDisplayNameFromGoogle(User user, GoogleSignInAccount googleUser) {
+    // Priority order:
+    // 1. Google user displayName (full name)
+    // 2. User metadata display_name
+    // 3. Email prefix as fallback
+    
+    if (googleUser.displayName != null && googleUser.displayName!.isNotEmpty) {
+      return googleUser.displayName!;
+    }
+    
+    if (user.userMetadata?['display_name'] != null && 
+        user.userMetadata!['display_name'].toString().isNotEmpty) {
+      return user.userMetadata!['display_name'];
+    }
+    
+    if (user.email != null) {
+      return user.email!.split('@')[0];
+    }
+    
+    return 'Utilizador';
   }
 }
