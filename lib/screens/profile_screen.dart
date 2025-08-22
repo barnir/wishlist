@@ -255,6 +255,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
 
+      // Close the dialog first before showing success message and navigating
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Conta apagada com sucesso.'),
