@@ -27,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isUploading = false;
   String? _profileImageUrl; // Use String for URL
   String? _phoneNumber; // To store phone number from user profile
+  String? _email; // To store email from user profile
 
   bool _isLoading = false;
 
@@ -45,6 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _bioController.text = userData['bio'] ?? '';
       _isPrivate = userData['is_private'] ?? false;
       _phoneNumber = userData['phone_number'];
+      _email = userData['email'];
     }
     
     // Load profile image from user metadata (Google profile photo if available)
@@ -322,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? CachedNetworkImageProvider(_profileImageUrl!)
                               : null,
                           child: _profileImageUrl == null && !_isUploading
-                              ? const Icon(Icons.add_a_photo, size: 50)
+                              ? const Icon(Icons.person, size: 50, color: Colors.grey)
                               : null,
                         ),
                         if (_isUploading)
@@ -361,9 +363,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              user.userMetadata?['display_name'] ??
-                                  user.email ??
-                                  'Sem nome',
+                              _nameController.text.isNotEmpty
+                                  ? _nameController.text
+                                  : user.userMetadata?['display_name'] ??
+                                      user.email ??
+                                      'Sem nome',
                               style: const TextStyle(fontSize: 20),
                             ),
                             IconButton(
@@ -458,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   const SizedBox(height: 16),
-                  if (user.email == null || user.email!.isEmpty)
+                  if (_email == null || _email!.isEmpty)
                     Column(
                       children: [
                         ElevatedButton(

@@ -19,6 +19,7 @@ import 'screens/explore_screen.dart';
 import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
 import 'screens/add_phone_screen.dart';
+import 'screens/setup_name_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/friend_suggestions_screen.dart';
 import 'screens/user_profile_screen.dart';
@@ -139,6 +140,7 @@ class _MyAppState extends State<MyApp> {
         },
         '/telefoneLogin': (_) => const TelefoneLoginScreen(),
         '/add_phone': (_) => const AddPhoneScreen(),
+        '/setup_name': (_) => const SetupNameScreen(),
         '/friend_suggestions': (_) => const FriendSuggestionsScreen(),
         '/user_profile': (context) {
           final userId = ModalRoute.of(context)?.settings.arguments as String;
@@ -172,8 +174,12 @@ class _MyAppState extends State<MyApp> {
                     profile['phone_number'].toString().isEmpty) {
                   // Phone number is missing, navigate to AddPhoneScreen
                   return const AddPhoneScreen();
+                } else if (profile['display_name'] == null ||
+                           profile['display_name'].toString().isEmpty) {
+                  // Phone number exists but display name is missing, navigate to SetupNameScreen
+                  return const SetupNameScreen();
                 } else {
-                  // Phone number exists, proceed to home
+                  // Both phone number and display name exist, proceed to home
                   if (_pendingSharedData != null) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       _handleSharedMedia(_pendingSharedData!);
