@@ -3,7 +3,10 @@
     "allow": [
       "Bash(flutter pub:*)",
       "Bash(flutter test:*)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter clean:*)",
+      "Bash(./gradlew:*)"
     ],
     "deny": [],
     "ask": []

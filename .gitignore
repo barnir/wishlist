@@ -135,6 +135,10 @@ app.*.symbols
 # IDE specific
 .idea/
 
+# Session progress files
+PROGRESS_SESSION.md
+SESSION_*.md
+
 # Supabase
 supabase/.temp/
 supabase_scripts/

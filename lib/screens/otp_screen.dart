@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sms_autofill/sms_autofill.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 class OTPScreen extends StatefulWidget {
@@ -19,12 +21,41 @@ class _OTPScreenState extends State<OTPScreen> {
   @override
   void initState() {
     super.initState();
-    _listenForCode();
+    _initSmsListener();
   }
 
-  void _listenForCode() async {
+  void _initSmsListener() async {
     try {
+      // Request SMS permissions
+      final smsPermission = await Permission.sms.status;
+      debugPrint('SMS Permission status: $smsPermission');
+      
+      if (smsPermission != PermissionStatus.granted) {
+        final result = await Permission.sms.request();
+        debugPrint('SMS Permission request result: $result');
+        
+        if (result != PermissionStatus.granted) {
+          debugPrint('SMS permission denied, auto-fill may not work');
+          // Show user message about manual entry
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Permissão de SMS negada. Terá de inserir o código manualmente.'),
+              ),
+            );
+          }
+          return;
+        }
+      }
+      
+      // Get app signature first
+      final signature = await SmsAutoFill().getAppSignature;
+      debugPrint('App signature: $signature');
+      
+      // Start listening for SMS
       await SmsAutoFill().listenForCode();
+      
+      debugPrint('SMS AutoFill listener started successfully');
     } catch (e) {
       // Handle any errors with SMS auto-fill
       debugPrint('Error setting up SMS auto-fill: $e');
@@ -53,7 +84,7 @@ class _OTPScreenState extends State<OTPScreen> {
       if (response.user != null) {
         if (mounted) {
           // Navigate to home screen and clear the navigation stack
-          navigator.pushNamedAndRemoveUntil('/', (route) => false);
+          navigator.pushNamedAndRemoveUntil('/wishlists', (route) => false);
         }
       }
     } on Exception catch (e) {
@@ -80,24 +111,41 @@ class _OTPScreenState extends State<OTPScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Insira o código de 6 dígitos enviado para o seu telemóvel.',
+            Text(
+              'Insira o código de 6 dígitos enviado para ${widget.phoneNumber}.',
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'O código será preenchido automaticamente quando receber o SMS.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+              ),
             ),
             const SizedBox(height: 24),
             PinFieldAutoFill(
               currentCode: _otpCode,
               codeLength: 6,
+              autoFocus: true,
+              cursor: Cursor(
+                width: 2,
+                height: 20,
+                color: Colors.blue,
+                enabled: true,
+              ),
               onCodeSubmitted: (code) {
-                // This is called when the user submits the code manually
+                debugPrint('Code submitted manually: $code');
                 _submitOTP(code);
               },
               onCodeChanged: (code) {
+                debugPrint('Code changed: $code');
                 setState(() {
                   _otpCode = code ?? '';
                 });
                 if (code != null && code.length == 6) {
-                  // Automatically submit when the code is filled
+                  debugPrint('Auto-submitting code: $code');
                   _submitOTP(code);
                 }
               },

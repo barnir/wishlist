@@ -14,6 +14,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   bool _isLoading = false;
+  bool _showPhoneForm = false;
   String? _telefoneCompleto;
 
   Future<void> _sendVerificationCode() async {
@@ -57,37 +58,149 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Adicionar Telemóvel')),
+      appBar: AppBar(
+        title: const Text('Completar Registo'),
+        automaticallyImplyLeading: false,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              IntlPhoneField(
-                initialCountryCode: 'PT',
-                decoration: const InputDecoration(
-                  labelText: 'Número de Telemóvel',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (phone) {
-                  _telefoneCompleto = phone.completeNumber;
-                },
-                onCountryChanged: (country) {
-                  _telefoneCompleto = null; // reset para novo país
-                },
-              ),
-              const SizedBox(height: 16),
-              if (_isLoading)
-                const CircularProgressIndicator()
-              else
-                ElevatedButton(
-                  onPressed: _sendVerificationCode,
-                  child: const Text('Enviar Código'),
-                ),
-            ],
+        padding: const EdgeInsets.all(24.0),
+        child: !_showPhoneForm ? _buildChoiceScreen() : _buildPhoneForm(),
+      ),
+    );
+  }
+
+  Widget _buildChoiceScreen() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(
+          Icons.phone_android,
+          size: 80,
+          color: Colors.blue,
+        ),
+        const SizedBox(height: 32),
+        const Text(
+          'Processo Incompleto',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Para completar o registo, é necessário verificar um número de telemóvel.',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 48),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _showPhoneForm = true;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Text(
+              'Continuar com Telemóvel',
+              style: TextStyle(fontSize: 16),
+            ),
           ),
         ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () async {
+              await _authService.signOut();
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Text(
+              'Escolher Outro Método',
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _showPhoneForm = false;
+                  });
+                },
+                icon: const Icon(Icons.arrow_back),
+              ),
+              const Expanded(
+                child: Text(
+                  'Adicionar Telemóvel',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'Insira o seu número de telemóvel para receber um código de verificação.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          IntlPhoneField(
+            initialCountryCode: 'PT',
+            decoration: const InputDecoration(
+              labelText: 'Número de Telemóvel',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (phone) {
+              _telefoneCompleto = phone.completeNumber;
+            },
+            onCountryChanged: (country) {
+              _telefoneCompleto = null; // reset para novo país
+            },
+          ),
+          const SizedBox(height: 24),
+          if (_isLoading)
+            const CircularProgressIndicator()
+          else
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _sendVerificationCode,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text(
+                  'Enviar Código',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

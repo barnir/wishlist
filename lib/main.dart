@@ -111,7 +111,6 @@ class _MyAppState extends State<MyApp> {
       darkTheme: darkAppTheme,
       themeMode: ThemeMode.system, // Adapta-se ao tema do sistema
       routes: {
-        '/': (_) => const HomeScreen(),
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
         '/profile': (_) => const ProfileScreen(),
