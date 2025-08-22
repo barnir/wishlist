@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
 class OTPScreen extends StatefulWidget {
@@ -117,9 +118,11 @@ class _OTPScreenState extends State<OTPScreen> {
 
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    
+    AuthResponse? response;
 
     try {
-      final response = await _authService.verifyPhoneOtp(
+      response = await _authService.verifyPhoneOtp(
         widget.phoneNumber,
         code,
       );

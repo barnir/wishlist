@@ -71,13 +71,12 @@ class AuthService {
       if (user != null) {
         // Create profile but phone_number will be required later
         // Validate email format before saving
-        String? emailToSave = email;
-        if (emailToSave != null && !_isValidEmail(emailToSave)) {
+        if (!_isValidEmail(email)) {
           throw Exception('Formato de email inválido.');
         }
         
         await _userService.createUserProfile(user.id, {
-          'email': emailToSave,
+          'email': email,
           'display_name': displayName,
           'phone_number': null, // Will be required to be set later
         });
