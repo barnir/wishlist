@@ -179,8 +179,18 @@ class _OTPScreenState extends State<OTPScreen> {
                   _otpCode = code ?? '';
                 });
                 if (code != null && code.length == 6) {
-                  debugPrint('Auto-submitting code: $code');
-                  _submitOTP(code);
+                  // Only auto-submit if the code contains only digits
+                  if (RegExp(r'^\d{6}$').hasMatch(code)) {
+                    debugPrint('Auto-submitting code: $code');
+                    // Add a small delay to ensure it's the complete code
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      if (_otpCode == code && code.length == 6) {
+                        _submitOTP(code);
+                      }
+                    });
+                  } else {
+                    debugPrint('Invalid code format (not 6 digits): $code');
+                  }
                 }
               },
               decoration: BoxLooseDecoration(

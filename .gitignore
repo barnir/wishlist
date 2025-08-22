@@ -136,6 +136,11 @@ app.*.symbols
 .idea/
 .claude/
 
+# Claude AI assistant directories
+.claude_temp/
+claude_work/
+.claude_cache/
+
 # Session progress files
 PROGRESS_SESSION.md
 SESSION_*.md

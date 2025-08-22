@@ -445,7 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Telemóvel: \$_phoneNumber'),
+                        Text('Telemóvel: $_phoneNumber'),
                         TextButton(
                           onPressed: () {
                             Navigator.of(context).push(
