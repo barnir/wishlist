@@ -48,30 +48,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _phoneNumber = userData['phone_number'];
     }
     
-    // Debug: Check user metadata
-    final userMetadata = _authService.currentUser?.userMetadata;
+    // Debug: Check user info  
+    final user = _authService.currentUser;
     debugPrint('=== Profile Debug Information ===');
     debugPrint('Current user ID: $userId');
-    debugPrint('UserMetadata: $userMetadata');
-    debugPrint('Raw metadata keys: ${userMetadata?.keys.toList()}');
+    debugPrint('User display name: ${user?.displayName}');
+    debugPrint('User email: ${user?.email}');
+    debugPrint('User photo URL: ${user?.photoURL}');
     
     // Load profile image from Firebase user or database
     _profileImageUrl = _authService.currentUser?.photoURL ?? userData?['photo_url'];
     debugPrint('Profile image URL found: $_profileImageUrl');
 
-    // If no name in database, try to get from Google metadata
+    // If no name in database, try to get from Firebase user
     debugPrint('Current display name from DB: "${_nameController.text}"');
     if (_nameController.text.isEmpty) {
-      final googleName = userMetadata?['full_name'] ?? 
-                        userMetadata?['name'] ?? 
-                        userMetadata?['display_name'];
-      debugPrint('Google name found: "$googleName"');
-      if (googleName != null) {
-        _nameController.text = googleName;
-        debugPrint('Setting name to: "$googleName"');
+      final firebaseName = user?.displayName;
+      debugPrint('Firebase display name found: "$firebaseName"');
+      if (firebaseName != null) {
+        _nameController.text = firebaseName;
+        debugPrint('Setting name to: "$firebaseName"');
         // Save to database for future use
         await _userService.updateUserProfile(userId, {
-          'display_name': googleName,
+          'display_name': firebaseName,
         });
       }
     }

@@ -148,7 +148,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         elevation: 0,
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _supabaseDatabaseService.getWishlists(user.id),
+        stream: _supabaseDatabaseService.getWishlists(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

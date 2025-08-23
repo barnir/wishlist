@@ -36,7 +36,7 @@ class _SetupNameScreenState extends State<SetupNameScreen> {
       
       // Update both user metadata and profile
       await _authService.updateUser(displayName: _nameController.text.trim());
-      await _userService.updateUserProfile(user.id, {
+      await _userService.updateUserProfile(user.uid, {
         'display_name': _nameController.text.trim(),
       });
 

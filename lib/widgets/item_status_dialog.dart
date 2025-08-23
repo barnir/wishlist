@@ -96,17 +96,38 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
             Spacing.s,
             
             ...ItemPurchaseStatus.values.map((status) => 
-              RadioListTile<ItemPurchaseStatus>(
-                title: Text(status.displayName),
-                subtitle: Text(_getStatusDescription(status)),
-                value: status,
-                groupValue: _selectedStatus,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedStatus = value!;
-                  });
-                },
-                contentPadding: EdgeInsets.zero,
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 4.0),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: _selectedStatus == status 
+                      ? Theme.of(context).colorScheme.primary 
+                      : Colors.grey.shade300,
+                    width: _selectedStatus == status ? 2.0 : 1.0,
+                  ),
+                  borderRadius: BorderRadius.circular(8.0),
+                  color: _selectedStatus == status 
+                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                    : null,
+                ),
+                child: ListTile(
+                  leading: Icon(
+                    _selectedStatus == status 
+                      ? Icons.radio_button_checked 
+                      : Icons.radio_button_unchecked,
+                    color: _selectedStatus == status 
+                      ? Theme.of(context).colorScheme.primary 
+                      : null,
+                  ),
+                  title: Text(status.displayName),
+                  subtitle: Text(_getStatusDescription(status)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                  onTap: () {
+                    setState(() {
+                      _selectedStatus = status;
+                    });
+                  },
+                ),
               ),
             ),
             

@@ -81,7 +81,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
 
     final displayName = _userProfile!['display_name'] as String? ?? 'Utilizador';
-    final email = _userProfile!['email'] as String?;
 
     return Scaffold(
       appBar: WishlistAppBar(
@@ -101,7 +100,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildProfileHeader() {
     final displayName = _userProfile!['display_name'] as String? ?? 'Utilizador';
-    final email = _userProfile!['email'] as String?;
 
     return Container(
       width: double.infinity,
@@ -136,10 +134,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-          if (email != null && email.isNotEmpty) ...[
+          if ((_userProfile!['email'] as String?) != null && (_userProfile!['email'] as String).isNotEmpty) ...[
             Spacing.xs,
             Text(
-              email,
+              _userProfile!['email'] as String,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

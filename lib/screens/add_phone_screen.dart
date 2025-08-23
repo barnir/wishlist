@@ -29,7 +29,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
     debugPrint('=== AddPhoneScreen Debug ===');
     debugPrint('Current user: $user');
     debugPrint('User email: ${user?.email}');
-    debugPrint('User metadata: ${user?.userMetadata}');
+    debugPrint('User display name: ${user?.displayName}');
     setState(() {
       _userEmail = user?.email ?? 'Utilizador logado';
     });

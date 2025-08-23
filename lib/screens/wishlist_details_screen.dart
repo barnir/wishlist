@@ -8,7 +8,6 @@ import '../models/wish_item.dart';
 import '../models/category.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
-import '../services/wish_item_status_service.dart';
 import '../models/wish_item_status.dart';
 import '../widgets/item_status_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,7 +23,6 @@ class WishlistDetailsScreen extends StatefulWidget {
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   final _supabaseDatabaseService = SupabaseDatabaseService();
-  final _statusService = WishItemStatusService();
   
   bool _isOwner = false;
 

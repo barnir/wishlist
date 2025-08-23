@@ -24,7 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _navigateToHomeOrLinkPhone() async {
     final user = _authService.currentUser;
     if (user != null) {
-      final userProfile = await _userService.getUserProfile(user.id);
+      final userProfile = await _userService.getUserProfile(user.uid);
       if (userProfile == null ||
           userProfile['phone_number'] == null ||
           userProfile['phone_number'].isEmpty) {
