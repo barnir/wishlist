@@ -57,9 +57,24 @@ class _OTPScreenState extends State<OTPScreen> {
       debugPrint('App signature: $signature');
       debugPrint('Phone number for OTP: ${widget.phoneNumber}');
       
-      // Start listening for SMS
+      // Try to get the complete SMS message format
+      debugPrint('Expected SMS format should include: <6-digit-code> followed by $signature');
+      
+      // Start listening for SMS with enhanced debugging
       await SmsAutoFill().listenForCode();
       debugPrint('SMS AutoFill listener started successfully');
+      
+      // Set up code change listener for debugging
+      SmsAutoFill().code.listen((code) {
+        debugPrint('SMS AutoFill detected code: $code');
+        if (code != null && code.isNotEmpty) {
+          debugPrint('Code length: ${code.length}');
+          debugPrint('Code content: \"$code\"');
+          setState(() {
+            _otpCode = code;
+          });
+        }
+      });
       
       // Also set up a manual fallback check
       _startManualSmsCheck();

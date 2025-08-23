@@ -49,8 +49,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _email = userData['email'];
     }
     
-    // Load profile image from user metadata (Google profile photo if available)
-    _profileImageUrl = _authService.currentUser?.userMetadata?['photoURL'];
+    // Debug: Check user metadata
+    final userMetadata = _authService.currentUser?.userMetadata;
+    debugPrint('=== Profile Debug Information ===');
+    debugPrint('Current user ID: $userId');
+    debugPrint('UserMetadata: $userMetadata');
+    debugPrint('Raw metadata keys: ${userMetadata?.keys.toList()}');
+    
+    // Load profile image from user metadata (try multiple sources)
+    _profileImageUrl = userMetadata?['photoURL'] ?? 
+                     userMetadata?['avatar_url'] ?? 
+                     userMetadata?['picture'];
+    debugPrint('Profile image URL found: $_profileImageUrl');
+
+    // If no name in database, try to get from Google metadata
+    debugPrint('Current display name from DB: "${_nameController.text}"');
+    if (_nameController.text.isEmpty) {
+      final googleName = userMetadata?['full_name'] ?? 
+                        userMetadata?['name'] ?? 
+                        userMetadata?['display_name'];
+      debugPrint('Google name found: "$googleName"');
+      if (googleName != null) {
+        _nameController.text = googleName;
+        debugPrint('Setting name to: "$googleName"');
+        // Save to database for future use
+        await _userService.updateUserProfile(userId, {
+          'display_name': googleName,
+        });
+      }
+    }
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -462,7 +489,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   const SizedBox(height: 16),
-                  if (_email == null || _email!.isEmpty)
+                  // Email section - show similar to phone when user has email
+                  if (user.email == null || user.email!.isEmpty)
                     Column(
                       children: [
                         ElevatedButton(
@@ -511,8 +539,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     )
                   else
                     Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user.email!),
+                        Text('Email: ${user.email}'),
                         TextButton(
                           onPressed: () {
                             Navigator.of(context).push(

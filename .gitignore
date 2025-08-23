@@ -148,3 +148,5 @@ SESSION_*.md
 # Supabase
 supabase/.temp/
 supabase_scripts/
+android/NDH6SA~M
+.gitignore
