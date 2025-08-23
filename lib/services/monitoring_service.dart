@@ -10,6 +10,15 @@ class MonitoringService {
   factory MonitoringService() => _instance;
   MonitoringService._internal();
 
+  // Error categories (from ErrorService)
+  static const String _authError = 'auth';
+  static const String _networkError = 'network';
+  static const String _databaseError = 'database';
+  static const String _storageError = 'storage';
+  static const String _validationError = 'validation';
+  static const String _rateLimitError = 'rate_limit';
+  static const String _unknownError = 'unknown';
+
   final SupabaseClient _supabaseClient = Supabase.instance.client;
   final Map<String, DateTime> _operationStartTimes = {};
   final List<PerformanceMetric> _metrics = [];
@@ -69,6 +78,49 @@ class MonitoringService {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  // Error tracking with context (from merged ErrorService)
+  void logErrorWithContext(
+    String error,
+    StackTrace? stackTrace, {
+    String? context,
+    String? operation,
+    Map<String, dynamic>? metadata,
+  }) {
+    final combinedMetadata = <String, dynamic>{
+      if (context != null) 'context': context,
+      ...?metadata,
+    };
+    
+    logError(error, stackTrace, operation: operation, metadata: combinedMetadata);
+  }
+
+  // Static method for easy access (from merged ErrorService)
+  static void logErrorStatic(
+    String message,
+    Object error, {
+    StackTrace? stackTrace,
+    String? context,
+    String? operation,
+  }) {
+    MonitoringService()._logErrorWithContext(message, error, stackTrace: stackTrace, context: context, operation: operation);
+  }
+
+  void _logErrorWithContext(
+    String message,
+    Object error, {
+    StackTrace? stackTrace,
+    String? context,
+    String? operation,
+  }) {
+    final errorMessage = '$message: $error';
+    final combinedMetadata = <String, dynamic>{
+      if (context != null) 'context': context,
+      'error_object': error.toString(),
+    };
+    
+    logError(errorMessage, stackTrace, operation: operation, metadata: combinedMetadata);
   }
 
   // User interaction tracking

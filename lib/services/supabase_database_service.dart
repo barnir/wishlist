@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:wishlist_app/services/error_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 
@@ -34,7 +34,7 @@ class SupabaseDatabaseService {
           .order('created_at', ascending: false);
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
-      ErrorService.logError('get_wishlists_for_current_user', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_wishlists_for_current_user', e, stackTrace: stackTrace: StackTrace.current);
       return [];
     }
   }
@@ -49,7 +49,7 @@ class SupabaseDatabaseService {
           .single();
       return response;
     } catch (e) {
-      ErrorService.logError('get_wishlist', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_wishlist', e, stackTrace: stackTrace: StackTrace.current);
       return null;
     }
   }
@@ -102,7 +102,7 @@ class SupabaseDatabaseService {
     try {
       await _supabaseClient.from('wishlists').delete().eq('id', wishlistId);
     } catch (e) {
-      ErrorService.logError('delete_wishlist', e, StackTrace.current);
+      MonitoringService.logErrorStatic('delete_wishlist', e, stackTrace: StackTrace.current);
     }
   }
 
@@ -130,7 +130,7 @@ class SupabaseDatabaseService {
           .single();
       return response;
     } catch (e) {
-      ErrorService.logError('get_wish_item', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_wish_item', e, stackTrace: StackTrace.current);
       return null;
     }
   }
@@ -177,7 +177,7 @@ class SupabaseDatabaseService {
     try {
       await _supabaseClient.from('wish_items').delete().eq('id', itemId);
     } catch (e) {
-      ErrorService.logError('delete_wish_item', e, StackTrace.current);
+      MonitoringService.logErrorStatic('delete_wish_item', e, stackTrace: StackTrace.current);
     }
   }
 
@@ -229,7 +229,7 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data))
         .handleError((e) {
-          ErrorService.logError('get_wishlists_with_counts', e, StackTrace.current);
+          MonitoringService.logErrorStatic('get_wishlists_with_counts', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
   }
@@ -248,7 +248,7 @@ class SupabaseDatabaseService {
       
       return response;
     } catch (e) {
-      ErrorService.logError('get_wishlist_with_items', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_wishlist_with_items', e, stackTrace: StackTrace.current);
       return null;
     }
   }
@@ -273,7 +273,7 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data))
         .handleError((e) {
-          ErrorService.logError('get_public_wishlists', e, StackTrace.current);
+          MonitoringService.logErrorStatic('get_public_wishlists', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
   }
@@ -311,11 +311,11 @@ class SupabaseDatabaseService {
           .asStream()
           .map((data) => List<Map<String, dynamic>>.from(data))
           .handleError((e) {
-            ErrorService.logError('get_wish_items_paginated', e, StackTrace.current);
+            MonitoringService.logErrorStatic('get_wish_items_paginated', e, stackTrace: StackTrace.current);
             return <Map<String, dynamic>>[];
           });
     } catch (e) {
-      ErrorService.logError('get_wish_items_paginated', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_wish_items_paginated', e, stackTrace: StackTrace.current);
       return Stream.value(<Map<String, dynamic>>[]);
     }
   }
@@ -362,7 +362,7 @@ class SupabaseDatabaseService {
         'total_value': totalValue,
       };
     } catch (e) {
-      ErrorService.logError('get_items_by_category', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_items_by_category', e, stackTrace: StackTrace.current);
       return {};
     }
   }
@@ -388,7 +388,7 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data))
         .handleError((e) {
-          ErrorService.logError('get_public_users', e, StackTrace.current);
+          MonitoringService.logErrorStatic('get_public_users', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
   }
@@ -430,7 +430,7 @@ class SupabaseDatabaseService {
 
       return response;
     } catch (e) {
-      ErrorService.logError('get_user_profile_with_stats', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_user_profile_with_stats', e, stackTrace: StackTrace.current);
       return null;
     }
   }
@@ -458,7 +458,7 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data))
         .handleError((e) {
-          ErrorService.logError('get_friends_with_info', e, StackTrace.current);
+          MonitoringService.logErrorStatic('get_friends_with_info', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
   }
@@ -499,7 +499,7 @@ class SupabaseDatabaseService {
         yield data;
       }
     } catch (e) {
-      ErrorService.logError('get_mutual_friends', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_mutual_friends', e, stackTrace: StackTrace.current);
       yield [];
     }
   }
@@ -528,7 +528,7 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data))
         .handleError((e) {
-          ErrorService.logError('search_wishlists', e, StackTrace.current);
+          MonitoringService.logErrorStatic('search_wishlists', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
   }
@@ -556,7 +556,7 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data))
         .handleError((e) {
-          ErrorService.logError('search_wish_items', e, StackTrace.current);
+          MonitoringService.logErrorStatic('search_wish_items', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
   }
@@ -580,7 +580,7 @@ class SupabaseDatabaseService {
         .asStream()
         .map((data) => List<Map<String, dynamic>>.from(data))
         .handleError((e) {
-          ErrorService.logError('search_users', e, StackTrace.current);
+          MonitoringService.logErrorStatic('search_users', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
   }
@@ -600,7 +600,7 @@ class SupabaseDatabaseService {
       
       return profile;
     } catch (e) {
-      ErrorService.logError('getUserProfile', e, StackTrace.current);
+      MonitoringService.logErrorStatic('getUserProfile', e, stackTrace: StackTrace.current);
       return null;
     }
   }
@@ -632,7 +632,7 @@ class SupabaseDatabaseService {
         'timestamp': DateTime.now().toIso8601String(),
       };
     } catch (e) {
-      ErrorService.logError('get_app_stats', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_app_stats', e, stackTrace: StackTrace.current);
       return {};
     }
   }
@@ -675,7 +675,7 @@ class SupabaseDatabaseService {
         'timestamp': DateTime.now().toIso8601String(),
       };
     } catch (e) {
-      ErrorService.logError('get_user_stats', e, StackTrace.current);
+      MonitoringService.logErrorStatic('get_user_stats', e, stackTrace: StackTrace.current);
       return {};
     }
   }

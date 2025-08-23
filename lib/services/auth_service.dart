@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/supabase_functions_service.dart';
 
 enum GoogleSignInResult {
   success,
@@ -19,6 +20,7 @@ class AuthService {
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final UserService _userService = UserService();
+  final SupabaseFunctionsService _supabaseFunctionsService = SupabaseFunctionsService();
 
   Stream<firebase_auth.User?> get authStateChanges => _firebaseAuthService.authStateChanges;
 
@@ -271,18 +273,42 @@ class AuthService {
     }
     
     try {
-      debugPrint('=== AuthService: Delete Account ===');
+      debugPrint('=== AuthService: Complete Account Deletion ===');
+      debugPrint('User ID: ${user.uid}');
       
-      // First delete user profile from database  
+      // Step 1: Log Cloudinary images that need cleanup (client-side can't delete)
       try {
-        await _userService.deleteUserProfile(user.uid);
+        final cloudinaryResult = await _cloudinaryService.deleteUserImages(user.uid);
+        debugPrint('Cloudinary cleanup result: $cloudinaryResult');
       } catch (e) {
-        debugPrint('Warning: Could not delete user profile from database: $e');
-        // Continue with Firebase account deletion even if database deletion fails
+        debugPrint('Warning: Cloudinary cleanup logging failed: $e');
+        // Continue anyway
       }
       
-      // Then delete Firebase user
+      // Step 2: Delete all Supabase data using edge function
+      try {
+        final supabaseResult = await _supabaseFunctionsService.deleteUser();
+        debugPrint('Supabase cleanup result: $supabaseResult');
+        
+        if (!supabaseResult['success']) {
+          debugPrint('Warning: Supabase cleanup failed: ${supabaseResult['error']}');
+          // Continue with Firebase deletion anyway to avoid user being stuck
+        }
+      } catch (e) {
+        debugPrint('Warning: Supabase cleanup failed: $e');
+        // Fallback: try basic profile deletion
+        try {
+          await _userService.deleteUserProfile(user.uid);
+        } catch (fallbackError) {
+          debugPrint('Fallback deletion also failed: $fallbackError');
+        }
+      }
+      
+      // Step 3: Finally delete Firebase user (this cannot be undone)
+      debugPrint('Deleting Firebase user...');
       await user.delete();
+      
+      debugPrint('Account deletion completed successfully');
     } catch (e) {
       debugPrint('AuthService delete account error: $e');
       rethrow;

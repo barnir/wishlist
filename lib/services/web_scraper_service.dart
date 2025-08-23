@@ -5,8 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
 import 'package:wishlist_app/config.dart';
-import 'package:wishlist_app/services/rate_limiter.dart';
-import 'package:wishlist_app/services/error_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 
 /// Serviço de web scraping seguro usando Edge Function do Supabase
 /// 
@@ -19,7 +18,7 @@ import 'package:wishlist_app/services/error_service.dart';
 /// - Rate limiting inteligente
 /// - Fallback para scraping básico (sem API externa)
 /// - Validação de domínios para reduzir chamadas desnecessárias
-class WebScraperServiceSecure with RateLimitMixin {
+class WebScraperServiceSecure {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
   
   // Cache local para economizar chamadas à Edge Function (plano gratuito)
@@ -33,33 +32,31 @@ class WebScraperServiceSecure with RateLimitMixin {
   /// - Rate limiting para não exceder limites
   /// - Fallback para scraping básico (sem custo)
   Future<Map<String, dynamic>> scrape(String url, {String? userId}) async {
-    return withRateLimit('scrape', userId: userId, operation: () async {
-      try {
-        // Verificar cache primeiro (economiza chamadas à Edge Function)
-        final cachedResult = _getFromCache(url);
-        if (cachedResult != null) {
-          debugPrint('📦 Cache hit for URL: $url');
-          return cachedResult;
-        }
-        
-        // Primeiro tentar usar a Edge Function segura
-        final result = await _scrapeWithEdgeFunction(url);
-        
-        // Guardar no cache (economiza futuras chamadas)
-        _saveToCache(url, result);
-        
-        return result;
-      } catch (e) {
-        // Se a Edge Function falhar, usar fallback com validação
-        ErrorService.logError('web_scraping_edge_function', e, StackTrace.current);
-        final fallbackResult = await _scrapeWithFallback(url);
-        
-        // Guardar resultado do fallback no cache também
-        _saveToCache(url, fallbackResult);
-        
-        return fallbackResult;
+    try {
+      // Verificar cache primeiro (economiza chamadas à Edge Function)
+      final cachedResult = _getFromCache(url);
+      if (cachedResult != null) {
+        debugPrint('📦 Cache hit for URL: $url');
+        return cachedResult;
       }
-    });
+      
+      // Primeiro tentar usar a Edge Function segura
+      final result = await _scrapeWithEdgeFunction(url);
+      
+      // Guardar no cache (economiza futuras chamadas)
+      _saveToCache(url, result);
+      
+      return result;
+    } catch (e) {
+      // Se a Edge Function falhar, usar fallback com validação
+      MonitoringService.logErrorStatic('web_scraping_edge_function', e, stackTrace: StackTrace.current);
+      final fallbackResult = await _scrapeWithFallback(url);
+      
+      // Guardar resultado do fallback no cache também
+      _saveToCache(url, fallbackResult);
+      
+      return fallbackResult;
+    }
   }
 
   /// Scraping usando Edge Function segura
