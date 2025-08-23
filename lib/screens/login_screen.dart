@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // After email login, check for phone number
         final user = _authService.currentUser;
         if (user != null) {
-          final userProfile = await _userService.getUserProfile(user.id);
+          final userProfile = await _userService.getUserProfile(user.uid);
           if (!mounted) return;
           if (userProfile == null ||
               userProfile['phone_number'] == null ||

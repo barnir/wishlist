@@ -6,7 +6,7 @@ import 'package:wishlist_app/screens/link_email_screen.dart';
 import 'package:wishlist_app/screens/link_phone_screen.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,6 +18,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
   final _userService = UserService();
+  final _cloudinaryService = CloudinaryService();
 
   final _nameController = TextEditingController();
   final _bioController = TextEditingController(); // New
@@ -27,7 +28,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isUploading = false;
   String? _profileImageUrl; // Use String for URL
   String? _phoneNumber; // To store phone number from user profile
-  String? _email; // To store email from user profile
 
   bool _isLoading = false;
 
@@ -39,14 +39,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.id;
+    final userId = _authService.currentUser!.uid;
     final userData = await _userService.getUserProfile(userId);
     if (userData != null) {
       _nameController.text = userData['display_name'] ?? '';
       _bioController.text = userData['bio'] ?? '';
       _isPrivate = userData['is_private'] ?? false;
       _phoneNumber = userData['phone_number'];
-      _email = userData['email'];
     }
     
     // Debug: Check user metadata
@@ -56,10 +55,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     debugPrint('UserMetadata: $userMetadata');
     debugPrint('Raw metadata keys: ${userMetadata?.keys.toList()}');
     
-    // Load profile image from user metadata (try multiple sources)
-    _profileImageUrl = userMetadata?['photoURL'] ?? 
-                     userMetadata?['avatar_url'] ?? 
-                     userMetadata?['picture'];
+    // Load profile image from Firebase user or database
+    _profileImageUrl = _authService.currentUser?.photoURL ?? userData?['photo_url'];
     debugPrint('Profile image URL found: $_profileImageUrl');
 
     // If no name in database, try to get from Google metadata
@@ -99,12 +96,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       try {
         await _authService.updateProfilePicture(tempFile);
-        final newUrl = _authService.currentUser?.userMetadata?['photoURL'];
-        if (newUrl != null) {
-          setState(() {
-            _profileImageUrl = newUrl;
-          });
-        }
+        // Reload user data to get updated photo URL
+        await _loadProfileData();
       } catch (e) {
         // Handle error
         if (mounted) {
@@ -127,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_nameController.text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.id;
+    final userId = _authService.currentUser!.uid;
     await _authService.updateUser(
       displayName: _nameController.text.trim(),
     ); // Update user metadata
@@ -145,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final userId = _authService.currentUser!.id;
+      final userId = _authService.currentUser!.uid;
       await _userService.updateUserProfile(userId, {
         'bio': _bioController.text.trim(),
       });
@@ -170,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _savePrivacySetting(bool isPrivate) async {
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.id;
+    final userId = _authService.currentUser!.uid;
     await _userService.updateUserProfile(userId, {'is_private': isPrivate});
     setState(() => _isPrivate = isPrivate);
     if (mounted) {
@@ -268,18 +261,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
 
     try {
-      // Call the secure Edge Function
-      final response = await Supabase.instance.client.functions.invoke(
-        'delete-user',
-      );
-
-      if (response.status != 200) {
-        // If the function returns an error status, throw an exception
-        final errorData = response.data as Map<String, dynamic>?;
-        throw Exception(
-          'Falha ao apagar a conta: ${errorData?['error'] ?? 'Erro desconhecido'}',
-        );
-      }
+      debugPrint('=== Deleting Firebase User Account ===');
+      
+      await _authService.deleteAccount();
 
       if (!mounted) return;
 
@@ -295,15 +279,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
-      // Sign out and navigate to login
-      await _authService.signOut();
+      // Navigate to login
       if (mounted) {
-        // Pop all routes until login screen
         Navigator.of(
           context,
         ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
+      debugPrint('Error deleting account: $e');
       if (!mounted) return;
       // Close the dialog if it's still open on error
       if (Navigator.of(context).canPop()) {
@@ -311,12 +294,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceFirst("Exception: ", "")),
+          content: Text('Erro ao apagar conta: ${e.toString()}'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
-    // No finally block to change isLoading, as the screen will be disposed.
   }
 
   @override
@@ -348,7 +330,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             context,
                           ).colorScheme.primary.withAlpha(26),
                           backgroundImage: _profileImageUrl != null
-                              ? CachedNetworkImageProvider(_profileImageUrl!)
+                              ? CachedNetworkImageProvider(
+                                  _cloudinaryService.optimizeExistingUrl(
+                                    _profileImageUrl!, 
+                                    ImageType.profileLarge
+                                  )
+                                )
                               : null,
                           child: _profileImageUrl == null && !_isUploading
                               ? const Icon(Icons.person, size: 50, color: Colors.grey)
@@ -392,7 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               _nameController.text.isNotEmpty
                                   ? _nameController.text
-                                  : user.userMetadata?['display_name'] ??
+                                  : user.displayName ??
                                       user.email ??
                                       'Sem nome',
                               style: const TextStyle(fontSize: 20),

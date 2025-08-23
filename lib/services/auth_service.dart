@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
-import 'package:wishlist_app/config.dart';
-import 'package:wishlist_app/services/supabase_storage_service_secure.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:wishlist_app/services/firebase_auth_service.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
 enum GoogleSignInResult {
@@ -13,26 +13,25 @@ enum GoogleSignInResult {
   failed,
 }
 
+/// Wrapper around FirebaseAuthService to maintain compatibility
+/// Firebase for Auth, Supabase for Database, Cloudinary for Images
 class AuthService {
-  final SupabaseClient _supabaseClient = Supabase.instance.client;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: Config.googleSignInServerClientId,
-  );
-  final SupabaseStorageServiceSecure _supabaseStorageService = SupabaseStorageServiceSecure();
+  final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
   final UserService _userService = UserService();
 
-  Stream<User?> get authStateChanges => _supabaseClient.auth.onAuthStateChange.map((data) => data.session?.user);
+  Stream<firebase_auth.User?> get authStateChanges => _firebaseAuthService.authStateChanges;
 
-  User? get currentUser => _supabaseClient.auth.currentUser;
+  firebase_auth.User? get currentUser => _firebaseAuthService.currentUser;
 
-  Future<AuthResponse> signInWithEmailAndPassword(String email, String password) async {
+  /// Email/Password Sign-In (Firebase)
+  Future<firebase_auth.UserCredential> signInWithEmailAndPassword(String email, String password) async {
     try {
-      return await _supabaseClient.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      debugPrint('=== AuthService: Email Sign-In ===');
+      return await _firebaseAuthService.signInWithEmailAndPassword(email, password);
+    } catch (e) {
+      debugPrint('AuthService email sign-in error: $e');
+      rethrow;
     }
   }
 
@@ -49,192 +48,108 @@ class AuthService {
     if (!password.contains(RegExp(r'[0-9]'))) {
       throw Exception('A senha deve conter pelo menos um número.');
     }
-    if (!password.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'))) {
+    if (!password.contains(RegExp(r'[!@#\\$%^&*(),.?\":{}|<>]'))) {
       throw Exception('A senha deve conter pelo menos um símbolo.');
     }
   }
 
   bool _isValidEmail(String email) {
-    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$').hasMatch(email);
   }
 
-  Future<AuthResponse> createUserWithEmailAndPassword(String email, String password, String displayName) async {
+  Future<firebase_auth.UserCredential> createUserWithEmailAndPassword(String email, String password, String displayName) async {
     try {
+      debugPrint('=== AuthService: Email Registration ===');
       await _validatePassword(password);
-
-      final AuthResponse response = await _supabaseClient.auth.signUp(
-        email: email,
-        password: password,
-        data: {'display_name': displayName},
-      );
-      final user = response.user;
-      if (user != null) {
-        // Create profile but phone_number will be required later
-        // Validate email format before saving
-        if (!_isValidEmail(email)) {
-          throw Exception('Formato de email inválido.');
-        }
-        
-        await _userService.createUserProfile(user.id, {
-          'email': email,
-          'display_name': displayName,
-          'phone_number': null, // Will be required to be set later
-        });
+      
+      if (!_isValidEmail(email)) {
+        throw Exception('Formato de email inválido.');
       }
-      return response;
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      
+      return await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);
+    } catch (e) {
+      debugPrint('AuthService email registration error: $e');
+      rethrow;
     }
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _supabaseClient.auth.signOut();
+    try {
+      debugPrint('=== AuthService: Sign Out ===');
+      await _firebaseAuthService.signOut();
+    } catch (e) {
+      debugPrint('AuthService sign out error: $e');
+      rethrow;
+    }
   }
 
   Future<GoogleSignInResult> signInWithGoogle() async {
     try {
-      if (kIsWeb) {
-        // Web implementation - does not support phone number check directly
-        await _supabaseClient.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: 'com.example.wishlist_app://login-callback',
-        );
-        // On web, we can't immediately know the result. Assume success for now.
-        // A more robust solution would involve handling the redirect and then checking.
-        return GoogleSignInResult.success;
-      } else if (Platform.isAndroid || Platform.isIOS) {
-        final googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) {
-          return GoogleSignInResult.cancelled;
-        }
-        final googleAuth = await googleUser.authentication;
-        final accessToken = googleAuth.accessToken;
-        final idToken = googleAuth.idToken;
-
-        if (accessToken == null || idToken == null) {
-          return GoogleSignInResult.failed;
-        }
-
-        await _supabaseClient.auth.signInWithIdToken(
-          provider: OAuthProvider.google,
-          idToken: idToken,
-          accessToken: accessToken,
-        );
-
-        final user = _supabaseClient.auth.currentUser;
-        if (user == null) {
-          return GoogleSignInResult.failed;
-        }
-
-        final profile = await _userService.getUserProfile(user.id);
-        if (profile == null) {
-          // Create profile for Google user but require phone number
-          // Validate email format before saving
-          String? emailToSave = user.email;
-          if (emailToSave != null && !_isValidEmail(emailToSave)) {
-            emailToSave = null; // Don't save invalid email
-          }
-          
-          // Extract the best display name from Google user data
-          String displayName = _extractDisplayNameFromGoogle(user, googleUser);
-          
-          await _userService.createUserProfile(user.id, {
-            'email': emailToSave,
-            'display_name': displayName,
-            'phone_number': null, // Will be required to be set
-          });
-          return GoogleSignInResult.missingPhoneNumber;
-        }
-        
-        if (profile['phone_number'] == null || profile['phone_number'].toString().isEmpty) {
-          return GoogleSignInResult.missingPhoneNumber;
-        }
-
-        return GoogleSignInResult.success;
+      debugPrint('=== AuthService: Google Sign-In ===');
+      
+      final userCredential = await _firebaseAuthService.signInWithGoogle();
+      if (userCredential == null) {
+        return GoogleSignInResult.cancelled;
       }
-      return GoogleSignInResult.failed; // Should not be reached
+      
+      final user = userCredential.user;
+      if (user == null) {
+        return GoogleSignInResult.failed;
+      }
+      
+      final profile = await _userService.getUserProfile(user.uid);
+      if (profile == null || 
+          profile['phone_number'] == null || 
+          profile['phone_number'].toString().isEmpty) {
+        return GoogleSignInResult.missingPhoneNumber;
+      }
+      
+      return GoogleSignInResult.success;
     } catch (e) {
-      // Catch any other exception
+      debugPrint('AuthService Google sign-in error: $e');
       return GoogleSignInResult.failed;
     }
   }
 
   Future<void> sendPhoneOtp(String phoneNumber) async {
     try {
-      await _supabaseClient.auth.signInWithOtp(
-        phone: phoneNumber,
-        channel: OtpChannel.sms,
-      );
-    } on AuthException catch (e) {
-      throw Exception(e.message);
-    }
-  }
-
-  Future<AuthResponse> verifyPhoneOtp(String phoneNumber, String otp) async {
-    try {
-      final AuthResponse response = await _supabaseClient.auth.verifyOTP(
-        phone: phoneNumber,
-        token: otp,
-        type: OtpType.sms,
-      );
-      final user = response.user;
-      if (user != null) {
-        await _createOrUpdateUserProfileForPhone(user, phoneNumber);
-      }
-      return response;
-    } on AuthException catch (e) {
-      throw Exception(e.message);
-    }
-  }
-
-  Future<void> _createOrUpdateUserProfileForPhone(User user, String phoneNumber) async {
-    try {
-      final existingProfile = await _userService.getUserProfile(user.id);
-
-      if (existingProfile != null) {
-        // Profile exists, just update the phone number
-        await _userService.updateUserProfile(user.id, {'phone_number': phoneNumber});
-      } else {
-        // Profile doesn't exist, create it with phone number
-        // Validate email format before saving
-        String? emailToSave = user.email;
-        if (emailToSave != null && !_isValidEmail(emailToSave)) {
-          emailToSave = null; // Don't save invalid email
-        }
-        
-        await _userService.createUserProfile(user.id, {
-          'phone_number': phoneNumber,
-          'email': emailToSave,
-          'display_name': user.userMetadata?['display_name'] ?? 'User',
-        });
-      }
+      debugPrint('=== AuthService: Send Phone OTP ===');
+      await _firebaseAuthService.sendPhoneOtp(phoneNumber);
     } catch (e) {
-      // Log the error and rethrow with more context
-      if (kDebugMode) {
-        print('Error creating/updating user profile for phone: $e');
-        print('User email: ${user.email}');
-        print('Phone number: $phoneNumber');
-      }
+      debugPrint('AuthService send phone OTP error: $e');
+      rethrow;
+    }
+  }
+
+  Future<firebase_auth.UserCredential?> verifyPhoneOtp(String phoneNumber, String otp) async {
+    try {
+      debugPrint('=== AuthService: Verify Phone OTP ===');
+      
+      return await _firebaseAuthService.verifyPhoneOtp(phoneNumber, otp);
+    } catch (e) {
+      debugPrint('AuthService verify phone OTP error: $e');
       rethrow;
     }
   }
 
   Future<void> linkEmailAndPassword(String email, String password) async {
-    final user = _supabaseClient.auth.currentUser;
+    final user = currentUser;
     if (user == null) {
       throw Exception('Nenhum usuário logado para vincular o email.');
     }
     try {
-      await _supabaseClient.auth.updateUser(
-        UserAttributes(
-          email: email,
-          password: password,
-        ),
+      debugPrint('=== AuthService: Link Email/Password ===');
+      
+      final credential = firebase_auth.EmailAuthProvider.credential(
+        email: email, 
+        password: password
       );
-      await _userService.updateUserProfile(user.id, {'email': email});
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      
+      await user.linkWithCredential(credential);
+      await _userService.updateUserProfile(user.uid, {'email': email});
+    } catch (e) {
+      debugPrint('AuthService link email/password error: $e');
+      rethrow;
     }
   }
 
@@ -243,75 +158,130 @@ class AuthService {
   }
 
   Future<void> updateProfilePicture(File image) async {
-    final imageUrl = await _supabaseStorageService.uploadImage(image, 'avatars');
-    if (imageUrl != null) {
-      await _supabaseClient.auth.updateUser(UserAttributes(data: {'photoURL': imageUrl}));
+    final user = currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário logado para atualizar foto de perfil.');
+    }
+    
+    try {
+      debugPrint('=== AuthService: Update Profile Picture ===');
+      
+      final imageUrl = await _cloudinaryService.uploadProfileImage(image, user.uid);
+      if (imageUrl != null) {
+        await user.updatePhotoURL(imageUrl);
+        await _userService.updateUserProfile(user.uid, {'photo_url': imageUrl});
+      }
+    } catch (e) {
+      debugPrint('AuthService update profile picture error: $e');
+      rethrow;
     }
   }
 
   Future<void> updateUser({String? displayName, String? photoURL}) async {
-    await _supabaseClient.auth.updateUser(
-      UserAttributes(
-        data: {
-          if (displayName != null) 'display_name': displayName,
-          if (photoURL != null) 'photoURL': photoURL,
-        },
-      ),
-    );
+    final user = currentUser;
+    if (user == null) {
+      throw Exception('Nenhum usuário logado para atualizar.');
+    }
+    
+    try {
+      debugPrint('=== AuthService: Update User ===');
+      
+      if (displayName != null) {
+        await user.updateDisplayName(displayName);
+      }
+      
+      if (photoURL != null) {
+        await user.updatePhotoURL(photoURL);
+      }
+      
+      final updateData = <String, dynamic>{};
+      if (displayName != null) updateData['display_name'] = displayName;
+      if (photoURL != null) updateData['photo_url'] = photoURL;
+      
+      if (updateData.isNotEmpty) {
+        await _userService.updateUserProfile(user.uid, updateData);
+      }
+    } catch (e) {
+      debugPrint('AuthService update user error: $e');
+      rethrow;
+    }
   }
 
   Future<void> reauthenticateWithPassword(String password) async {
-    if (currentUser == null || currentUser!.email == null) {
+    final user = currentUser;
+    if (user == null || user.email == null) {
       throw Exception('Usuário não logado ou sem e-mail para reautenticação.');
     }
     try {
-      await _supabaseClient.auth.signInWithPassword(
-        email: currentUser!.email!,
+      debugPrint('=== AuthService: Reauthenticate with Password ===');
+      
+      final credential = firebase_auth.EmailAuthProvider.credential(
+        email: user.email!,
         password: password,
       );
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      
+      await user.reauthenticateWithCredential(credential);
+    } catch (e) {
+      debugPrint('AuthService reauthenticate with password error: $e');
+      rethrow;
     }
   }
 
   Future<void> reauthenticateWithGoogle() async {
-    if (currentUser == null) {
+    final user = currentUser;
+    if (user == null) {
       throw Exception('Nenhum usuário logado para reautenticação.');
     }
     try {
+      debugPrint('=== AuthService: Reauthenticate with Google ===');
+      
       if (kIsWeb) {
-        // Web implementation
-        await _supabaseClient.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: 'com.example.wishlist_app://login-callback',
-        );
+        final googleProvider = firebase_auth.GoogleAuthProvider();
+        await user.reauthenticateWithPopup(googleProvider);
       } else if (Platform.isAndroid || Platform.isIOS) {
-        final googleUser = await _googleSignIn.signIn();
+        final googleSignIn = GoogleSignIn();
+        final googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
-          throw 'A reautenticação com o Google foi cancelada.';
+          throw Exception('A reautenticação com o Google foi cancelada.');
         }
+        
         final googleAuth = await googleUser.authentication;
-        final idToken = googleAuth.idToken;
-
-        if (idToken == null) {
-          throw 'Nenhum token de ID encontrado.';
-        }
-
-        await _supabaseClient.auth.reauthenticate(
+        final credential = firebase_auth.GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
         );
+        
+        await user.reauthenticateWithCredential(credential);
       }
-    } on AuthException catch (e) {
-      throw Exception(e.message);
     } catch (e) {
-      throw Exception(e.toString());
+      debugPrint('AuthService reauthenticate with Google error: $e');
+      rethrow;
     }
   }
 
   Future<void> deleteAccount() async {
-    if (currentUser == null) {
+    final user = currentUser;
+    if (user == null) {
       throw Exception('Nenhum usuário logado para deletar a conta.');
     }
-    throw UnimplementedError('Account deletion requires a server-side function for security reasons.');
+    
+    try {
+      debugPrint('=== AuthService: Delete Account ===');
+      
+      // First delete user profile from database  
+      try {
+        await _userService.deleteUserProfile(user.uid);
+      } catch (e) {
+        debugPrint('Warning: Could not delete user profile from database: $e');
+        // Continue with Firebase account deletion even if database deletion fails
+      }
+      
+      // Then delete Firebase user
+      await user.delete();
+    } catch (e) {
+      debugPrint('AuthService delete account error: $e');
+      rethrow;
+    }
   }
 
   /// Validates if the current user has a phone number configured
@@ -319,7 +289,11 @@ class AuthService {
     final user = currentUser;
     if (user == null) return false;
     
-    final profile = await _userService.getUserProfile(user.id);
+    if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) {
+      return true;
+    }
+    
+    final profile = await _userService.getUserProfile(user.uid);
     return profile != null && 
            profile['phone_number'] != null && 
            profile['phone_number'].toString().isNotEmpty;
@@ -330,32 +304,13 @@ class AuthService {
     final user = currentUser;
     if (user == null) return false;
     
-    final profile = await _userService.getUserProfile(user.id);
+    if (user.email != null && user.email!.isNotEmpty) {
+      return true;
+    }
+    
+    final profile = await _userService.getUserProfile(user.uid);
     return profile != null && 
            profile['email'] != null && 
            profile['email'].toString().isNotEmpty;
-  }
-
-  /// Extracts the best display name from Google user data
-  String _extractDisplayNameFromGoogle(User user, GoogleSignInAccount googleUser) {
-    // Priority order:
-    // 1. Google user displayName (full name)
-    // 2. User metadata display_name
-    // 3. Email prefix as fallback
-    
-    if (googleUser.displayName != null && googleUser.displayName!.isNotEmpty) {
-      return googleUser.displayName!;
-    }
-    
-    if (user.userMetadata?['display_name'] != null && 
-        user.userMetadata!['display_name'].toString().isNotEmpty) {
-      return user.userMetadata!['display_name'];
-    }
-    
-    if (user.email != null) {
-      return user.email!.split('@')[0];
-    }
-    
-    return 'Utilizador';
   }
 }

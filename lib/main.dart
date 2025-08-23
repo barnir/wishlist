@@ -4,6 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_sharing_intent/flutter_sharing_intent.dart';
 import 'package:flutter_sharing_intent/model/sharing_file.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
@@ -30,6 +32,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
+  // Initialize Supabase (for database only)
   await Supabase.initialize(
     url: Config.supabaseUrl,
     anonKey: Config.supabaseAnonKey,
@@ -147,7 +153,7 @@ class _MyAppState extends State<MyApp> {
           return UserProfileScreen(userId: userId);
         },
       },
-      home: StreamBuilder<User?>(
+      home: StreamBuilder<firebase_auth.User?>(
         stream: AuthService().authStateChanges,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -158,7 +164,7 @@ class _MyAppState extends State<MyApp> {
           if (snapshot.hasData) {
             // User is logged in, check for phone number
             return FutureBuilder<Map<String, dynamic>?>(
-              future: UserService().getUserProfile(snapshot.data!.id),
+              future: UserService().getUserProfile(snapshot.data!.uid),
               builder: (context, profileSnapshot) {
                 if (profileSnapshot.connectionState ==
                     ConnectionState.waiting) {

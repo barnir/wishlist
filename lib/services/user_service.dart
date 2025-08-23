@@ -40,6 +40,20 @@ class UserService {
     await _supabaseClient.from(_collectionName).insert({'id': userId, ...data});
   }
 
+  /// Deletes a user profile.
+  Future<void> deleteUserProfile(String userId) async {
+    try {
+      await _supabaseClient
+          .from(_collectionName)
+          .delete()
+          .eq('id', userId);
+    } catch (e) {
+      // Log error but don't fail the operation
+      print('Warning: Could not delete user profile from database: $e');
+      rethrow;
+    }
+  }
+
   // --- Methods to be refactored or re-evaluated for Supabase ---
 
   /// Searches for friends by their phone numbers.

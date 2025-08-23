@@ -1,20 +1,18 @@
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:permission_handler/permission_handler.dart';
+// Using flutter_contacts built-in permission system
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ContactsService {
   final _supabase = Supabase.instance.client;
 
-  // Solicitar permissão para aceder aos contactos
+  // Solicitar permissão para aceder aos contactos usando flutter_contacts
   Future<bool> requestContactsPermission() async {
-    final status = await Permission.contacts.request();
-    return status.isGranted;
+    return await FlutterContacts.requestPermission();
   }
 
-  // Verificar se tem permissão para contactos
+  // Verificar se tem permissão para contactos usando flutter_contacts
   Future<bool> hasContactsPermission() async {
-    final status = await Permission.contacts.status;
-    return status.isGranted;
+    return await FlutterContacts.requestPermission(readonly: true);
   }
 
   // Obter todos os contactos do dispositivo

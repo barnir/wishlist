@@ -3,13 +3,11 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/error_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
-import 'package:wishlist_app/services/supabase_storage_service.dart';
 
 /// Serviço otimizado para operações de banco de dados
 /// Implementa queries eficientes com JOINs e paginação
 class SupabaseDatabaseService {
   final SupabaseClient _supabaseClient = Supabase.instance.client;
-  final _supabaseStorageService = SupabaseStorageServiceSecure();
 
   // =====================================================
   // MÉTODOS LEGACY - COMPATIBILIDADE COM CÓDIGO EXISTENTE
@@ -67,13 +65,9 @@ class SupabaseDatabaseService {
     String? finalImageUrl = imageUrl;
 
     if (imageFile != null) {
-      finalImageUrl = await _supabaseStorageService.uploadImage(
-        imageFile,
-        'wishlist_images',
-      );
-      if (finalImageUrl == null) {
-        throw Exception('Erro ao carregar imagem.');
-      }
+      // Note: Image upload now handled by CloudinaryService in the UI layer
+      // This service only handles database operations
+      throw Exception('Image upload should be handled by CloudinaryService before calling this method');
     }
 
     final data = {
@@ -155,13 +149,9 @@ class SupabaseDatabaseService {
     String? finalImageUrl = imageUrl;
 
     if (imageFile != null) {
-      finalImageUrl = await _supabaseStorageService.uploadImage(
-        imageFile,
-        'item_images',
-      );
-      if (finalImageUrl == null) {
-        throw Exception('Erro ao carregar imagem.');
-      }
+      // Note: Image upload now handled by CloudinaryService in the UI layer
+      // This service only handles database operations
+      throw Exception('Image upload should be handled by CloudinaryService before calling this method');
     }
 
     final data = {
