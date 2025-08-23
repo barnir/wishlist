@@ -6,7 +6,11 @@
 *.swp
 .buildlog/
 .history
+
+# Environment variables (NEVER COMMIT)
 .env
+.env.local
+.env.production
 
 
 # Flutter repo-specific
@@ -56,6 +60,13 @@ unlinked_spec.ds
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
 *.jks
+
+# Firebase configuration files (NEVER COMMIT)
+**/android/app/google-services.json
+**/ios/Runner/GoogleService-Info.plist
+**/web/firebase-config.js
+firebase-debug.log
+.firebase/
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -149,4 +160,12 @@ SESSION_*.md
 supabase/.temp/
 supabase_scripts/
 android/NDH6SA~M
-.gitignore
+
+# API Keys and Secrets (NEVER COMMIT)
+**/keys/
+**/*-key.json
+**/*-secret.txt
+cloudinary.config.js
+
+# Temporary files
+android/NDH6SA~M
