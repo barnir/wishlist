@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/error_service.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 
 /// Serviço otimizado para operações de banco de dados
@@ -20,7 +21,7 @@ class SupabaseDatabaseService {
 
   /// Busca wishlists para usuário atual (método legacy)
   Future<List<Map<String, dynamic>>> getWishlistsForCurrentUser() async {
-    final userId = _supabaseClient.auth.currentUser?.id;
+    final userId = AuthService.getCurrentUserId();
     if (userId == null) {
       return [];
     }
@@ -77,7 +78,7 @@ class SupabaseDatabaseService {
     };
 
     if (wishlistId == null) {
-      final currentUserId = userId ?? _supabaseClient.auth.currentUser?.id;
+      final currentUserId = userId ?? AuthService.getCurrentUserId();
       if (currentUserId == null) {
         throw Exception(
           'User not authenticated. Cannot save wishlist without an owner.',

@@ -71,7 +71,7 @@ class _MyAppState extends State<MyApp> {
       List<SharedFile> value,
     ) {
       if (value.isNotEmpty) {
-        if (Supabase.instance.client.auth.currentUser != null) {
+        if (AuthService.getCurrentUserId() != null) {
           _handleSharedMedia(value);
         } else {
           setState(() {

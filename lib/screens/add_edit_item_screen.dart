@@ -1,4 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wishlist_app/services/web_scraper_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:wishlist_app/services/auth_service.dart';
 
 import '../models/category.dart';
 
@@ -136,7 +136,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _isCreatingWishlist = true;
     });
     try {
-      final userId = Supabase.instance.client.auth.currentUser!.id;
+      final userId = AuthService.getCurrentUserId()!;
       final newWishlist = await _supabaseDatabaseService.saveWishlist(
         name: _newWishlistNameController.text.trim(),
         isPrivate: false, // Default to public for quick add

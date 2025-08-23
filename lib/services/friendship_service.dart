@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 import '../models/friendship.dart';
 
 class FriendshipService {
@@ -7,7 +8,7 @@ class FriendshipService {
   // Enviar pedido de amizade
   Future<bool> sendFriendRequest(String friendId) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) throw Exception('Utilizador não autenticado');
 
       // Verificar se já existe alguma relação
@@ -100,7 +101,7 @@ class FriendshipService {
 
   // Obter lista de amigos
   Stream<List<Map<String, dynamic>>> getFriends() {
-    final currentUserId = _supabase.auth.currentUser?.id;
+    final currentUserId = AuthService.getCurrentUserId();
     if (currentUserId == null) {
       return Stream.value([]);
     }
@@ -112,7 +113,7 @@ class FriendshipService {
 
   // Obter pedidos de amizade pendentes (recebidos)
   Stream<List<Map<String, dynamic>>> getPendingFriendRequests() {
-    final currentUserId = _supabase.auth.currentUser?.id;
+    final currentUserId = AuthService.getCurrentUserId();
     if (currentUserId == null) {
       return Stream.value([]);
     }
@@ -124,7 +125,7 @@ class FriendshipService {
 
   // Obter pedidos de amizade enviados
   Stream<List<Map<String, dynamic>>> getSentFriendRequests() {
-    final currentUserId = _supabase.auth.currentUser?.id;
+    final currentUserId = AuthService.getCurrentUserId();
     if (currentUserId == null) {
       return Stream.value([]);
     }
@@ -137,7 +138,7 @@ class FriendshipService {
   // Verificar status da amizade com um utilizador específico
   Future<FriendshipStatus?> getFriendshipStatus(String userId) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return null;
 
       final friendship = await _supabase
@@ -157,7 +158,7 @@ class FriendshipService {
   // Obter detalhes da amizade
   Future<Friendship?> getFriendship(String userId) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return null;
 
       final friendshipData = await _supabase

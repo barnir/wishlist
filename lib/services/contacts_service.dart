@@ -1,6 +1,7 @@
 import 'package:flutter_contacts/flutter_contacts.dart';
 // Using flutter_contacts built-in permission system
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 
 class ContactsService {
   final _supabase = Supabase.instance.client;
@@ -259,7 +260,7 @@ class ContactsService {
   // Sincronizar contactos periodicamente (pode ser chamada em background)
   Future<void> syncContacts() async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return;
 
       final registeredFriends = await findRegisteredFriends();
@@ -288,7 +289,7 @@ class ContactsService {
   // Obter sugestões de amigos baseadas nos contactos
   Future<List<Map<String, dynamic>>> getFriendSuggestions() async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return [];
 
       final registeredFriends = await findRegisteredFriends();

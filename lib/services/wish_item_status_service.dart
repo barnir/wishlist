@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 import '../models/wish_item_status.dart';
 
 class WishItemStatusService {
@@ -12,7 +13,7 @@ class WishItemStatusService {
     String? notes,
   }) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) {
         throw Exception('Utilizador não autenticado');
       }
@@ -64,7 +65,7 @@ class WishItemStatusService {
   // Remover status do item (cancelar "vou comprar" ou "comprado")
   Future<bool> removeItemStatus(String wishItemId) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) {
         throw Exception('Utilizador não autenticado');
       }
@@ -84,7 +85,7 @@ class WishItemStatusService {
   // Obter status de um item específico pelo utilizador atual
   Future<WishItemStatus?> getMyItemStatus(String wishItemId) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return null;
 
       final status = await _supabase
@@ -105,7 +106,7 @@ class WishItemStatusService {
   // Obter todos os status de um item (exceto do utilizador atual)
   Future<List<WishItemStatus>> getFriendItemStatuses(String wishItemId) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return [];
 
       final statuses = await _supabase
@@ -140,7 +141,7 @@ class WishItemStatusService {
     bool onlyVisibleToOwner = true,
   }) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return {};
 
       // Primeiro, verificar se o utilizador atual é o dono da wishlist
@@ -198,7 +199,7 @@ class WishItemStatusService {
 
   // Obter itens que marquei como "vou comprar" ou "comprado"
   Stream<List<Map<String, dynamic>>> getMyMarkedItems() {
-    final currentUserId = _supabase.auth.currentUser?.id;
+    final currentUserId = AuthService.getCurrentUserId();
     if (currentUserId == null) {
       return Stream.value([]);
     }
@@ -213,7 +214,7 @@ class WishItemStatusService {
   // Verificar se o utilizador atual pode ver/modificar uma wishlist
   Future<bool> canInteractWithWishlist(String wishlistId) async {
     try {
-      final currentUserId = _supabase.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return false;
 
       final wishlist = await _supabase

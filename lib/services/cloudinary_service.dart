@@ -171,6 +171,49 @@ class CloudinaryService {
     }
   }
 
+  /// Get list of user images that should be deleted (for server-side cleanup)
+  List<String> getUserImagePublicIds(String userId) {
+    return [
+      'profile_$userId', // Profile image
+      // Note: Product and wishlist images would need to be fetched from database
+      // as they have dynamic IDs
+    ];
+  }
+
+  /// Delete all user images (logs what should be deleted for server-side cleanup)
+  Future<Map<String, dynamic>> deleteUserImages(String userId) async {
+    try {
+      debugPrint('=== User Image Cleanup Required ===');
+      debugPrint('User ID: $userId');
+      
+      final imagesToDelete = <String>[];
+      
+      // Profile image
+      final profileImageId = 'profile_$userId';
+      imagesToDelete.add(profileImageId);
+      debugPrint('Should delete profile image: $profileImageId');
+      
+      // TODO: Fetch product and wishlist images from database
+      // These have dynamic IDs and would need to be retrieved from wish_items table
+      debugPrint('Additional cleanup needed:');
+      debugPrint('- Product images from wish_items where wishlist owner = $userId');
+      debugPrint('- Wishlist cover images where owner = $userId');
+      
+      return {
+        'success': true,
+        'message': 'Image cleanup logged - requires server-side deletion',
+        'profile_images': [profileImageId],
+        'note': 'Use Supabase delete-user function or Cloudinary Admin API for actual deletion'
+      };
+    } catch (e) {
+      debugPrint('Error preparing image cleanup: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
   /// Get image info
   Future<Map<String, dynamic>?> getImageInfo(String publicId) async {
     try {

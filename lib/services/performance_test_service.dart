@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 import 'monitoring_service.dart';
 
 class PerformanceTestService {
@@ -277,7 +278,7 @@ class PerformanceTestService {
   // Save test results to database
   Future<void> _saveTestResults() async {
     try {
-      final userId = _supabaseClient.auth.currentUser?.id;
+      final userId = AuthService.getCurrentUserId();
       if (userId != null) {
         for (final result in _testResults) {
           await _supabaseClient.from('performance_tests').insert({

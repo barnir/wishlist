@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 
 class MonitoringService {
   static final MonitoringService _instance = MonitoringService._internal();
@@ -99,7 +100,7 @@ class MonitoringService {
     Map<String, dynamic>? properties,
   }) async {
     try {
-      final userId = _supabaseClient.auth.currentUser?.id;
+      final userId = AuthService.getCurrentUserId();
       if (userId != null) {
         await _supabaseClient.from('analytics_events').insert({
           'user_id': userId,

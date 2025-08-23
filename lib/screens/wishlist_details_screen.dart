@@ -10,7 +10,7 @@ import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 import '../models/wish_item_status.dart';
 import '../widgets/item_status_dialog.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -40,7 +40,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   
   Future<void> _checkOwnership() async {
     try {
-      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return;
       
       final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId);
