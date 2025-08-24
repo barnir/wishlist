@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import '../widgets/ui_components.dart';
@@ -13,22 +14,118 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   final _supabaseDatabaseService = SupabaseDatabaseService();
   final _searchController = TextEditingController();
-  String _termoPesquisa = '';
+  final _scrollController = ScrollController();
+  
+  // Search state
+  String _searchQuery = '';
+  Timer? _debounceTimer;
+  
+  // Paginação
+  static const int _pageSize = 15;
+  List<Map<String, dynamic>> _users = [];
+  int _currentPage = 0;
+  bool _isLoading = false;
+  bool _hasMoreData = true;
+  bool _isInitialLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _termoPesquisa = _searchController.text;
-      });
-    });
+    _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      final query = _searchController.text.trim();
+      if (query != _searchQuery) {
+        setState(() {
+          _searchQuery = query;
+          _users.clear();
+          _currentPage = 0;
+          _hasMoreData = true;
+        });
+        
+        if (query.isNotEmpty) {
+          _loadInitialData();
+        }
+      }
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreData();
+    }
+  }
+
+  Future<void> _loadInitialData() async {
+    if (_searchQuery.isEmpty) return;
+
+    setState(() {
+      _isInitialLoading = true;
+      _users.clear();
+      _currentPage = 0;
+      _hasMoreData = true;
+    });
+
+    await _loadMoreData();
+
+    if (mounted) {
+      setState(() {
+        _isInitialLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoading || !_hasMoreData || _searchQuery.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final newUsers = await _supabaseDatabaseService.searchUsersPaginated(
+        _searchQuery,
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (newUsers.length < _pageSize) {
+            _hasMoreData = false;
+          }
+          _users.addAll(newUsers);
+          _currentPage++;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro na pesquisa: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    await _loadInitialData();
   }
 
   @override
@@ -43,78 +140,53 @@ class _ExploreScreenState extends State<ExploreScreen> {
           Padding(
             padding: UIConstants.paddingM,
             child: WishlistTextField(
-              label: 'Pesquisar perfis ou wishlists...',
+              label: 'Pesquisar utilizadores...',
               controller: _searchController,
               prefixIcon: const Icon(Icons.search),
             ),
           ),
           Expanded(
-            child: _termoPesquisa.isEmpty
-                ? const WishlistEmptyState(
-                    icon: Icons.search,
-                    title: 'Pesquisar utilizadores',
-                    subtitle: 'Digite um nome ou email para encontrar utilizadores e as suas wishlists públicas.',
-                  )
-                : _buildSearchResults(),
+            child: _buildContent(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchResults() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _supabaseDatabaseService.searchUsers(_termoPesquisa),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const WishlistLoadingIndicator(message: 'A pesquisar...');
-        }
+  Widget _buildContent() {
+    if (_searchQuery.isEmpty) {
+      return const WishlistEmptyState(
+        icon: Icons.search,
+        title: 'Pesquisar utilizadores',
+        subtitle: 'Digite um nome ou email para encontrar utilizadores e as suas wishlists públicas.',
+      );
+    }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: UIConstants.iconSizeXL,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                Spacing.m,
-                Text(
-                  'Erro na pesquisa',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Spacing.s,
-                Text(
-                  '${snapshot.error}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }
+    if (_isInitialLoading) {
+      return const WishlistLoadingIndicator(message: 'A pesquisar...');
+    }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const WishlistEmptyState(
-            icon: Icons.person_search,
-            title: 'Nenhum resultado',
-            subtitle: 'Não foram encontrados utilizadores com esse termo.',
-          );
-        }
+    if (_users.isEmpty && !_isLoading) {
+      return const WishlistEmptyState(
+        icon: Icons.person_search,
+        title: 'Nenhum resultado',
+        subtitle: 'Não foram encontrados utilizadores com esse termo.',
+      );
+    }
 
-        final users = snapshot.data!;
-        return ListView.builder(
-          padding: UIConstants.listPadding,
-          itemCount: users.length,
-          itemBuilder: (context, index) {
-            return _buildUserCard(users[index]);
-          },
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: UIConstants.listPadding,
+        itemCount: _users.length + (_isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _users.length) {
+            return _buildLoadingIndicator();
+          }
+          return _buildUserCard(_users[index]);
+        },
+      ),
     );
   }
 
@@ -161,6 +233,35 @@ class _ExploreScreenState extends State<ExploreScreen> {
             arguments: userId,
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Container(
+      padding: UIConstants.paddingM,
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          Spacing.horizontalM,
+          Text(
+            'A carregar mais resultados...',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }

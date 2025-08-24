@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
@@ -21,20 +20,36 @@ class WishlistDetailsScreen extends StatefulWidget {
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   final _supabaseDatabaseService = SupabaseDatabaseService();
-  
+  final _scrollController = ScrollController();
 
   String _wishlistName = 'Carregando...';
   bool _isPrivate = false;
   String? _selectedCategory;
   SortOptions _sortOption = SortOptions.nameAsc;
 
+  // Paginação
+  static const int _pageSize = 20;
+  List<WishItem> _items = [];
+  int _currentPage = 0;
+  bool _isLoading = false;
+  bool _hasMoreData = true;
+  bool _isInitialLoading = true;
+
   @override
   void initState() {
     super.initState();
     _loadWishlistDetails();
     _checkOwnership();
+    _loadInitialData();
+    _scrollController.addListener(_onScroll);
   }
-  
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkOwnership() async {
     try {
       final currentUserId = AuthService.getCurrentUserId();
@@ -43,6 +58,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId);
       if (wishlistData != null && mounted) {
         setState(() {
+          // Ownership check can be added here if needed
         });
       }
     } catch (e) {
@@ -66,11 +82,89 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     }
   }
 
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isInitialLoading = true;
+      _items.clear();
+      _currentPage = 0;
+      _hasMoreData = true;
+    });
+
+    await _loadMoreData();
+
+    if (mounted) {
+      setState(() {
+        _isInitialLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoading || !_hasMoreData) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final newItemsData = await _supabaseDatabaseService.getWishItemsPaginatedFuture(
+        widget.wishlistId,
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+        category: _selectedCategory,
+        sortOption: _sortOption,
+      );
+
+      final newItems = newItemsData
+          .map((itemData) => WishItem.fromMap(itemData))
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          if (newItems.length < _pageSize) {
+            _hasMoreData = false;
+          }
+          _items.addAll(newItems);
+          _currentPage++;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showSnackBar('Erro ao carregar itens: $e', isError: true);
+      }
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreData();
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    await _loadInitialData();
+  }
+
+  Future<void> _onFilterChanged() async {
+    // Reload data with new filters
+    await _loadInitialData();
+  }
+
   Future<void> _deleteItem(String itemId) async {
     try {
       await _supabaseDatabaseService.deleteWishItem(widget.wishlistId, itemId);
       if (!mounted) return;
       _showSnackBar('Item eliminado com sucesso!');
+      
+      // Remove item from local list
+      setState(() {
+        _items.removeWhere((item) => item.id == itemId);
+      });
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Erro ao eliminar item: $e', isError: true);
@@ -116,38 +210,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         children: [
           _buildHeader(),
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _supabaseDatabaseService.getWishItems(
-                widget.wishlistId,
-                category: _selectedCategory,
-                sortOption: _sortOption,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Erro: ${snapshot.error}'));
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                final items = snapshot.data!
-                    .map((itemData) => WishItem.fromMap(itemData))
-                    .toList();
-
-                return ListView.builder(
-                  padding: UIConstants.listPadding,
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    return _buildItemCard(items[index]);
-                  },
-                );
-              },
-            ),
+            child: _buildContent(),
           ),
         ],
       ),
@@ -157,10 +220,35 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             context,
             '/add_edit_item',
             arguments: {'wishlistId': widget.wishlistId},
-          );
+          ).then((_) => _loadInitialData()); // Refresh after adding item
         },
         tooltip: 'Adicionar novo item',
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isInitialLoading) {
+      return const WishlistLoadingIndicator(message: 'A carregar itens...');
+    }
+
+    if (_items.isEmpty && !_isLoading) {
+      return _buildEmptyState();
+    }
+
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: UIConstants.listPadding,
+        itemCount: _items.length + (_isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _items.length) {
+            return _buildLoadingIndicator();
+          }
+          return _buildItemCard(_items[index]);
+        },
       ),
     );
   }
@@ -192,251 +280,300 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     );
   }
 
+  Widget _buildLoadingIndicator() {
+    return Container(
+      padding: UIConstants.paddingM,
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          Spacing.horizontalM,
+          Text(
+            'A carregar mais itens...',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildItemCard(WishItem item) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
     return WishlistCard(
-      child: Padding(
-        padding: UIConstants.paddingM,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Item image
+          if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
             SizedBox(
-              width: UIConstants.imageSizeL,
-              height: UIConstants.imageSizeL,
+              height: 200,
+              width: double.infinity,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                child: FutureBuilder<File?>(
-                  future: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                      ? ImageCacheService.getFile(item.imageUrl!)
-                      : Future.value(null),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                        ),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: UIConstants.strokeWidthMedium,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    } else if (snapshot.hasError ||
-                        !snapshot.hasData ||
-                        snapshot.data == null) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.broken_image,
-                            size: UIConstants.iconSizeL,
-                            color: colorScheme.error,
-                          ),
-                        ),
-                      );
-                    } else {
-                      return Image.file(snapshot.data!, fit: BoxFit.cover);
-                    }
-                  },
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(UIConstants.radiusM),
+                  topRight: Radius.circular(UIConstants.radiusM),
+                ),
+                child: Image.network(
+                  item.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ),
               ),
             ),
-            Spacing.horizontalM,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          
+          Padding(
+            padding: UIConstants.paddingM,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Item name
+                Text(
+                  item.name,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                
+                if (item.description?.isNotEmpty == true) ...[
+                  Spacing.xs,
                   Text(
-                    item.name,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    item.description!,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (item.description != null && item.description!.isNotEmpty)
-                    Padding(
-                      padding: EdgeInsets.only(top: UIConstants.spacingXS),
-                      child: Text(
-                        item.description!,
-                        style: textTheme.bodyMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                ],
+                
+                Spacing.s,
+                
+                // Price and category row
+                Row(
+                  children: [
+                    if (item.price != null && item.price! > 0) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
+                        ),
+                        child: Text(
+                          '€${item.price!.toStringAsFixed(2)}',
+                          style: textTheme.labelMedium?.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                  if (item.price != null)
-                    Padding(
-                      padding: EdgeInsets.only(top: UIConstants.spacingS),
-                      child: Text(
-                        '€${item.price!.toStringAsFixed(2)}',
-                        style: textTheme.titleLarge?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+                      Spacing.horizontalS,
+                    ],
+                    
+                    if (item.category.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
+                        ),
+                        child: Text(
+                          item.category,
+                          style: textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                
+                Spacing.s,
+                
+                // Action buttons
+                Row(
+                  children: [
+                    if (item.link?.isNotEmpty == true)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final uri = Uri.tryParse(item.link!);
+                            if (uri != null && await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            } else {
+                              _showSnackBar('Não foi possível abrir o link', isError: true);
+                            }
+                          },
+                          icon: const Icon(Icons.launch, size: 16),
+                          label: const Text('Ver'),
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ),
+                    
+                    if (item.link?.isNotEmpty == true)
+                      Spacing.horizontalS,
+                    
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/add_edit_item',
+                            arguments: {
+                              'wishlistId': widget.wishlistId,
+                              'itemId': item.id,
+                            },
+                          ).then((_) => _loadInitialData());
+                        },
+                        icon: const Icon(Icons.edit, size: 16),
+                        label: const Text('Editar'),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) async {
-                if (value == 'edit') {
-                  Navigator.pushNamed(
-                    context,
-                    '/add_edit_item',
-                    arguments: {
-                      'wishlistId': widget.wishlistId,
-                      'itemId': item.id,
-                    },
-                  );
-                } else if (value == 'delete') {
-                  _deleteItem(item.id);
-                } else if (value == 'open_link' &&
-                    item.link != null &&
-                    item.link!.isNotEmpty) {
-                  final uri = Uri.parse(item.link!);
-                  if (await canLaunchUrl(uri)) {
-                    launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                }
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_outlined),
-                      Spacing.horizontalS,
-                      Text('Editar'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline),
-                      Spacing.horizontalS,
-                      Text('Eliminar'),
-                    ],
-                  ),
-                ),
-                if (item.link != null && item.link!.isNotEmpty)
-                  const PopupMenuItem<String>(
-                    value: 'open_link',
-                    child: Row(
-                      children: [
-                        Icon(Icons.open_in_new),
-                        Spacing.horizontalS,
-                        Text('Abrir link'),
-                      ],
+                    
+                    Spacing.horizontalS,
+                    
+                    IconButton(
+                      onPressed: () => _showDeleteConfirmation(item),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: colorScheme.error,
+                        size: 20,
+                      ),
+                      tooltip: 'Eliminar item',
+                      visualDensity: VisualDensity.compact,
                     ),
-                  ),
+                  ],
+                ),
               ],
-              icon: const Icon(Icons.more_vert),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-
-
+  void _showDeleteConfirmation(WishItem item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar item'),
+        content: Text('Tens a certeza que queres eliminar "${item.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _deleteItem(item.id);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Filtrar e Ordenar'),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedCategory,
-                    decoration: const InputDecoration(
-                      labelText: 'Filtrar por Categoria',
-                    ),
-                    hint: const Text('Todas as Categorias'),
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text('Todas as Categorias'),
-                      ),
-                      ...categories.map((Category category) {
-                        return DropdownMenuItem<String>(
-                          value: category.name,
-                          child: Row(
-                            children: [
-                              Icon(category.icon),
-                              const SizedBox(width: 10),
-                              Text(category.name),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedCategory = newValue;
-                      });
-                    },
+      builder: (context) => AlertDialog(
+        title: const Text('Filtrar e Ordenar'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Categoria:', style: Theme.of(context).textTheme.titleSmall),
+            DropdownButton<String?>(
+              value: _selectedCategory,
+              hint: const Text('Todas as categorias'),
+              isExpanded: true,
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Todas as categorias'),
+                ),
+                ...Category.getAllCategories().map(
+                  (category) => DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
                   ),
-                  Spacing.l,
-                  DropdownButtonFormField<SortOptions>(
-                    initialValue: _sortOption,
-                    decoration: const InputDecoration(labelText: 'Ordenar por'),
-                    items: const [
-                      DropdownMenuItem(
-                        value: SortOptions.nameAsc,
-                        child: Text('Nome (A-Z)'),
-                      ),
-                      DropdownMenuItem(
-                        value: SortOptions.nameDesc,
-                        child: Text('Nome (Z-A)'),
-                      ),
-                      DropdownMenuItem(
-                        value: SortOptions.priceAsc,
-                        child: Text('Preço (Crescente)'),
-                      ),
-                      DropdownMenuItem(
-                        value: SortOptions.priceDesc,
-                        child: Text('Preço (Decrescente)'),
-                      ),
-                    ],
-                    onChanged: (newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _sortOption = newValue;
-                        });
-                      }
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(
-                  () {},
-                ); // Rebuild the main screen with the new filter/sort
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value;
+                });
               },
-              child: const Text('Aplicar'),
+            ),
+            Spacing.m,
+            Text('Ordenar por:', style: Theme.of(context).textTheme.titleSmall),
+            DropdownButton<SortOptions>(
+              value: _sortOption,
+              isExpanded: true,
+              items: SortOptions.values.map(
+                (option) => DropdownMenuItem<SortOptions>(
+                  value: option,
+                  child: Text(option.displayName),
+                ),
+              ).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _sortOption = value;
+                  });
+                }
+              },
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _onFilterChanged();
+            },
+            child: const Text('Aplicar'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -123,6 +123,31 @@ class FavoritesService {
     }
   }
 
+  /// Get favorites with pagination
+  Future<List<Map<String, dynamic>>> getFavoritesPaginated({
+    int limit = 10,
+    int offset = 0,
+  }) async {
+    try {
+      final currentUserId = AuthService.getCurrentUserId();
+      if (currentUserId == null) {
+        throw Exception('Utilizador não autenticado');
+      }
+
+      final result = await _supabase
+          .from('user_favorites_with_profile')
+          .select('*')
+          .eq('user_id', currentUserId)
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      return List<Map<String, dynamic>>.from(result);
+    } catch (e) {
+      MonitoringService.logErrorStatic('get_favorites_paginated', e, stackTrace: StackTrace.current);
+      return [];
+    }
+  }
+
   /// Get public profiles from contacts that have accounts
   /// Used for the "Explore" screen
   Future<List<Map<String, dynamic>>> getContactsWithAccounts(List<String> phoneNumbers) async {

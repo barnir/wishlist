@@ -234,6 +234,30 @@ class SupabaseDatabaseService {
         });
   }
 
+  /// Busca wishlists com paginação
+  Future<List<Map<String, dynamic>>> getWishlistsPaginated(
+    String userId, {
+    int limit = 10,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await _supabaseClient
+          .from('wishlists')
+          .select('''
+            *,
+            wish_items(count)
+          ''')
+          .eq('owner_id', userId)
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      MonitoringService.logErrorStatic('get_wishlists_paginated', e, stackTrace: StackTrace.current);
+      return <Map<String, dynamic>>[];
+    }
+  }
+
   /// Busca wishlist específica com todos os items em uma query
   Future<Map<String, dynamic>?> getWishlistWithItems(String wishlistId) async {
     try {
@@ -317,6 +341,38 @@ class SupabaseDatabaseService {
     } catch (e) {
       MonitoringService.logErrorStatic('get_wish_items_paginated', e, stackTrace: StackTrace.current);
       return Stream.value(<Map<String, dynamic>>[]);
+    }
+  }
+
+  /// Busca wish items com paginação real (Future)
+  Future<List<Map<String, dynamic>>> getWishItemsPaginatedFuture(
+    String wishlistId, {
+    int limit = 20,
+    int offset = 0,
+    String? category,
+    SortOptions? sortOption,
+  }) async {
+    try {
+      dynamic query = _supabaseClient
+          .from('wish_items')
+          .select()
+          .eq('wishlist_id', wishlistId);
+
+      // Aplicar filtros
+      if (category != null && category.isNotEmpty) {
+        query = query.eq('category', category);
+      }
+
+      // Aplicar ordenação
+      query = _applySortOption(query, sortOption);
+
+      // Aplicar paginação
+      final response = await query.range(offset, offset + limit - 1);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      MonitoringService.logErrorStatic('get_wish_items_paginated_future', e, stackTrace: StackTrace.current);
+      return <Map<String, dynamic>>[];
     }
   }
 
@@ -583,6 +639,36 @@ class SupabaseDatabaseService {
           MonitoringService.logErrorStatic('search_users', e, stackTrace: StackTrace.current);
           return <Map<String, dynamic>>[];
         });
+  }
+
+  /// Busca full-text em usuários com paginação
+  Future<List<Map<String, dynamic>>> searchUsersPaginated(
+    String query, {
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await _supabaseClient
+          .from('users')
+          .select('''
+            id,
+            display_name,
+            email,
+            photo_url,
+            bio,
+            created_at,
+            wishlists(count)
+          ''')
+          .or('display_name.ilike.%$query%,email.ilike.%$query%')
+          .eq('is_private', false)
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      MonitoringService.logErrorStatic('search_users_paginated', e, stackTrace: StackTrace.current);
+      return <Map<String, dynamic>>[];
+    }
   }
 
   // =====================================================

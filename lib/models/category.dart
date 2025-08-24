@@ -5,6 +5,10 @@ class Category {
   final IconData icon;
 
   Category({required this.name, required this.icon});
+
+  static List<String> getAllCategories() {
+    return categories.map((cat) => cat.name).toList();
+  }
 }
 
 final List<Category> categories = [
