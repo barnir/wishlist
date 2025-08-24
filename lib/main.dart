@@ -16,7 +16,6 @@ import 'screens/register_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/wishlists_screen.dart';
 import 'screens/add_edit_item_screen.dart';
-import 'screens/telefone_login_screen.dart';
 import 'screens/explore_screen.dart';
 import 'screens/wishlist_details_screen.dart';
 import 'screens/add_edit_wishlist_screen.dart';
@@ -144,7 +143,6 @@ class _MyAppState extends State<MyApp> {
               ModalRoute.of(context)?.settings.arguments as String;
           return WishlistDetailsScreen(wishlistId: wishlistId);
         },
-        '/telefoneLogin': (_) => const TelefoneLoginScreen(),
         '/add_phone': (_) => const AddPhoneScreen(),
         '/setup_name': (_) => const SetupNameScreen(),
         '/friend_suggestions': (_) => const FriendSuggestionsScreen(),

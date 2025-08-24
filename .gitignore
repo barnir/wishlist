@@ -155,6 +155,7 @@ claude_work/
 # Session progress files
 PROGRESS_SESSION.md
 SESSION_*.md
+PROMPT_PROXIMA_SESSAO.md
 
 # Supabase
 supabase/.temp/

@@ -92,9 +92,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _loginComTelemovel() async {
-    Navigator.pushNamed(context, '/telefoneLogin');
-  }
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
@@ -169,16 +166,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text('Entrar com Email'),
                 ),
                 Spacing.l,
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.sms),
-                  label: const Text('Entrar com Telemóvel'),
-                  onPressed: _isLoading ? null : _loginComTelemovel,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                ),
-                Spacing.m,
                 ElevatedButton.icon(
                   icon: const Icon(Icons.g_mobiledata),
                   label: const Text('Entrar com Google'),
