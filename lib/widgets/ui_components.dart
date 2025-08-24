@@ -204,7 +204,7 @@ class WishlistTextField extends StatelessWidget {
   }
 }
 
-class WishlistEmptyState extends StatelessWidget {
+class WishlistEmptyState extends StatefulWidget {
   final IconData icon;
   final String title;
   final String subtitle;
@@ -221,6 +221,81 @@ class WishlistEmptyState extends StatelessWidget {
   });
 
   @override
+  State<WishlistEmptyState> createState() => _WishlistEmptyStateState();
+}
+
+class _WishlistEmptyStateState extends State<WishlistEmptyState>
+    with TickerProviderStateMixin {
+  late AnimationController _iconController;
+  late AnimationController _textController;
+  late Animation<double> _iconScaleAnimation;
+  late Animation<double> _iconFadeAnimation;
+  late Animation<double> _textSlideAnimation;
+  late Animation<double> _textFadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _iconController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _textController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _iconScaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _iconController,
+      curve: Curves.elasticOut,
+    ));
+
+    _iconFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _iconController,
+      curve: Curves.easeIn,
+    ));
+
+    _textSlideAnimation = Tween<double>(
+      begin: 30.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _textController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _textFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _textController,
+      curve: Curves.easeOut,
+    ));
+
+    // Start animations with delay
+    _iconController.forward();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _textController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _iconController.dispose();
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
@@ -228,36 +303,65 @@ class WishlistEmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: UIConstants.iconSizeXXL,
-              color: Theme.of(context).colorScheme.primary.withAlpha(
-                (255 * UIConstants.opacityLight).round(),
+            FadeTransition(
+              opacity: _iconFadeAnimation,
+              child: ScaleTransition(
+                scale: _iconScaleAnimation,
+                child: Icon(
+                  widget.icon,
+                  size: UIConstants.iconSizeXXL,
+                  color: Theme.of(context).colorScheme.primary.withAlpha(
+                    (255 * UIConstants.opacityLight).round(),
+                  ),
+                ),
               ),
             ),
             Spacing.l,
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
+            AnimatedBuilder(
+              animation: _textController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _textSlideAnimation.value),
+                  child: FadeTransition(
+                    opacity: _textFadeAnimation,
+                    child: Column(
+                      children: [
+                        Text(
+                          widget.title,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        Spacing.m,
+                        Text(
+                          widget.subtitle,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            Spacing.m,
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (actionText != null && onAction != null) ...[
+            if (widget.actionText != null && widget.onAction != null) ...[
               Spacing.l,
-              WishlistButton(
-                text: actionText!,
-                onPressed: onAction,
-                width: 200,
+              AnimatedBuilder(
+                animation: _textController,
+                builder: (context, child) {
+                  return FadeTransition(
+                    opacity: _textFadeAnimation,
+                    child: WishlistButton(
+                      text: widget.actionText!,
+                      onPressed: widget.onAction,
+                      width: 200,
+                    ),
+                  );
+                },
               ),
             ],
           ],
@@ -267,7 +371,7 @@ class WishlistEmptyState extends StatelessWidget {
   }
 }
 
-class WishlistLoadingIndicator extends StatelessWidget {
+class WishlistLoadingIndicator extends StatefulWidget {
   final String? message;
   final double size;
 
@@ -278,32 +382,95 @@ class WishlistLoadingIndicator extends StatelessWidget {
   });
 
   @override
+  State<WishlistLoadingIndicator> createState() => _WishlistLoadingIndicatorState();
+}
+
+class _WishlistLoadingIndicatorState extends State<WishlistLoadingIndicator>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _scaleController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.easeOutBack,
+    ));
+
+    // Start animations
+    _fadeController.forward();
+    _scaleController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: size,
-            height: size,
-            child: CircularProgressIndicator(
-              strokeWidth: UIConstants.strokeWidthMedium,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: widget.size,
+                height: widget.size,
+                child: CircularProgressIndicator(
+                  strokeWidth: UIConstants.strokeWidthMedium,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
+                  ),
+                ),
               ),
-            ),
+              if (widget.message != null) ...[
+                Spacing.m,
+                AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: const Duration(milliseconds: 800),
+                  child: Text(
+                    widget.message!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ],
           ),
-          if (message != null) ...[
-            Spacing.m,
-            Text(
-              message!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

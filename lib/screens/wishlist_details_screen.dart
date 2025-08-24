@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import '../models/wish_item.dart';
@@ -317,24 +316,30 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Item image
+          // Item image with Hero animation
           if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-            SizedBox(
-              height: 200,
-              width: double.infinity,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(UIConstants.radiusM),
-                  topRight: Radius.circular(UIConstants.radiusM),
-                ),
-                child: Image.network(
-                  item.imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.broken_image,
-                      color: Theme.of(context).colorScheme.error,
+            Hero(
+              tag: 'item_image_${item.id}',
+              child: GestureDetector(
+                onTap: () => _showImageFullscreen(item),
+                child: SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(UIConstants.radiusM),
+                      topRight: Radius.circular(UIConstants.radiusM),
+                    ),
+                    child: Image.network(
+                      item.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: Icon(
+                          Icons.broken_image,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -481,6 +486,23 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     );
   }
 
+  void _showImageFullscreen(WishItem item) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => _FullscreenImageViewer(
+          imageUrl: item.imageUrl!,
+          heroTag: 'item_image_${item.id}',
+          title: item.name,
+        ),
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 250),
+        opaque: false,
+        barrierColor: Colors.black87,
+      ),
+    );
+  }
+
   void _showDeleteConfirmation(WishItem item) {
     showDialog(
       context: context,
@@ -573,6 +595,56 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             child: const Text('Aplicar'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FullscreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+  final String heroTag;
+  final String title;
+
+  const _FullscreenImageViewer({
+    required this.imageUrl,
+    required this.heroTag,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+      body: Center(
+        child: Hero(
+          tag: heroTag,
+          child: InteractiveViewer(
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Icon(
+                  Icons.broken_image,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 64,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
