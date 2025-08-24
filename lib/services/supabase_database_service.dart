@@ -34,7 +34,7 @@ class SupabaseDatabaseService {
           .order('created_at', ascending: false);
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
-      MonitoringService.logErrorStatic('get_wishlists_for_current_user', e, stackTrace: stackTrace: StackTrace.current);
+      MonitoringService.logErrorStatic('get_wishlists_for_current_user', e, stackTrace: StackTrace.current);
       return [];
     }
   }
@@ -49,7 +49,7 @@ class SupabaseDatabaseService {
           .single();
       return response;
     } catch (e) {
-      MonitoringService.logErrorStatic('get_wishlist', e, stackTrace: stackTrace: StackTrace.current);
+      MonitoringService.logErrorStatic('get_wishlist', e, stackTrace: StackTrace.current);
       return null;
     }
   }

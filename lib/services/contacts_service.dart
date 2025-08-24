@@ -2,6 +2,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 // Using flutter_contacts built-in permission system
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 
 class ContactsService {
   final _supabase = Supabase.instance.client;
@@ -282,7 +283,7 @@ class ContactsService {
       }
     } catch (e) {
       // Falhar silenciosamente para não interromper a app
-      print('Erro na sincronização de contactos: $e');
+      MonitoringService.logErrorStatic('sync_contacts', e, stackTrace: StackTrace.current);
     }
   }
 

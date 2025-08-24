@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 
 /// Service for managing user data.
 ///
@@ -49,7 +50,7 @@ class UserService {
           .eq('id', userId);
     } catch (e) {
       // Log error but don't fail the operation
-      print('Warning: Could not delete user profile from database: $e');
+      MonitoringService.logErrorStatic('delete_user_profile', e, stackTrace: StackTrace.current);
       rethrow;
     }
   }

@@ -530,18 +530,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             TextButton(
               onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.of(context).pop();
                 try {
                   await _friendshipService.removeFriend(friendship.id);
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(content: Text('Amigo removido.')),
                     );
                     _loadFriendshipStatus();
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(content: Text('Erro: $e')),
                     );
                   }

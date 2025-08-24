@@ -10,14 +10,6 @@ class MonitoringService {
   factory MonitoringService() => _instance;
   MonitoringService._internal();
 
-  // Error categories (from ErrorService)
-  static const String _authError = 'auth';
-  static const String _networkError = 'network';
-  static const String _databaseError = 'database';
-  static const String _storageError = 'storage';
-  static const String _validationError = 'validation';
-  static const String _rateLimitError = 'rate_limit';
-  static const String _unknownError = 'unknown';
 
   final SupabaseClient _supabaseClient = Supabase.instance.client;
   final Map<String, DateTime> _operationStartTimes = {};
