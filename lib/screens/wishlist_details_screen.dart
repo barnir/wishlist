@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/services/haptic_service.dart';
+import 'package:wishlist_app/widgets/swipe_action_widget.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 import '../widgets/ui_components.dart';
+import '../widgets/filter_bottom_sheet.dart';
 import '../constants/ui_constants.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 
@@ -190,7 +193,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterDialog(),
+            onPressed: () => _showFilterBottomSheet(),
             tooltip: 'Filtrar e Ordenar',
           ),
           IconButton(
@@ -246,7 +249,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           if (index == _items.length) {
             return _buildLoadingIndicator();
           }
-          return _buildItemCard(_items[index]);
+          return _buildItemCardWithSwipe(_items[index]);
         },
       ),
     );
@@ -306,6 +309,27 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildItemCardWithSwipe(WishItem item) {
+    return SwipeActionWidget(
+      onEdit: () => _editItem(item),
+      onDelete: () => _showDeleteConfirmation(item),
+      editLabel: 'Editar',
+      deleteLabel: 'Eliminar',
+      child: _buildItemCard(item),
+    );
+  }
+
+  void _editItem(WishItem item) {
+    Navigator.pushNamed(
+      context,
+      '/add_edit_item',
+      arguments: {
+        'wishlistId': widget.wishlistId,
+        'itemId': item.id,
+      },
+    ).then((_) => _loadInitialData());
   }
 
   Widget _buildItemCard(WishItem item) {
@@ -529,73 +553,18 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     );
   }
 
-  void _showFilterDialog() {
-    showDialog(
+  void _showFilterBottomSheet() {
+    showFilterBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Filtrar e Ordenar'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Categoria:', style: Theme.of(context).textTheme.titleSmall),
-            DropdownButton<String?>(
-              value: _selectedCategory,
-              hint: const Text('Todas as categorias'),
-              isExpanded: true,
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('Todas as categorias'),
-                ),
-                ...Category.getAllCategories().map(
-                  (category) => DropdownMenuItem<String>(
-                    value: category,
-                    child: Text(category),
-                  ),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedCategory = value;
-                });
-              },
-            ),
-            Spacing.m,
-            Text('Ordenar por:', style: Theme.of(context).textTheme.titleSmall),
-            DropdownButton<SortOptions>(
-              value: _sortOption,
-              isExpanded: true,
-              items: SortOptions.values.map(
-                (option) => DropdownMenuItem<SortOptions>(
-                  value: option,
-                  child: Text(option.displayName),
-                ),
-              ).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _sortOption = value;
-                  });
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _onFilterChanged();
-            },
-            child: const Text('Aplicar'),
-          ),
-        ],
-      ),
+      selectedCategory: _selectedCategory,
+      sortOption: _sortOption,
+      onFiltersChanged: (category, sortOption) {
+        setState(() {
+          _selectedCategory = category;
+          _sortOption = sortOption;
+        });
+        _onFilterChanged();
+      },
     );
   }
 }

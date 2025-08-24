@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/services/haptic_service.dart';
 import '../constants/ui_constants.dart';
 
 /// Widgets UI reutilizáveis para manter consistência na aplicação
@@ -102,6 +103,13 @@ class WishlistButton extends StatelessWidget {
     this.height = UIConstants.buttonHeightM,
   });
 
+  void _handlePress() {
+    if (onPressed != null) {
+      HapticService.buttonPress();
+      onPressed!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final buttonStyle = isPrimary
@@ -110,12 +118,12 @@ class WishlistButton extends StatelessWidget {
 
     final button = isPrimary
         ? ElevatedButton(
-            onPressed: isLoading ? null : onPressed,
+            onPressed: isLoading ? null : _handlePress,
             style: buttonStyle,
             child: _buildButtonContent(),
           )
         : OutlinedButton(
-            onPressed: isLoading ? null : onPressed,
+            onPressed: isLoading ? null : _handlePress,
             style: buttonStyle,
             child: _buildButtonContent(),
           );

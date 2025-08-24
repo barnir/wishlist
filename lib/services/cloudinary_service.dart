@@ -2,9 +2,12 @@ import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:wishlist_app/services/security_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 
 class CloudinaryService {
   late final CloudinaryPublic _cloudinary;
+  final _securityService = SecurityService();
   
   CloudinaryService() {
     final cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME'];
@@ -26,6 +29,16 @@ class CloudinaryService {
       debugPrint('=== Uploading Profile Image ===');
       debugPrint('User ID: $userId');
       debugPrint('File path: ${imageFile.path}');
+
+      // Security validation
+      final validationResult = await _securityService.validateImage(imageFile);
+      if (!validationResult.isValid) {
+        MonitoringService.logWarningStatic(
+          'CloudinaryService',
+          'Image validation failed: ${validationResult.error}',
+        );
+        throw Exception('Image validation failed: ${validationResult.error}');
+      }
 
       final result = await _cloudinary.uploadFile(
         CloudinaryFile.fromFile(

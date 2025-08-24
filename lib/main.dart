@@ -10,6 +10,7 @@ import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/theme_service.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -39,6 +40,9 @@ void main() async {
     url: Config.supabaseUrl,
     anonKey: Config.supabaseAnonKey,
   );
+
+  // Initialize theme service
+  await ThemeService().initialize();
 
   runApp(const MyApp());
 }

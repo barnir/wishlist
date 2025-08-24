@@ -99,6 +99,24 @@ class MonitoringService {
     MonitoringService()._logErrorWithContext(message, error, stackTrace: stackTrace, context: context, operation: operation);
   }
 
+  // Static info logging method
+  static void logInfoStatic(
+    String context,
+    String message, {
+    Map<String, dynamic>? metadata,
+  }) {
+    MonitoringService().logInfo(message, context: context, metadata: metadata);
+  }
+
+  // Static warning logging method
+  static void logWarningStatic(
+    String context,
+    String message, {
+    Map<String, dynamic>? metadata,
+  }) {
+    MonitoringService().logWarning(message, context: context, metadata: metadata);
+  }
+
   void _logErrorWithContext(
     String message,
     Object error, {
@@ -113,6 +131,45 @@ class MonitoringService {
     };
     
     logError(errorMessage, stackTrace, operation: operation, metadata: combinedMetadata);
+  }
+
+  // Info logging method
+  void logInfo(
+    String message, {
+    String? context,
+    Map<String, dynamic>? metadata,
+  }) {
+    final combinedMetadata = <String, dynamic>{
+      if (context != null) 'context': context,
+      ...?metadata,
+    };
+    
+    if (kDebugMode) {
+      developer.log(
+        message,
+        name: context ?? 'MonitoringService',
+      );
+    }
+  }
+
+  // Warning logging method
+  void logWarning(
+    String message, {
+    String? context,
+    Map<String, dynamic>? metadata,
+  }) {
+    final combinedMetadata = <String, dynamic>{
+      if (context != null) 'context': context,
+      ...?metadata,
+    };
+    
+    if (kDebugMode) {
+      developer.log(
+        'WARNING: $message',
+        name: context ?? 'MonitoringService',
+        level: 900, // Warning level
+      );
+    }
   }
 
   // User interaction tracking

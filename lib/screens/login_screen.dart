@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/rate_limiter_service.dart';
+import 'package:wishlist_app/utils/validation_utils.dart';
 import '../constants/ui_constants.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -10,7 +12,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with RateLimited {
   final _authService = AuthService();
   final _userService = UserService();
   final _formKey = GlobalKey<FormState>();
@@ -26,12 +28,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginComEmail() async {
     if (_formKey.currentState!.validate()) {
+      // Rate limiting check
+      final email = _emailController.text.trim();
+      final canProceed = await checkRateLimit('login', email, onBlocked: (message) {
+        _showSnackBar(message, isError: true);
+      });
+      
+      if (!canProceed) return;
+
       setState(() {
         _isLoading = true;
       });
       try {
         await _authService.signInWithEmailAndPassword(
-          _emailController.text.trim(),
+          email,
           _passwordController.text.trim(),
         );
 
@@ -92,7 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -125,15 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor, insira o seu email.';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
-                      return 'Formato de email inválido.';
-                    }
-                    return null;
-                  },
+                  validator: ValidationUtils.validateEmail,
                 ),
                 Spacing.m,
                 TextFormField(
