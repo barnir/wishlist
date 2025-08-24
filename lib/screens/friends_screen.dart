@@ -216,8 +216,7 @@ class _FriendsScreenState extends State<FriendsScreen> with TickerProviderStateM
   }
 
   Widget _buildFriendCard(Map<String, dynamic> friendship) {
-    // TODO: Buscar dados do utilizador amigo
-    final friendName = 'Amigo'; // Placeholder
+    final friendName = 'Amigo'; // Placeholder - will be replaced by favorites system
     
     return WishlistCard(
       child: ListTile(

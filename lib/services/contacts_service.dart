@@ -269,15 +269,16 @@ class ContactsService {
       // Guardar cache dos contactos encontrados (opcional)
       // Isto pode ser útil para mostrar sugestões de amigos
       for (final friend in registeredFriends) {
-        // Verificar se já existe uma sugestão ou amizade
-        final existingRelation = await _supabase
-            .from('friendships')
+        // Verificar se já está nos favoritos
+        final existingFavorite = await _supabase
+            .from('user_favorites')
             .select('id')
-            .or('and(user_id.eq.$currentUserId,friend_id.eq.${friend['id']}),and(user_id.eq.${friend['id']},friend_id.eq.$currentUserId)')
+            .eq('user_id', currentUserId)
+            .eq('favorite_user_id', friend['id'])
             .maybeSingle();
 
-        // Se não existe relação, pode criar uma sugestão (opcional)
-        if (existingRelation == null) {
+        // Se não está nos favoritos, pode criar uma sugestão (opcional)
+        if (existingFavorite == null) {
           // TODO: Implementar sistema de sugestões se necessário
         }
       }
@@ -299,15 +300,16 @@ class ContactsService {
       final suggestions = <Map<String, dynamic>>[];
       
       for (final friend in registeredFriends) {
-        // Verificar se já existe alguma relação
-        final existingFriendship = await _supabase
-            .from('friendships')
-            .select('status')
-            .or('and(user_id.eq.$currentUserId,friend_id.eq.${friend['id']}),and(user_id.eq.${friend['id']},friend_id.eq.$currentUserId)')
+        // Verificar se já está nos favoritos
+        final existingFavorite = await _supabase
+            .from('user_favorites')
+            .select('id')
+            .eq('user_id', currentUserId)
+            .eq('favorite_user_id', friend['id'])
             .maybeSingle();
 
-        // Se não existe relação, adicionar às sugestões
-        if (existingFriendship == null && friend['id'] != currentUserId) {
+        // Se não está nos favoritos, adicionar às sugestões
+        if (existingFavorite == null && friend['id'] != currentUserId) {
           suggestions.add({
             ...friend,
             'suggestion_reason': 'Está nos teus contactos',

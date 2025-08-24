@@ -1,0 +1,89 @@
+/// Model for user favorites system.
+/// 
+/// Represents a simple unidirectional relationship where one user
+/// marks another user as a favorite.
+class UserFavorite {
+  final String id;
+  final String userId;        // Who marked the favorite
+  final String favoriteUserId; // Who was marked as favorite
+  final DateTime createdAt;
+
+  UserFavorite({
+    required this.id,
+    required this.userId,
+    required this.favoriteUserId,
+    required this.createdAt,
+  });
+
+  factory UserFavorite.fromMap(Map<String, dynamic> map) {
+    return UserFavorite(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      favoriteUserId: map['favorite_user_id'] as String,
+      createdAt: DateTime.parse(map['created_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'favorite_user_id': favoriteUserId,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  UserFavorite copyWith({
+    String? id,
+    String? userId,
+    String? favoriteUserId,
+    DateTime? createdAt,
+  }) {
+    return UserFavorite(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      favoriteUserId: favoriteUserId ?? this.favoriteUserId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+}
+
+/// Extended model with profile information
+class UserFavoriteWithProfile extends UserFavorite {
+  final String? displayName;
+  final String? phoneNumber;
+  final bool isPrivate;
+
+  UserFavoriteWithProfile({
+    required super.id,
+    required super.userId,
+    required super.favoriteUserId,
+    required super.createdAt,
+    this.displayName,
+    this.phoneNumber,
+    this.isPrivate = false,
+  });
+
+  factory UserFavoriteWithProfile.fromMap(Map<String, dynamic> map) {
+    return UserFavoriteWithProfile(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      favoriteUserId: map['favorite_user_id'] as String,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      displayName: map['display_name'] as String?,
+      phoneNumber: map['phone_number'] as String?,
+      isPrivate: map['is_private'] as bool? ?? false,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    final map = super.toMap();
+    map.addAll({
+      'display_name': displayName,
+      'phone_number': phoneNumber,
+      'is_private': isPrivate,
+    });
+    return map;
+  }
+}

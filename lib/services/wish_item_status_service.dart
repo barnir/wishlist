@@ -226,11 +226,9 @@ class WishItemStatusService {
       // Se é o dono, pode sempre interagir
       if (wishlist['user_id'] == currentUserId) return true;
 
-      // Se é privada, só amigos podem ver
+      // Se é privada, só favoritos podem ver
       if (wishlist['is_private'] == true) {
-        // TODO: Verificar se são amigos
-        // Por agora, assumir que só públicas podem ser vistas por não-amigos
-        return false;
+        return await _isFavorite(currentUserId, wishlist['user_id']);
       }
 
       // Wishlist pública pode ser vista por todos
@@ -240,17 +238,17 @@ class WishItemStatusService {
     }
   }
 
-  // Verificar se utilizadores são amigos
-  Future<bool> areFriends(String userId1, String userId2) async {
+  // Verificar se utilizador marcou outro como favorito
+  Future<bool> _isFavorite(String userId, String favoriteUserId) async {
     try {
-      final friendship = await _supabase
-          .from('friendships')
-          .select('status')
-          .or('and(user_id.eq.$userId1,friend_id.eq.$userId2),and(user_id.eq.$userId2,friend_id.eq.$userId1)')
-          .eq('status', 'accepted')
+      final favorite = await _supabase
+          .from('user_favorites')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('favorite_user_id', favoriteUserId)
           .maybeSingle();
 
-      return friendship != null;
+      return favorite != null;
     } catch (e) {
       return false;
     }
