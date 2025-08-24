@@ -253,8 +253,8 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Explorar',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people),
-              label: 'Amigos',
+              icon: Icon(Icons.star),
+              label: 'Favoritos',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person), 

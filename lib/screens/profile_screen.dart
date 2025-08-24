@@ -2,8 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:wishlist_app/screens/link_email_screen.dart';
-import 'package:wishlist_app/screens/link_phone_screen.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -451,7 +449,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const LinkPhoneScreen(),
+                            builder: (context) => const Scaffold(
+                              body: Center(
+                                child: Text('Funcionalidade temporariamente indisponível'),
+                              ),
+                            ),
                           ),
                         );
                       },
@@ -466,7 +468,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const LinkPhoneScreen(),
+                                builder: (context) => const Scaffold(
+                              body: Center(
+                                child: Text('Funcionalidade temporariamente indisponível'),
+                              ),
+                            ),
                               ),
                             );
                           },
@@ -515,7 +521,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const LinkEmailScreen(),
+                                builder: (context) => const Scaffold(
+                                  body: Center(
+                                    child: Text('Funcionalidade temporariamente indisponível'),
+                                  ),
+                                ),
                               ),
                             );
                           },
@@ -532,7 +542,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const LinkEmailScreen(),
+                                builder: (context) => const Scaffold(
+                                  body: Center(
+                                    child: Text('Funcionalidade temporariamente indisponível'),
+                                  ),
+                                ),
                               ),
                             );
                           },

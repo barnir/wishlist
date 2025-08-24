@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/supabase_database_service.dart';
-import '../services/friendship_service.dart';
+import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
-import '../models/friendship.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -17,17 +16,17 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final _supabaseDatabaseService = SupabaseDatabaseService();
-  final _friendshipService = FriendshipService();
+  final _favoritesService = FavoritesService();
 
   Map<String, dynamic>? _userProfile;
-  FriendshipStatus? _friendshipStatus;
+  bool _isFavorite = false;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
-    _loadFriendshipStatus();
+    _loadFavoriteStatus();
   }
 
   Future<void> _loadUserProfile() async {
@@ -49,11 +48,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Future<void> _loadFriendshipStatus() async {
+  Future<void> _loadFavoriteStatus() async {
     try {
-      final status = await _friendshipService.getFriendshipStatus(widget.userId);
+      final isFavorite = await _favoritesService.isFavorite(widget.userId);
       if (mounted) {
-        setState(() => _friendshipStatus = status);
+        setState(() => _isFavorite = isFavorite);
       }
     } catch (e) {
       // Falhar silenciosamente
@@ -86,7 +85,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       appBar: WishlistAppBar(
         title: displayName,
         actions: [
-          _buildFriendshipActionButton(),
+          _buildFavoriteActionButton(),
         ],
       ),
       body: Column(
@@ -145,60 +144,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
           ],
           Spacing.m,
-          _buildFriendshipStatusBadge(),
+          _buildFavoriteStatusBadge(),
         ],
       ),
     );
   }
 
-  Widget _buildFriendshipStatusBadge() {
-    if (_friendshipStatus == null) {
+  Widget _buildFavoriteStatusBadge() {
+    if (!_isFavorite) {
       return const SizedBox.shrink();
-    }
-
-    Color badgeColor;
-    IconData badgeIcon;
-    String badgeText;
-
-    switch (_friendshipStatus!) {
-      case FriendshipStatus.accepted:
-        badgeColor = Colors.green;
-        badgeIcon = Icons.check_circle;
-        badgeText = 'Amigo';
-        break;
-      case FriendshipStatus.pending:
-        badgeColor = Colors.orange;
-        badgeIcon = Icons.schedule;
-        badgeText = 'Pedido pendente';
-        break;
-      case FriendshipStatus.rejected:
-        badgeColor = Colors.red;
-        badgeIcon = Icons.cancel;
-        badgeText = 'Rejeitado';
-        break;
-      case FriendshipStatus.blocked:
-        badgeColor = Colors.red;
-        badgeIcon = Icons.block;
-        badgeText = 'Bloqueado';
-        break;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: badgeColor.withAlpha(51),
+        color: Colors.amber.withAlpha(51),
         borderRadius: BorderRadius.circular(UIConstants.radiusL),
-        border: Border.all(color: badgeColor, width: 1),
+        border: Border.all(color: Colors.amber, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(badgeIcon, size: UIConstants.iconSizeS, color: badgeColor),
+          Icon(Icons.star, size: UIConstants.iconSizeS, color: Colors.amber),
           Spacing.horizontalXS,
           Text(
-            badgeText,
+            'Favorito',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: badgeColor,
+              color: Colors.amber,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -207,64 +179,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildFriendshipActionButton() {
-    if (_friendshipStatus == null) {
-      return IconButton(
-        icon: Icon(
-          Icons.person_add,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        onPressed: _sendFriendRequest,
-        tooltip: 'Adicionar amigo',
-      );
-    }
-
-    switch (_friendshipStatus!) {
-      case FriendshipStatus.accepted:
-        return PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert),
-          onSelected: (value) async {
-            if (value == 'remove') {
-              await _showRemoveFriendDialog();
-            } else if (value == 'block') {
-              await _blockUser();
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'remove',
-              child: Row(
-                children: [
-                  Icon(Icons.person_remove),
-                  SizedBox(width: 8),
-                  Text('Remover amigo'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'block',
-              child: Row(
-                children: [
-                  Icon(Icons.block, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Bloquear', style: TextStyle(color: Colors.red)),
-                ],
-              ),
-            ),
-          ],
-        );
-      case FriendshipStatus.pending:
-        return Icon(
-          Icons.schedule,
-          color: Colors.orange,
-        );
-      case FriendshipStatus.rejected:
-      case FriendshipStatus.blocked:
-        return Icon(
-          Icons.block,
-          color: Colors.red,
-        );
-    }
+  Widget _buildFavoriteActionButton() {
+    return IconButton(
+      icon: Icon(
+        _isFavorite ? Icons.star : Icons.star_border,
+        color: _isFavorite ? Colors.amber : Theme.of(context).colorScheme.primary,
+      ),
+      onPressed: _toggleFavorite,
+      tooltip: _isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos',
+    );
   }
 
   Widget _buildTabSection() {
@@ -459,7 +382,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 _buildInfoRow('Nome', displayName),
                 if (_userProfile!['email'] != null)
                   _buildInfoRow('Email', _userProfile!['email'] as String),
-                _buildInfoRow('Membro desde', 'Recentemente'), // TODO: Calcular data real
+                _buildInfoRow('Membro desde', 'Recentemente'),
               ],
             ),
           ),
@@ -495,78 +418,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Future<void> _sendFriendRequest() async {
+  Future<void> _toggleFavorite() async {
     try {
-      await _friendshipService.sendFriendRequest(widget.userId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pedido de amizade enviado!')),
-        );
-        _loadFriendshipStatus();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _showRemoveFriendDialog() async {
-    final friendship = await _friendshipService.getFriendship(widget.userId);
-    if (friendship == null) return;
-
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Remover amigo'),
-          content: Text('Tens a certeza que queres remover ${_userProfile!['display_name']} dos teus amigos?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                Navigator.of(context).pop();
-                try {
-                  await _friendshipService.removeFriend(friendship.id);
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      const SnackBar(content: Text('Amigo removido.')),
-                    );
-                    _loadFriendshipStatus();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(content: Text('Erro: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Remover', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  Future<void> _blockUser() async {
-    final friendship = await _friendshipService.getFriendship(widget.userId);
-    if (friendship == null) return;
-
-    try {
-      await _friendshipService.blockUser(friendship.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Utilizador bloqueado.')),
-        );
-        _loadFriendshipStatus();
+      if (_isFavorite) {
+        await _favoritesService.removeFavorite(widget.userId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Removido dos favoritos')),
+          );
+          setState(() => _isFavorite = false);
+        }
+      } else {
+        await _favoritesService.addFavorite(widget.userId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Adicionado aos favoritos!')),
+          );
+          setState(() => _isFavorite = true);
+        }
       }
     } catch (e) {
       if (mounted) {
