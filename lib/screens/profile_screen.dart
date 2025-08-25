@@ -5,10 +5,12 @@ import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
+import 'package:wishlist_app/services/language_service.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/widgets/profile_widgets.dart';
 import 'package:wishlist_app/widgets/profile_edit_bottom_sheets.dart';
 import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
+import 'package:wishlist_app/widgets/language_selector_bottom_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
   final _userService = UserService();
   final _databaseService = SupabaseDatabaseService();
+  final _languageService = LanguageService();
 
   String _displayName = '';
   String _bio = '';
@@ -198,6 +201,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => const ThemeSelectorBottomSheet(),
     );
+  }
+
+  Future<void> _handleLanguageSettings() async {
+    HapticService.lightImpact();
+    await LanguageSelectorBottomSheet.show(context);
   }
 
   Future<void> _signOut() async {
@@ -411,6 +419,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               subtitle: l10n.customizeAppearance,
                               onTap: _handleThemeSettings,
                               trailing: const Icon(Icons.chevron_right),
+                            ),
+                            AnimatedBuilder(
+                              animation: _languageService,
+                              builder: (context, child) {
+                                return ProfileListTile(
+                                  icon: Icons.language,
+                                  title: l10n.language,
+                                  subtitle: _languageService.currentLanguageDisplayName,
+                                  onTap: _handleLanguageSettings,
+                                  trailing: const Icon(Icons.chevron_right),
+                                );
+                              },
                             ),
                             ProfileListTile(
                               icon: Icons.privacy_tip,

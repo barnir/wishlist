@@ -82,6 +82,13 @@ abstract class AppLocalizations {
   String get description;
   String get public;
   String get private;
+  
+  // Language settings
+  String get language;
+  String get languageSettings;
+  String get selectLanguage;
+  String get automatic;
+  String get systemLanguage;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
@@ -273,6 +280,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get private => 'Private';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get languageSettings => 'Language Settings';
+
+  @override
+  String get selectLanguage => 'Select Language';
+
+  @override
+  String get automatic => 'Automatic';
+
+  @override
+  String get systemLanguage => 'System Language';
 }
 
 class AppLocalizationsPt extends AppLocalizations {
@@ -439,4 +461,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get private => 'Privado';
+
+  @override
+  String get language => 'Idioma';
+
+  @override
+  String get languageSettings => 'Configurações de Idioma';
+
+  @override
+  String get selectLanguage => 'Selecionar Idioma';
+
+  @override
+  String get automatic => 'Automático';
+
+  @override
+  String get systemLanguage => 'Idioma do Sistema';
 }

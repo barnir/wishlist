@@ -12,6 +12,7 @@ import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/services/theme_service.dart';
+import 'package:wishlist_app/services/language_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
 import 'screens/login_screen.dart';
@@ -45,6 +46,9 @@ void main() async {
 
   // Initialize theme service
   await ThemeService().initialize();
+
+  // Initialize language service
+  await LanguageService().initialize();
 
   runApp(const MyApp());
 }
@@ -116,24 +120,28 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: 'Wishlist App',
-      theme: lightAppTheme,
-      darkTheme: darkAppTheme,
-      themeMode: ThemeMode.system,
-      
-      // Configuração de localização
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en', ''), // Inglês
-        Locale('pt', ''), // Português
-      ],
+    return AnimatedBuilder(
+      animation: Listenable.merge([ThemeService(), LanguageService()]),
+      builder: (context, child) {
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'Wishlist App',
+          theme: lightAppTheme,
+          darkTheme: darkAppTheme,
+          themeMode: ThemeMode.system,
+          
+          // Configuração de localização
+          locale: LanguageService().currentLocale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en', ''), // Inglês
+            Locale('pt', ''), // Português
+          ],
       routes: {
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
@@ -169,54 +177,56 @@ class _MyAppState extends State<MyApp> {
           return UserProfileScreen(userId: userId);
         },
       },
-      home: StreamBuilder<firebase_auth.User?>(
-        stream: AuthService().authStateChanges,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasData) {
-            // User is logged in, check for phone number
-            return FutureBuilder<Map<String, dynamic>?>(
-              future: UserService().getUserProfile(snapshot.data!.uid),
-              builder: (context, profileSnapshot) {
-                if (profileSnapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final profile = profileSnapshot.data;
-                
-                // Phone number is ALWAYS required, regardless of login method
-                if (profile == null ||
-                    profile['phone_number'] == null ||
-                    profile['phone_number'].toString().isEmpty) {
-                  // Phone number is missing, navigate to AddPhoneScreen
-                  return const AddPhoneScreen();
-                } else if (profile['display_name'] == null ||
-                           profile['display_name'].toString().isEmpty) {
-                  // Phone number exists but display name is missing, navigate to SetupNameScreen
-                  return const SetupNameScreen();
-                } else {
-                  // Both phone number and display name exist, proceed to home
-                  if (_pendingSharedData != null) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _handleSharedMedia(_pendingSharedData!);
-                      _pendingSharedData = null;
-                    });
-                  }
-                  return const HomeScreen();
-                }
-              },
-            );
-          } else {
-            return const LoginScreen();
-          }
-        },
-      ),
+          home: StreamBuilder<firebase_auth.User?>(
+            stream: AuthService().authStateChanges,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasData) {
+                // User is logged in, check for phone number
+                return FutureBuilder<Map<String, dynamic>?>(
+                  future: UserService().getUserProfile(snapshot.data!.uid),
+                  builder: (context, profileSnapshot) {
+                    if (profileSnapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final profile = profileSnapshot.data;
+                    
+                    // Phone number is ALWAYS required, regardless of login method
+                    if (profile == null ||
+                        profile['phone_number'] == null ||
+                        profile['phone_number'].toString().isEmpty) {
+                      // Phone number is missing, navigate to AddPhoneScreen
+                      return const AddPhoneScreen();
+                    } else if (profile['display_name'] == null ||
+                               profile['display_name'].toString().isEmpty) {
+                      // Phone number exists but display name is missing, navigate to SetupNameScreen
+                      return const SetupNameScreen();
+                    } else {
+                      // Both phone number and display name exist, proceed to home
+                      if (_pendingSharedData != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _handleSharedMedia(_pendingSharedData!);
+                          _pendingSharedData = null;
+                        });
+                      }
+                      return const HomeScreen();
+                    }
+                  },
+                );
+              } else {
+                return const LoginScreen();
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }
