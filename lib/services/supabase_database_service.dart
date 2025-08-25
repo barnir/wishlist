@@ -143,6 +143,7 @@ class SupabaseDatabaseService {
     required String category,
     String? link,
     String? description,
+    double? rating,
     File? imageFile,
     String? imageUrl,
     String? itemId,
@@ -162,6 +163,7 @@ class SupabaseDatabaseService {
       'category': category,
       'link': link,
       'description': description,
+      'rating': rating,
       'image_url': finalImageUrl,
     };
 

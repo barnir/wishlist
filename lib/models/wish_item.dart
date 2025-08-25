@@ -6,6 +6,7 @@ class WishItem {
   final double? price;
   final String? imageUrl;
   final String category;
+  final double? rating;
   final DateTime createdAt;
 
   WishItem({
@@ -16,6 +17,7 @@ class WishItem {
     this.price,
     this.imageUrl,
     required this.category,
+    this.rating,
     required this.createdAt,
   });
 
@@ -28,6 +30,7 @@ class WishItem {
       price: (data['price'] as num?)?.toDouble(),
       imageUrl: data['image_url'] as String?,
       category: data['category'] ?? 'Outros',
+      rating: (data['rating'] as num?)?.toDouble(),
       createdAt: DateTime.parse(data['created_at'] as String),
     );
   }
@@ -41,6 +44,7 @@ class WishItem {
       'price': price,
       'image_url': imageUrl,
       'category': category,
+      'rating': rating,
       'created_at': createdAt.toIso8601String(),
     };
   }

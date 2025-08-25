@@ -85,6 +85,36 @@ class WishItemTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     
+                    // Rating com estrelas
+                    if (item.rating != null && item.rating! > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            ...List.generate(5, (index) {
+                              final starValue = index + 1;
+                              return Icon(
+                                starValue <= item.rating!.round()
+                                    ? Icons.star
+                                    : starValue - 0.5 <= item.rating!
+                                        ? Icons.star_half
+                                        : Icons.star_border,
+                                size: 14,
+                                color: Colors.amber,
+                              );
+                            }),
+                            const SizedBox(width: 4),
+                            Text(
+                              item.rating!.toStringAsFixed(1),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.amber.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    
                     const Spacer(),
                     
                     // Bottom row: Category chip + Actions

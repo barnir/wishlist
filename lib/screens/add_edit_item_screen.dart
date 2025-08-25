@@ -41,6 +41,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   late TextEditingController _priceController;
   late TextEditingController _newWishlistNameController;
   String? _selectedCategory;
+  double? _rating;
   Uint8List? _imageBytes;
   bool _isUploading = false;
   Future<File?>? _imageFuture;
@@ -107,6 +108,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           // Verificar se a categoria detectada existe na nossa lista
           if (categories.any((cat) => cat.name == detectedCategory)) {
             _selectedCategory = detectedCategory;
+          }
+        }
+        
+        // Atualizar rating se foi extraído
+        if (scrapedData['rating'] != null && scrapedData['rating']!.isNotEmpty) {
+          final ratingValue = double.tryParse(scrapedData['rating']);
+          if (ratingValue != null && ratingValue >= 0.0 && ratingValue <= 5.0) {
+            _rating = ratingValue;
           }
         }
         
@@ -325,12 +334,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         await _supabaseDatabaseService.saveWishItem(
           wishlistId: finalWishlistId,
           name: _nameController.text.trim(),
+          description: _descriptionController.text.trim().isNotEmpty 
+              ? _descriptionController.text.trim() : null,
           price:
               double.tryParse(
                 _priceController.text.trim().replaceAll(',', '.'),
               ) ??
               0.0,
           category: _selectedCategory!,
+          rating: _rating,
           link: _linkController.text.trim(),
           imageFile: tempFileForUpload,
           itemId: widget.itemId,
@@ -350,12 +362,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       await _supabaseDatabaseService.saveWishItem(
         wishlistId: finalWishlistId,
         name: _nameController.text.trim(),
+        description: _descriptionController.text.trim().isNotEmpty 
+            ? _descriptionController.text.trim() : null,
         price:
             double.tryParse(
               _priceController.text.trim().replaceAll(',', '.'),
             ) ??
             0.0,
         category: _selectedCategory!,
+        rating: _rating,
         link: _linkController.text.trim(),
         imageUrl: _existingImageUrl,
         itemId: widget.itemId,
