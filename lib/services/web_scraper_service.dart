@@ -567,11 +567,6 @@ class WebScraperServiceSecure {
     return _extractImage(document, baseUrl);
   }
 
-  String _extractDescriptionFromHtml(String? body) {
-    if (body == null) return '';
-    final document = parser.parse(body);
-    return _extractDescription(document);
-  }
 
   String _parsePrice(dynamic price) {
     if (price == null) return '0.00';
