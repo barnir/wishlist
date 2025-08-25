@@ -20,7 +20,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
 
   // Paginação
   static const int _pageSize = 10;
-  List<Map<String, dynamic>> _wishlists = [];
+  final List<Map<String, dynamic>> _wishlists = [];
   int _currentPage = 0;
   bool _isLoading = false;
   bool _hasMoreData = true;

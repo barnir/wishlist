@@ -80,7 +80,7 @@ class _ThemeSelectorBottomSheetState extends State<ThemeSelectorBottomSheet>
       animation: _animationController,
       builder: (context, child) {
         return Container(
-          color: Colors.black.withOpacity(_fadeAnimation.value * 0.5),
+          color: Colors.black.withValues(alpha: _fadeAnimation.value * 0.5),
           child: Align(
             alignment: Alignment.bottomCenter,
             child: Transform.translate(
@@ -93,7 +93,7 @@ class _ThemeSelectorBottomSheetState extends State<ThemeSelectorBottomSheet>
                   borderRadius: BorderRadius.circular(UIConstants.radiusL),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
@@ -108,7 +108,7 @@ class _ThemeSelectorBottomSheetState extends State<ThemeSelectorBottomSheet>
                       height: 4,
                       margin: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -244,7 +244,7 @@ class _ThemeSelectorBottomSheetState extends State<ThemeSelectorBottomSheet>
                             subtitle,
                             style: textTheme.bodySmall?.copyWith(
                               color: isSelected 
-                                  ? colorScheme.onPrimaryContainer.withOpacity(0.7)
+                                  ? colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
                                   : colorScheme.onSurfaceVariant,
                             ),
                           ),

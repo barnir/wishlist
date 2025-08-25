@@ -239,8 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Set<WidgetState> states,
                   ) {
                     if (states.contains(WidgetState.disabled)) {
-                      // ignore: deprecated_member_use
-                      return Colors.red.withOpacity(0.5);
+                      return Colors.red.withValues(alpha: 0.5);
                     }
                     return Colors.red;
                   }),

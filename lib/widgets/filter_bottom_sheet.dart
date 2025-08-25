@@ -98,7 +98,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
       animation: _animationController,
       builder: (context, child) {
         return Container(
-          color: Colors.black.withOpacity(_fadeAnimation.value * 0.5),
+          color: Colors.black.withValues(alpha: _fadeAnimation.value * 0.5),
           child: Align(
             alignment: Alignment.bottomCenter,
             child: Transform.translate(
@@ -116,7 +116,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
@@ -131,7 +131,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                       height: 4,
                       margin: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -239,7 +239,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
           size: 20,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
-        Spacing.horizontalXs,
+        Spacing.horizontalXS,
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -252,7 +252,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
 
   Widget _buildCategorySelector() {
     final categories = Category.getAllCategories();
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Wrap(
       spacing: 8,

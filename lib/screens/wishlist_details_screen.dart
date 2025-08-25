@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
-import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:wishlist_app/widgets/swipe_action_widget.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import '../models/wish_item.dart';
-import '../models/category.dart';
 import '../widgets/ui_components.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../constants/ui_constants.dart';
@@ -31,7 +29,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   // Paginação
   static const int _pageSize = 20;
-  List<WishItem> _items = [];
+  final List<WishItem> _items = [];
   int _currentPage = 0;
   bool _isLoading = false;
   bool _hasMoreData = true;

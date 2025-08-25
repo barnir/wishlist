@@ -16,7 +16,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   // Paginação
   static const int _pageSize = 15;
-  List<Map<String, dynamic>> _favorites = [];
+  final List<Map<String, dynamic>> _favorites = [];
   int _currentPage = 0;
   bool _isLoading = false;
   bool _hasMoreData = true;

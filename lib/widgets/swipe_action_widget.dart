@@ -191,7 +191,8 @@ class EnhancedDismissible extends StatefulWidget {
 class _EnhancedDismissibleState extends State<EnhancedDismissible>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _slideAnimation;
+  // Animation for slide effects (currently unused but may be needed for future enhancements)
+  // late Animation<double> _slideAnimation;
   double _dragExtent = 0.0;
   bool _isDragging = false;
 
@@ -202,13 +203,13 @@ class _EnhancedDismissibleState extends State<EnhancedDismissible>
       duration: widget.animationDuration,
       vsync: this,
     );
-    _slideAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
+    // _slideAnimation = Tween<double>(
+    //   begin: 0.0,
+    //   end: 1.0,
+    // ).animate(CurvedAnimation(
+    //   parent: _animationController,
+    //   curve: Curves.easeOut,
+    // ));
   }
 
   @override

@@ -152,10 +152,12 @@ app.*.symbols
 claude_work/
 .claude_cache/
 
-# Session progress files
+# Documentation files - EXCLUDED FROM GIT
 PROGRESS_SESSION.md
-SESSION_*.md
+SESSION_*.md  
 PROMPT_PROXIMA_SESSAO.md
+PROGRESSO_DESENVOLVIMENTO.md
+*.md
 
 # Supabase
 supabase/.temp/

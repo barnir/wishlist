@@ -22,7 +22,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   
   // Paginação
   static const int _pageSize = 15;
-  List<Map<String, dynamic>> _users = [];
+  final List<Map<String, dynamic>> _users = [];
   int _currentPage = 0;
   bool _isLoading = false;
   bool _hasMoreData = true;

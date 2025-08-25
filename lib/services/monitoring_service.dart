@@ -139,11 +139,6 @@ class MonitoringService {
     String? context,
     Map<String, dynamic>? metadata,
   }) {
-    final combinedMetadata = <String, dynamic>{
-      if (context != null) 'context': context,
-      ...?metadata,
-    };
-    
     if (kDebugMode) {
       developer.log(
         message,
@@ -158,11 +153,6 @@ class MonitoringService {
     String? context,
     Map<String, dynamic>? metadata,
   }) {
-    final combinedMetadata = <String, dynamic>{
-      if (context != null) 'context': context,
-      ...?metadata,
-    };
-    
     if (kDebugMode) {
       developer.log(
         'WARNING: $message',

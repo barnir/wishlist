@@ -140,7 +140,8 @@ class ThemeService extends ChangeNotifier {
 /// Theme data configurations
 class AppThemes {
   static const Color _primaryColor = Color(0xFF6750A4);
-  static const Color _primaryContainer = Color(0xFFEADDFF);
+  // Primary container color for Material 3 theming (reserved for future use)
+  // static const Color _primaryContainer = Color(0xFFEADDFF);
   
   /// Light theme configuration
   static ThemeData lightTheme() {
@@ -156,9 +157,9 @@ class AppThemes {
         elevation: 0,
         scrolledUnderElevation: 1,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -166,7 +167,7 @@ class AppThemes {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.2),
+          shadowColor: Colors.black.withValues(alpha: 0.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -181,7 +182,7 @@ class AppThemes {
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.withOpacity(0.2),
+        color: Colors.grey.withValues(alpha: 0.2),
         thickness: 1,
       ),
     );
@@ -201,9 +202,9 @@ class AppThemes {
         elevation: 0,
         scrolledUnderElevation: 1,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -211,7 +212,7 @@ class AppThemes {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 3,
-          shadowColor: Colors.black.withOpacity(0.4),
+          shadowColor: Colors.black.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -226,7 +227,7 @@ class AppThemes {
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.withOpacity(0.3),
+        color: Colors.grey.withValues(alpha: 0.3),
         thickness: 1,
       ),
     );
