@@ -1,0 +1,282 @@
+{
+  "@@locale": "en",
+  "appTitle": "Wishlist",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile page title"
+  },
+
+  "editProfile": "Edit Profile",
+  "@editProfile": {
+    "description": "Button to edit profile"
+  },
+
+  "name": "Name",
+  "@name": {
+    "description": "Name field label"
+  },
+
+  "bio": "Bio",
+  "@bio": {
+    "description": "Bio field label"
+  },
+
+  "email": "Email",
+  "@email": {
+    "description": "Email field label"
+  },
+
+  "phone": "Phone",
+  "@phone": {
+    "description": "Phone field label"
+  },
+
+  "save": "Save",
+  "@save": {
+    "description": "Save button text"
+  },
+
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button text"
+  },
+
+  "account": "Account",
+  "@account": {
+    "description": "Account section title"
+  },
+
+  "preferences": "Preferences",
+  "@preferences": {
+    "description": "Preferences section title"
+  },
+
+  "about": "About",
+  "@about": {
+    "description": "About section title"
+  },
+
+  "actions": "Actions",
+  "@actions": {
+    "description": "Actions section title"
+  },
+
+  "theme": "Theme",
+  "@theme": {
+    "description": "Theme setting"
+  },
+
+  "privacy": "Privacy",
+  "@privacy": {
+    "description": "Privacy setting"
+  },
+
+  "privacySettings": "Privacy Settings",
+  "@privacySettings": {
+    "description": "Privacy settings title"
+  },
+
+  "privateProfile": "Private Profile",
+  "@privateProfile": {
+    "description": "Private profile setting"
+  },
+
+  "publicProfile": "Public Profile",
+  "@publicProfile": {
+    "description": "Public profile setting"
+  },
+
+  "privateProfileDesc": "Only approved users can see your wishlists",
+  "@privateProfileDesc": {
+    "description": "Private profile description"
+  },
+
+  "publicProfileDesc": "Any user can see your public wishlists",
+  "@publicProfileDesc": {
+    "description": "Public profile description"
+  },
+
+  "customizeAppearance": "Customize appearance",
+  "@customizeAppearance": {
+    "description": "Theme customization description"
+  },
+
+  "helpSupport": "Help & Support",
+  "@helpSupport": {
+    "description": "Help and support option"
+  },
+
+  "rateApp": "Rate App",
+  "@rateApp": {
+    "description": "Rate app option"
+  },
+
+  "signOut": "Sign Out",
+  "@signOut": {
+    "description": "Sign out button"
+  },
+
+  "deleteAccount": "Delete Account",
+  "@deleteAccount": {
+    "description": "Delete account button"
+  },
+
+  "deleteAccountDesc": "This action is irreversible",
+  "@deleteAccountDesc": {
+    "description": "Delete account warning"
+  },
+
+  "wishlists": "Wishlists",
+  "@wishlists": {
+    "description": "Wishlists count label"
+  },
+
+  "items": "Items",
+  "@items": {
+    "description": "Items count label"
+  },
+
+  "favorites": "Favorites",
+  "@favorites": {
+    "description": "Favorites count label"
+  },
+
+  "shared": "Shared",
+  "@shared": {
+    "description": "Shared count label"
+  },
+
+  "addBio": "Add bio...",
+  "@addBio": {
+    "description": "Add bio placeholder"
+  },
+
+  "tellAboutYou": "Tell a bit about yourself...",
+  "@tellAboutYou": {
+    "description": "Bio placeholder text"
+  },
+
+  "noName": "No name",
+  "@noName": {
+    "description": "Default name when user has no name"
+  },
+
+  "noEmail": "No email",
+  "@noEmail": {
+    "description": "Default text when user has no email"
+  },
+
+  "noEmailLinked": "No email linked",
+  "@noEmailLinked": {
+    "description": "No email linked message"
+  },
+
+  "userNotFound": "User not found.",
+  "@userNotFound": {
+    "description": "User not found message"
+  },
+
+  "nameCannotBeEmpty": "Name cannot be empty",
+  "@nameCannotBeEmpty": {
+    "description": "Name validation message"
+  },
+
+  "errorSaving": "Error saving: {error}",
+  "@errorSaving": {
+    "description": "Error saving message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "deleteAccountConfirmation": "Delete Account",
+  "@deleteAccountConfirmation": {
+    "description": "Delete account confirmation dialog title"
+  },
+
+  "deleteAccountWarning": "This action is irreversible. All your data will be lost. To confirm, type \"DELETE\" in the box below.",
+  "@deleteAccountWarning": {
+    "description": "Delete account warning message"
+  },
+
+  "confirm": "Confirm",
+  "@confirm": {
+    "description": "Confirm text"
+  },
+
+  "deletePermanently": "Delete Permanently",
+  "@deletePermanently": {
+    "description": "Delete permanently button"
+  },
+
+  "accountDeletedSuccessfully": "Account deleted successfully.",
+  "@accountDeletedSuccessfully": {
+    "description": "Account deletion success message"
+  },
+
+  "errorDeletingAccount": "Error deleting account: {error}",
+  "@errorDeletingAccount": {
+    "description": "Error deleting account message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "login": "Login",
+  "@login": {
+    "description": "Login page title"
+  },
+
+  "register": "Register",
+  "@register": {
+    "description": "Register page title"
+  },
+
+  "welcome": "Welcome",
+  "@welcome": {
+    "description": "Welcome message"
+  },
+
+  "myWishlists": "My Wishlists",
+  "@myWishlists": {
+    "description": "My wishlists title"
+  },
+
+  "explore": "Explore",
+  "@explore": {
+    "description": "Explore page title"
+  },
+
+  "createWishlist": "Create Wishlist",
+  "@createWishlist": {
+    "description": "Create wishlist button"
+  },
+
+  "wishlistName": "Wishlist Name",
+  "@wishlistName": {
+    "description": "Wishlist name field"
+  },
+
+  "description": "Description",
+  "@description": {
+    "description": "Description field"
+  },
+
+  "public": "Public",
+  "@public": {
+    "description": "Public setting"
+  },
+
+  "private": "Private",
+  "@private": {
+    "description": "Private setting"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "@@locale": "pt",
+  "appTitle": "Lista de Desejos",
+
+  "profile": "Perfil",
+  "editProfile": "Editar Perfil",
+  "name": "Nome",
+  "bio": "Biografia",
+  "email": "Email",
+  "phone": "Telemóvel",
+  "save": "Guardar",
+  "cancel": "Cancelar",
+
+  "account": "Conta",
+  "preferences": "Preferências",
+  "about": "Sobre",
+  "actions": "Ações",
+
+  "theme": "Tema",
+  "privacy": "Privacidade",
+  "privacySettings": "Configurações de Privacidade",
+  "privateProfile": "Perfil Privado",
+  "publicProfile": "Perfil Público",
+  "privateProfileDesc": "Apenas utilizadores aprovados podem ver as suas wishlists",
+  "publicProfileDesc": "Qualquer utilizador pode ver as suas wishlists públicas",
+  "customizeAppearance": "Personalizar aparência",
+
+  "helpSupport": "Ajuda e Suporte",
+  "rateApp": "Avaliar App",
+  "signOut": "Terminar Sessão",
+  "deleteAccount": "Apagar Conta",
+  "deleteAccountDesc": "Esta ação é irreversível",
+
+  "wishlists": "Wishlists",
+  "items": "Items",
+  "favorites": "Favoritos",
+  "shared": "Partilhadas",
+
+  "addBio": "Adicionar biografia...",
+  "tellAboutYou": "Conte um pouco sobre si...",
+  "noName": "Sem nome",
+  "noEmail": "Sem email",
+  "noEmailLinked": "Nenhum email vinculado",
+  "userNotFound": "Utilizador não encontrado.",
+
+  "nameCannotBeEmpty": "Nome não pode estar vazio",
+  "errorSaving": "Erro ao guardar: {error}",
+
+  "deleteAccountConfirmation": "Apagar Conta",
+  "deleteAccountWarning": "Esta ação é irreversível. Todos os seus dados serão perdidos. Para confirmar, escreva \"APAGAR\" na caixa abaixo.",
+  "confirm": "Confirmar",
+  "deletePermanently": "Apagar Permanentemente",
+  "accountDeletedSuccessfully": "Conta apagada com sucesso.",
+  "errorDeletingAccount": "Erro ao apagar conta: {error}",
+
+  "login": "Entrar",
+  "register": "Registar",
+  "welcome": "Bem-vindo",
+  "myWishlists": "As Minhas Listas",
+  "explore": "Explorar",
+
+  "createWishlist": "Criar Lista",
+  "wishlistName": "Nome da Lista",
+  "description": "Descrição",
+  "public": "Público",
+  "private": "Privado"
+}

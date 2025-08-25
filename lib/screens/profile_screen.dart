@@ -1,10 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/services/haptic_service.dart';
+import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/widgets/profile_widgets.dart';
+import 'package:wishlist_app/widgets/profile_edit_bottom_sheets.dart';
+import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,16 +20,20 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
   final _userService = UserService();
-  final _cloudinaryService = CloudinaryService();
+  final _databaseService = SupabaseDatabaseService();
 
-  final _nameController = TextEditingController();
-  final _bioController = TextEditingController(); // New
-  bool _isEditingName = false;
-  bool _isEditingBio = false; // New
+  String _displayName = '';
+  String _bio = '';
   bool _isPrivate = false;
   bool _isUploading = false;
-  String? _profileImageUrl; // Use String for URL
-  String? _phoneNumber; // To store phone number from user profile
+  String? _profileImageUrl;
+  String? _phoneNumber;
+
+  // Estatísticas
+  int _wishlistsCount = 0;
+  int _itemsCount = 0;
+  int _favoritesCount = 0;
+  int _sharedCount = 0;
 
   bool _isLoading = false;
 
@@ -37,44 +45,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.uid;
-    final userData = await _userService.getUserProfile(userId);
-    if (userData != null) {
-      _nameController.text = userData['display_name'] ?? '';
-      _bioController.text = userData['bio'] ?? '';
-      _isPrivate = userData['is_private'] ?? false;
-      _phoneNumber = userData['phone_number'];
-    }
     
-    // Debug: Check user info  
-    final user = _authService.currentUser;
-    debugPrint('=== Profile Debug Information ===');
-    debugPrint('Current user ID: $userId');
-    debugPrint('User display name: ${user?.displayName}');
-    debugPrint('User email: ${user?.email}');
-    debugPrint('User photo URL: ${user?.photoURL}');
-    
-    // Load profile image from Firebase user or database
-    _profileImageUrl = _authService.currentUser?.photoURL ?? userData?['photo_url'];
-    debugPrint('Profile image URL found: $_profileImageUrl');
-
-    // If no name in database, try to get from Firebase user
-    debugPrint('Current display name from DB: "${_nameController.text}"');
-    if (_nameController.text.isEmpty) {
-      final firebaseName = user?.displayName;
-      debugPrint('Firebase display name found: "$firebaseName"');
-      if (firebaseName != null) {
-        _nameController.text = firebaseName;
-        debugPrint('Setting name to: "$firebaseName"');
-        // Save to database for future use
+    try {
+      final userId = _authService.currentUser!.uid;
+      final user = _authService.currentUser;
+      
+      // Carregar dados do utilizador
+      final userData = await _userService.getUserProfile(userId);
+      if (userData != null) {
+        _displayName = userData['display_name'] ?? '';
+        _bio = userData['bio'] ?? '';
+        _isPrivate = userData['is_private'] ?? false;
+        _phoneNumber = userData['phone_number'];
+      }
+      
+      // Carregar imagem de perfil
+      _profileImageUrl = user?.photoURL ?? userData?['photo_url'];
+      
+      // Se não tem nome na base de dados, usar do Firebase
+      if (_displayName.isEmpty && user?.displayName != null) {
+        _displayName = user!.displayName!;
         await _userService.updateUserProfile(userId, {
-          'display_name': firebaseName,
+          'display_name': _displayName,
         });
       }
+      
+      // Carregar estatísticas
+      await _loadUserStats(userId);
+      
+    } catch (e) {
+      debugPrint('Erro ao carregar dados do perfil: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+  Future<void> _loadUserStats(String userId) async {
+    try {
+      // Carregar wishlists do utilizador - usando stream primeiro valor
+      final wishlistsStream = _databaseService.getWishlists(userId);
+      final wishlistsSnapshot = await wishlistsStream.first;
+      _wishlistsCount = wishlistsSnapshot.length;
+      
+      // Contar items total
+      int totalItems = 0;
+      int sharedWishlists = 0;
+      
+      for (final wishlistData in wishlistsSnapshot) {
+        // Contar items em cada wishlist
+        final itemsStream = _databaseService.getWishItems(wishlistData['id'] as String);
+        final itemsSnapshot = await itemsStream.first;
+        totalItems += itemsSnapshot.length;
+        
+        // Verificar se é pública
+        if (wishlistData['is_public'] == true) {
+          sharedWishlists++;
+        }
+      }
+      
+      _itemsCount = totalItems;
+      _sharedCount = sharedWishlists;
+      
+      // Carregar favoritos (assumindo que existe um método para isso)
+      // Por agora, usar um número estático
+      _favoritesCount = 0; // TODO: Implementar contagem real de favoritos
+      
+    } catch (e) {
+      debugPrint('Erro ao carregar estatísticas: $e');
+      // Em caso de erro, usar valores padrão
+      _wishlistsCount = 0;
+      _itemsCount = 0;
+      _sharedCount = 0;
+      _favoritesCount = 0;
     }
   }
 
@@ -113,59 +157,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _saveName() async {
-    if (_nameController.text.isEmpty) return;
-
-    setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.uid;
-    await _authService.updateUser(
-      displayName: _nameController.text.trim(),
-    ); // Update user metadata
-    await _userService.updateUserProfile(userId, {
-      'display_name': _nameController.text.trim(),
-    });
-    setState(() => _isEditingName = false);
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
+  Future<void> _handleEditProfile() async {
+    HapticService.lightImpact();
+    await EditProfileBottomSheet.show(
+      context,
+      initialName: _displayName,
+      initialBio: _bio,
+      onSave: (name, bio) async {
+        final userId = _authService.currentUser!.uid;
+        await _authService.updateUser(displayName: name);
+        await _userService.updateUserProfile(userId, {
+          'display_name': name,
+          'bio': bio,
+        });
+        setState(() {
+          _displayName = name;
+          _bio = bio;
+        });
+      },
+    );
   }
 
-  Future<void> _saveBio() async {
-    if (_bioController.text.isEmpty) return;
-
-    setState(() => _isLoading = true);
-    try {
-      final userId = _authService.currentUser!.uid;
-      await _userService.updateUserProfile(userId, {
-        'bio': _bioController.text.trim(),
-      });
-      if (mounted) {
-        setState(() => _isEditingBio = false);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao guardar biografia: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  Future<void> _handlePrivacySettings() async {
+    HapticService.lightImpact();
+    await PrivacySettingsBottomSheet.show(
+      context,
+      initialIsPrivate: _isPrivate,
+      onSave: (isPrivate) async {
+        final userId = _authService.currentUser!.uid;
+        await _userService.updateUserProfile(userId, {'is_private': isPrivate});
+        setState(() => _isPrivate = isPrivate);
+      },
+    );
   }
 
-  Future<void> _savePrivacySetting(bool isPrivate) async {
-    setState(() => _isLoading = true);
-    final userId = _authService.currentUser!.uid;
-    await _userService.updateUserProfile(userId, {'is_private': isPrivate});
-    setState(() => _isPrivate = isPrivate);
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
+  Future<void> _handleThemeSettings() async {
+    HapticService.lightImpact();
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const ThemeSelectorBottomSheet(),
+    );
   }
 
   Future<void> _signOut() async {
@@ -300,286 +332,160 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
+      appBar: AppBar(
+        title: Text(l10n.profile),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : user == null
-          ? const Center(child: Text('Utilizador não encontrado.'))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _isUploading ? null : _pickImage,
-                    child: Stack(
-                      alignment: Alignment.center,
+              ? Center(child: Text(l10n.userNotFound))
+              : RefreshIndicator(
+                  onRefresh: _loadProfileData,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withAlpha(26),
-                          backgroundImage: _profileImageUrl != null
-                              ? CachedNetworkImageProvider(
-                                  _cloudinaryService.optimizeExistingUrl(
-                                    _profileImageUrl!, 
-                                    ImageType.profileLarge
-                                  )
-                                )
-                              : null,
-                          child: _profileImageUrl == null && !_isUploading
-                              ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                              : null,
-                        ),
-                        if (_isUploading)
-                          const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _isEditingName
-                      ? Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Nome',
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.save),
-                              onPressed: _saveName,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.cancel),
-                              onPressed: () =>
-                                  setState(() => _isEditingName = false),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _nameController.text.isNotEmpty
-                                  ? _nameController.text
-                                  : user.displayName ??
-                                      user.email ??
-                                      'Sem nome',
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () =>
-                                  setState(() => _isEditingName = true),
-                            ),
-                          ],
-                        ),
-                  const SizedBox(height: 8),
-                  _isEditingBio
-                      ? Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _bioController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Biografia',
-                                  border: OutlineInputBorder(),
-                                ),
-                                maxLines: 3,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.save),
-                              onPressed: _saveBio,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.cancel),
-                              onPressed: () =>
-                                  setState(() => _isEditingBio = false),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _bioController.text.isNotEmpty
-                                  ? _bioController.text
-                                  : 'Adicionar biografia',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () =>
-                                    setState(() => _isEditingBio = true),
-                              ),
-                            ),
-                          ],
-                        ),
-                  const SizedBox(height: 16), // Add spacing after bio
-                  Text(user.email ?? 'Sem email'),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Privado'),
-                      Switch(value: _isPrivate, onChanged: _savePrivacySetting),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (_phoneNumber == null ||
-                      _phoneNumber!.isEmpty) // Check if phone number is linked
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const Scaffold(
-                              body: Center(
-                                child: Text('Funcionalidade temporariamente indisponível'),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text('Adicionar Telemóvel'),
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Telemóvel: $_phoneNumber'),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const Scaffold(
-                              body: Center(
-                                child: Text('Funcionalidade temporariamente indisponível'),
-                              ),
-                            ),
-                              ),
-                            );
-                          },
-                          child: const Text('Alterar Telemóvel'),
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 16),
-                  // Email section - show similar to phone when user has email
-                  if (user.email == null || user.email!.isEmpty)
-                    Column(
-                      children: [
-                        ElevatedButton(
-                          onPressed: () async {
-                            try {
-                              // This method is still unimplemented in AuthService
-                              // await _authService.linkGoogle();
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text("Not implemented"),
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.error,
-                                  ),
-                                );
-                              }
-                              setState(() {}); // Rebuild to update the UI
-                            } on Exception catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(e.toString()),
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.error,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('Adicionar Google'),
+                        // Header Card com perfil
+                        ProfileHeaderCard(
+                          profileImageUrl: _profileImageUrl,
+                          name: _displayName.isNotEmpty ? _displayName : user.displayName ?? user.email ?? l10n.noName,
+                          bio: _bio,
+                          isPrivate: _isPrivate,
+                          isUploading: _isUploading,
+                          onImageTap: _pickImage,
+                          onEditProfile: _handleEditProfile,
                         ),
                         const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const Scaffold(
-                                  body: Center(
-                                    child: Text('Funcionalidade temporariamente indisponível'),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text('Adicionar Email'),
+                        
+                        // Estatísticas
+                        ProfileStatsCard(
+                          wishlistsCount: _wishlistsCount,
+                          itemsCount: _itemsCount,
+                          favoritesCount: _favoritesCount,
+                          sharedCount: _sharedCount,
                         ),
-                      ],
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Email: ${user.email}'),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const Scaffold(
-                                  body: Center(
-                                    child: Text('Funcionalidade temporariamente indisponível'),
-                                  ),
-                                ),
+                        const SizedBox(height: 16),
+                        
+                        // Seção Conta
+                        ProfileSectionCard(
+                          title: l10n.account,
+                          icon: Icons.account_circle,
+                          children: [
+                            ProfileListTile(
+                              icon: Icons.email,
+                              title: l10n.email,
+                              subtitle: user.email ?? l10n.noEmailLinked,
+                              onTap: () {
+                                HapticService.lightImpact();
+                                // TODO: Implementar edição de email
+                              },
+                            ),
+                            if (_phoneNumber != null && _phoneNumber!.isNotEmpty)
+                              ProfileListTile(
+                                icon: Icons.phone,
+                                title: l10n.phone,
+                                subtitle: _phoneNumber,
+                                onTap: () {
+                                  HapticService.lightImpact();
+                                  // TODO: Implementar edição de telefone
+                                },
                               ),
-                            );
-                          },
-                          child: const Text('Alterar Email'),
+                          ],
                         ),
+                        const SizedBox(height: 16),
+                        
+                        // Seção Preferências
+                        ProfileSectionCard(
+                          title: l10n.preferences,
+                          icon: Icons.settings,
+                          children: [
+                            ProfileListTile(
+                              icon: Icons.palette,
+                              title: l10n.theme,
+                              subtitle: l10n.customizeAppearance,
+                              onTap: _handleThemeSettings,
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                            ProfileListTile(
+                              icon: Icons.privacy_tip,
+                              title: l10n.privacy,
+                              subtitle: _isPrivate ? l10n.privateProfile : l10n.publicProfile,
+                              onTap: _handlePrivacySettings,
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Seção Sobre
+                        ProfileSectionCard(
+                          title: l10n.about,
+                          icon: Icons.info_outline,
+                          children: [
+                            ProfileListTile(
+                              icon: Icons.help_outline,
+                              title: l10n.helpSupport,
+                              onTap: () {
+                                HapticService.lightImpact();
+                                // TODO: Abrir página de ajuda
+                              },
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                            ProfileListTile(
+                              icon: Icons.star_outline,
+                              title: l10n.rateApp,
+                              onTap: () {
+                                HapticService.lightImpact();
+                                // TODO: Abrir loja para avaliação
+                              },
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Seção Ações
+                        ProfileSectionCard(
+                          title: l10n.actions,
+                          icon: Icons.exit_to_app,
+                          children: [
+                            ProfileListTile(
+                              icon: Icons.logout,
+                              title: l10n.signOut,
+                              onTap: () {
+                                HapticService.mediumImpact();
+                                _signOut();
+                              },
+                              iconColor: Colors.orange,
+                            ),
+                            ProfileListTile(
+                              icon: Icons.delete_forever,
+                              title: l10n.deleteAccount,
+                              subtitle: l10n.deleteAccountDesc,
+                              onTap: () {
+                                HapticService.heavyImpact();
+                                _confirmDeleteAccount();
+                              },
+                              iconColor: Colors.red,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
                       ],
                     ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _signOut,
-                    child: const Text('Sair'),
                   ),
-                  // Delete Account Button
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _confirmDeleteAccount,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                    child: const Text(
-                      'Apagar Conta',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
     );
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _bioController.dispose(); // Dispose bio controller
     super.dispose();
   }
 }

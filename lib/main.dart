@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_sharing_intent/flutter_sharing_intent.dart';
 import 'package:flutter_sharing_intent/model/sharing_file.dart';
@@ -11,6 +12,7 @@ import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/services/theme_service.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -119,7 +121,19 @@ class _MyAppState extends State<MyApp> {
       title: 'Wishlist App',
       theme: lightAppTheme,
       darkTheme: darkAppTheme,
-      themeMode: ThemeMode.system, // Adapta-se ao tema do sistema
+      themeMode: ThemeMode.system,
+      
+      // Configuração de localização
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''), // Inglês
+        Locale('pt', ''), // Português
+      ],
       routes: {
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
