@@ -11,6 +11,7 @@ import 'package:wishlist_app/widgets/profile_widgets.dart';
 import 'package:wishlist_app/widgets/profile_edit_bottom_sheets.dart';
 import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/language_selector_bottom_sheet.dart';
+import 'package:wishlist_app/widgets/memoized_widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -37,6 +38,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _itemsCount = 0;
   int _favoritesCount = 0;
   int _sharedCount = 0;
+  
+  // Cache das estatísticas
+  DateTime? _statsLastUpdated;
+  static const Duration _statsCacheDuration = Duration(minutes: 5);
 
   bool _isLoading = false;
 
@@ -86,7 +91,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserStats(String userId) async {
+    // Verificar cache antes de carregar
+    final now = DateTime.now();
+    if (_statsLastUpdated != null && 
+        now.difference(_statsLastUpdated!) < _statsCacheDuration) {
+      debugPrint('Usando stats em cache - última atualização: $_statsLastUpdated');
+      return;
+    }
+    
     try {
+      debugPrint('Carregando stats frescas do servidor...');
+      
       // Carregar wishlists do utilizador - usando stream primeiro valor
       final wishlistsStream = _databaseService.getWishlists(userId);
       final wishlistsSnapshot = await wishlistsStream.first;
@@ -114,6 +129,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Carregar favoritos (assumindo que existe um método para isso)
       // Por agora, usar um número estático
       _favoritesCount = 0; // TODO: Implementar contagem real de favoritos
+      
+      // Atualizar timestamp do cache
+      _statsLastUpdated = now;
       
     } catch (e) {
       debugPrint('Erro ao carregar estatísticas: $e');
@@ -359,26 +377,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        // Header Card com perfil
-                        ProfileHeaderCard(
-                          profileImageUrl: _profileImageUrl,
-                          name: _displayName.isNotEmpty ? _displayName : user.displayName ?? user.email ?? l10n.noName,
-                          bio: _bio,
-                          isPrivate: _isPrivate,
-                          isUploading: _isUploading,
-                          onImageTap: _pickImage,
-                          onEditProfile: _handleEditProfile,
+                        // Header Card com perfil - RepaintBoundary
+                        RepaintBoundary(
+                          child: ProfileHeaderCard(
+                            profileImageUrl: _profileImageUrl,
+                            name: _displayName.isNotEmpty ? _displayName : user.displayName ?? user.email ?? l10n.noName,
+                            bio: _bio,
+                            isPrivate: _isPrivate,
+                            isUploading: _isUploading,
+                            onImageTap: _pickImage,
+                            onEditProfile: _handleEditProfile,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         
-                        // Estatísticas
-                        ProfileStatsCard(
+                        // Estatísticas - Memoizado
+                        MemoizedStatsCard(
                           wishlistsCount: _wishlistsCount,
                           itemsCount: _itemsCount,
                           favoritesCount: _favoritesCount,
                           sharedCount: _sharedCount,
                         ),
-                        const SizedBox(height: 16),
+                        const ConstSectionDivider(),
                         
                         // Seção Conta
                         ProfileSectionCard(
@@ -420,24 +440,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onTap: _handleThemeSettings,
                               trailing: const Icon(Icons.chevron_right),
                             ),
-                            AnimatedBuilder(
-                              animation: _languageService,
-                              builder: (context, child) {
-                                return ProfileListTile(
-                                  icon: Icons.language,
-                                  title: l10n.language,
-                                  subtitle: _languageService.currentLanguageDisplayName,
-                                  onTap: _handleLanguageSettings,
-                                  trailing: const Icon(Icons.chevron_right),
-                                );
-                              },
+                            MemoizedLanguageTile(
+                              onTap: _handleLanguageSettings,
+                              languageService: _languageService,
                             ),
-                            ProfileListTile(
-                              icon: Icons.privacy_tip,
-                              title: l10n.privacy,
-                              subtitle: _isPrivate ? l10n.privateProfile : l10n.publicProfile,
+                            MemoizedPrivacyTile(
+                              isPrivate: _isPrivate,
                               onTap: _handlePrivacySettings,
-                              trailing: const Icon(Icons.chevron_right),
                             ),
                           ],
                         ),

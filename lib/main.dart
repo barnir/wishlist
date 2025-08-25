@@ -120,8 +120,12 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Cache dos services para evitar recriação
+    final languageService = LanguageService();
+    final themeService = ThemeService();
+    
     return AnimatedBuilder(
-      animation: Listenable.merge([ThemeService(), LanguageService()]),
+      animation: Listenable.merge([themeService, languageService]),
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: navigatorKey,
@@ -130,8 +134,8 @@ class _MyAppState extends State<MyApp> {
           darkTheme: darkAppTheme,
           themeMode: ThemeMode.system,
           
-          // Configuração de localização
-          locale: LanguageService().currentLocale,
+          // Configuração de localização - cache do locale
+          locale: languageService.currentLocale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
