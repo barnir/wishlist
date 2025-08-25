@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
+import 'package:wishlist_app/services/haptic_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 
@@ -25,103 +27,226 @@ class WishItemTile extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: SizedBox(
-          width: 50, // Standard size for CircleAvatar
-          height: 50,
-          child: FutureBuilder<File?>(
-            future: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                ? ImageCacheService.getFile(item.imageUrl!)
-                : Future.value(null), // No image URL, so no file
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return CircleAvatar(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withAlpha(26),
-                  child: const CircularProgressIndicator(strokeWidth: 2),
-                );
-              } else if (snapshot.hasError ||
-                  !snapshot.hasData ||
-                  snapshot.data == null) {
-                // Fallback to category icon if image fails to load or is not present
-                return CircleAvatar(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withAlpha(26),
-                  child: Icon(
-                    category.icon,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                );
-              } else {
-                // Display the image from file
-                return CircleAvatar(
-                  backgroundImage: FileImage(snapshot.data!),
-                  radius: 50,
-                );
-              }
-            },
-          ),
-        ),
-        title: Text(
-          item.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (item.description != null && item.description!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(item.description!),
-              ),
-            if (item.link != null && item.link!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: InkWell(
-                  onTap: () {
-                    // Add function to open link
-                    // launchUrl(Uri.parse(item.link!));
-                  },
-                  child: Text(
-                    item.link!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.secondary,
-                      decoration: TextDecoration.underline,
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Imagem maior e quadrada
+              _buildProductImage(context, category),
+              
+              const SizedBox(width: 12),
+              
+              // Informação principal
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Título
+                    Text(
+                      item.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                    
+                    const SizedBox(height: 4),
+                    
+                    // Preço destacado
+                    if (item.price != null && item.price! > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '€${item.price!.toStringAsFixed(2)}',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    
+                    const SizedBox(height: 6),
+                    
+                    // Descrição
+                    if (item.description != null && item.description!.isNotEmpty)
+                      Text(
+                        item.description!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    
+                    const Spacer(),
+                    
+                    // Bottom row: Category chip + Actions
+                    Row(
+                      children: [
+                        // Category chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                category.icon,
+                                size: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                category.name,
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const Spacer(),
+                        
+                        // Quick actions
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Link button
+                            if (item.link != null && item.link!.isNotEmpty)
+                              IconButton(
+                                icon: Icon(
+                                  Icons.open_in_new,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                onPressed: () => _openLink(item.link!),
+                                tooltip: 'Abrir link',
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                padding: EdgeInsets.zero,
+                              ),
+                            
+                            // Edit button
+                            if (onEdit != null)
+                              IconButton(
+                                icon: Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                                onPressed: () {
+                                  HapticService.lightImpact();
+                                  onEdit!();
+                                },
+                                tooltip: 'Editar',
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                padding: EdgeInsets.zero,
+                              ),
+                            
+                            // Delete button
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              onPressed: () {
+                                HapticService.mediumImpact();
+                                onDelete();
+                              },
+                              tooltip: 'Eliminar',
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            if (item.price != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  'Preço: €${item.price!.toStringAsFixed(2)}',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (onEdit != null)
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: onEdit,
-                tooltip: 'Editar',
-              ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: onDelete,
-              tooltip: 'Eliminar',
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildProductImage(BuildContext context, dynamic category) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      child: FutureBuilder<File?>(
+        future: item.imageUrl != null && item.imageUrl!.isNotEmpty
+            ? ImageCacheService.getFile(item.imageUrl!)
+            : Future.value(null),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            );
+          } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+            // Fallback to category icon
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Icon(
+                category.icon,
+                size: 32,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            );
+          } else {
+            // Display the actual image
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                image: DecorationImage(
+                  image: FileImage(snapshot.data!),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _openLink(String url) async {
+    try {
+      HapticService.lightImpact();
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      // Handle error silently or show snackbar
+    }
   }
 }

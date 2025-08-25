@@ -47,6 +47,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   String? _existingImageUrl;
 
   bool _isSaving = false;
+  bool _isScraping = false;
+  String? _scrapingStatus;
   String? _erro;
 
   String? _selectedWishlistId;
@@ -79,12 +81,27 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
   Future<void> _handleSharedLink() async {
     if (widget.link != null && widget.link!.isNotEmpty) {
+      setState(() {
+        _isScraping = true;
+        _scrapingStatus = 'Extraindo informações do produto...';
+      });
+      
       try {
         final scrapedData = await _webScraperService.scrape(widget.link!);
+        
+        setState(() {
+          _scrapingStatus = 'Preenchendo campos automaticamente...';
+        });
+        
         _nameController.text = scrapedData['title'] ?? '';
         _priceController.text = scrapedData['price'] ?? '0.00';
+        
         final imageUrl = scrapedData['image'];
         if (imageUrl != null && imageUrl.isNotEmpty) {
+          setState(() {
+            _scrapingStatus = 'Carregando imagem do produto...';
+          });
+          
           final response = await http.get(Uri.parse(imageUrl));
           if (response.statusCode == 200) {
             final tempDir = await getTemporaryDirectory();
@@ -98,8 +115,37 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             });
           }
         }
+        
+        setState(() {
+          _scrapingStatus = 'Concluído! Verifique e ajuste os dados se necessário.';
+        });
+        
+        // Clear status after 3 seconds
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _scrapingStatus = null;
+            });
+          }
+        });
+        
       } catch (e) {
-        // Handle error silently or show a message
+        setState(() {
+          _scrapingStatus = 'Erro ao extrair dados. Preencha manualmente.';
+        });
+        
+        // Clear error status after 5 seconds
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) {
+            setState(() {
+              _scrapingStatus = null;
+            });
+          }
+        });
+      } finally {
+        setState(() {
+          _isScraping = false;
+        });
       }
     }
   }
@@ -304,6 +350,70 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     if (_erro != null) ...[
                       Text(_erro!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 16),
+                    ],
+                    
+                    // Scraping status feedback
+                    if (_isScraping || _scrapingStatus != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: _scrapingStatus?.contains('Erro') == true
+                              ? Theme.of(context).colorScheme.errorContainer
+                              : _scrapingStatus?.contains('Concluído') == true
+                                  ? Theme.of(context).colorScheme.primaryContainer
+                                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _scrapingStatus?.contains('Erro') == true
+                                ? Theme.of(context).colorScheme.error
+                                : _scrapingStatus?.contains('Concluído') == true
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.outline.withAlpha(128),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            if (_isScraping)
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              )
+                            else
+                              Icon(
+                                _scrapingStatus?.contains('Erro') == true
+                                    ? Icons.error_outline
+                                    : _scrapingStatus?.contains('Concluído') == true
+                                        ? Icons.check_circle_outline
+                                        : Icons.info_outline,
+                                size: 16,
+                                color: _scrapingStatus?.contains('Erro') == true
+                                    ? Theme.of(context).colorScheme.error
+                                    : _scrapingStatus?.contains('Concluído') == true
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _scrapingStatus ?? '',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: _scrapingStatus?.contains('Erro') == true
+                                      ? Theme.of(context).colorScheme.onErrorContainer
+                                      : _scrapingStatus?.contains('Concluído') == true
+                                          ? Theme.of(context).colorScheme.onPrimaryContainer
+                                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                     if (widget.wishlistId == null) ...[
                       if (_isLoadingWishlists)
