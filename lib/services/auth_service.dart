@@ -1,6 +1,6 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -242,24 +242,20 @@ class AuthService {
     try {
       debugPrint('=== AuthService: Reauthenticate with Google ===');
       
-      if (kIsWeb) {
-        final googleProvider = firebase_auth.GoogleAuthProvider();
-        await user.reauthenticateWithPopup(googleProvider);
-      } else if (Platform.isAndroid || Platform.isIOS) {
-        final googleSignIn = GoogleSignIn();
-        final googleUser = await googleSignIn.signIn();
-        if (googleUser == null) {
-          throw Exception('A reautenticação com o Google foi cancelada.');
-        }
-        
-        final googleAuth = await googleUser.authentication;
-        final credential = firebase_auth.GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        
-        await user.reauthenticateWithCredential(credential);
+      // Android-only Google reauthentication
+      final googleSignIn = GoogleSignIn();
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        throw Exception('A reautenticação com o Google foi cancelada.');
       }
+      
+      final googleAuth = await googleUser.authentication;
+      final credential = firebase_auth.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      
+      await user.reauthenticateWithCredential(credential);
     } catch (e) {
       debugPrint('AuthService reauthenticate with Google error: $e');
       rethrow;

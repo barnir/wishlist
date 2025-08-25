@@ -1,5 +1,5 @@
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
@@ -16,32 +16,27 @@ class FirebaseAuthService {
     try {
       debugPrint('=== Firebase Google Sign-In Started ===');
       
-      if (kIsWeb) {
-        GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        googleProvider.addScope('https://www.googleapis.com/auth/contacts.readonly');
-        return await _firebaseAuth.signInWithPopup(googleProvider);
-      } else {
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) {
-          debugPrint('Google sign-in cancelled by user');
-          return null;
-        }
-
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-
-        final userCredential = await _firebaseAuth.signInWithCredential(credential);
-        
-        if (userCredential.user != null) {
-          await _createOrUpdateUserProfile(userCredential.user!);
-          debugPrint('Google sign-in successful: ${userCredential.user!.email}');
-        }
-        
-        return userCredential;
+      // Android-only Google Sign-In
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        debugPrint('Google sign-in cancelled by user');
+        return null;
       }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      
+      if (userCredential.user != null) {
+        await _createOrUpdateUserProfile(userCredential.user!);
+        debugPrint('Google sign-in successful: ${userCredential.user!.email}');
+      }
+      
+      return userCredential;
     } catch (e) {
       debugPrint('Firebase Google sign-in error: $e');
       rethrow;
