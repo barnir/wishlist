@@ -100,6 +100,9 @@ interface ScrapedData {
   title: string;
   price: string;
   image: string;
+  description?: string;
+  category?: string;
+  rating?: string;
   currency?: string;
   availability?: string;
 }
@@ -274,11 +277,23 @@ function extractDataFromHtml(html: string, baseUrl: string): ScrapedData {
   // Extrair imagem
   const image = extractImage(cleanHtml, baseUrl);
   
+  // Extrair descrição
+  const description = extractDescription(cleanHtml);
+  
+  // Extrair rating
+  const rating = extractRating(cleanHtml);
+  
+  // Detectar categoria
+  const category = detectCategory(title, description);
+  
   return {
     title: title || 'Título não encontrado',
     price: priceData.price || '0.00',
     currency: priceData.currency || 'EUR',
     image: image || '',
+    description: description || '',
+    category: category || 'Outros',
+    rating: rating || undefined,
     availability: extractAvailability(cleanHtml)
   };
 }
@@ -441,6 +456,144 @@ function isValidImageUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+function extractDescription(html: string): string {
+  // Tentar vários seletores para descrições
+  const descriptionSelectors = [
+    /<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i,
+    /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i,
+    /<div[^>]*class=["'][^"']*product-description[^"']*["'][^>]*>([^<]+)<\/div>/i,
+    /<div[^>]*class=["'][^"']*description[^"']*["'][^>]*>([^<]+)<\/div>/i,
+    /<p[^>]*class=["'][^"']*description[^"']*["'][^>]*>([^<]+)<\/p>/i,
+    /<span[^>]*class=["'][^"']*desc[^"']*["'][^>]*>([^<]+)<\/span>/i
+  ];
+  
+  for (const selector of descriptionSelectors) {
+    const match = html.match(selector);
+    if (match && match[1] && match[1].trim().length > 20) {
+      const desc = cleanText(match[1]);
+      return desc.length > 500 ? desc.substring(0, 497) + '...' : desc;
+    }
+  }
+  
+  // Procurar por parágrafos que podem conter descrições
+  const paragraphPattern = /<p[^>]*>([^<]{50,300})<\/p>/gi;
+  const paragraphs = Array.from(html.matchAll(paragraphPattern));
+  
+  for (const match of paragraphs) {
+    const text = cleanText(match[1]);
+    if (looksLikeProductDescription(text)) {
+      return text;
+    }
+  }
+  
+  return '';
+}
+
+function extractRating(html: string): string {
+  // Padrões para extrair ratings
+  const ratingPatterns = [
+    /rating[^>]*>.*?(\d+[.,]\d+)/gi,
+    /estrelas[^>]*>.*?(\d+[.,]\d+)/gi,
+    /stars[^>]*>.*?(\d+[.,]\d+)/gi,
+    /score[^>]*>.*?(\d+[.,]\d+)/gi,
+    /(\d+[.,]\d+)\s*(?:de\s*5|\/5|\*|estrelas|stars)/gi,
+    /(\d+[.,]\d+)\s*rating/gi
+  ];
+  
+  for (const pattern of ratingPatterns) {
+    const matches = Array.from(html.matchAll(pattern));
+    if (matches.length > 0) {
+      const match = matches[0];
+      const ratingStr = match[1].replace(',', '.');
+      const rating = parseFloat(ratingStr);
+      
+      if (rating >= 0 && rating <= 5) {
+        return rating.toFixed(1);
+      }
+    }
+  }
+  
+  return '';
+}
+
+function detectCategory(title: string, description: string): string {
+  const content = `${title.toLowerCase()} ${description.toLowerCase()}`;
+  
+  // Mapeamento de palavras-chave para categorias
+  const categoryMappings: { [key: string]: string[] } = {
+    'Livro': [
+      'book', 'livro', 'novel', 'romance', 'biografia', 'ensaio', 'autor',
+      'literatura', 'ficção', 'história', 'poetry', 'poesia', 'manual',
+      'guia', 'encyclopedia', 'enciclopédia', 'dicionário', 'dictionary'
+    ],
+    'Eletrónico': [
+      'smartphone', 'phone', 'telemóvel', 'tablet', 'laptop', 'computador',
+      'headphones', 'auscultadores', 'camera', 'câmara', 'tv', 'televisão',
+      'gaming', 'console', 'playstation', 'xbox', 'nintendo', 'electronic',
+      'eletrónico', 'digital', 'tech', 'technology', 'gadget', 'device',
+      'smart', 'wireless', 'bluetooth', 'usb', 'charger', 'carregador'
+    ],
+    'Viagem': [
+      'mala', 'suitcase', 'bagagem', 'travel', 'viagem', 'flight', 'hotel',
+      'vacation', 'férias', 'backpack', 'mochila', 'passport', 'passaporte',
+      'luggage', 'trip', 'journey', 'tourism', 'turismo', 'destination'
+    ],
+    'Moda': [
+      'fashion', 'moda', 'clothing', 'roupa', 'shirt', 'camisa', 'dress',
+      'vestido', 'shoes', 'sapatos', 'jeans', 'jacket', 'casaco', 'pants',
+      'calças', 'skirt', 'saia', 'blouse', 'blusa', 'style', 'estilo',
+      'designer', 'brand', 'marca', 'accessories', 'acessórios', 'watch',
+      'relógio', 'jewelry', 'jóias', 'bag', 'bolsa', 'hat', 'chapéu'
+    ],
+    'Casa': [
+      'home', 'casa', 'furniture', 'móveis', 'kitchen', 'cozinha',
+      'bathroom', 'casa de banho', 'bedroom', 'quarto', 'living room',
+      'sala', 'decoration', 'decoração', 'appliance', 'eletrodoméstico',
+      'cleaning', 'limpeza', 'garden', 'jardim', 'tool', 'ferramenta',
+      'lamp', 'lâmpada', 'table', 'mesa', 'chair', 'cadeira', 'sofa'
+    ]
+  };
+  
+  // Contar matches para cada categoria
+  const categoryScores: { [key: string]: number } = {};
+  
+  for (const [category, keywords] of Object.entries(categoryMappings)) {
+    let score = 0;
+    for (const keyword of keywords) {
+      if (content.includes(keyword)) {
+        score++;
+      }
+    }
+    
+    if (score > 0) {
+      categoryScores[category] = score;
+    }
+  }
+  
+  // Retornar categoria com maior pontuação
+  if (Object.keys(categoryScores).length > 0) {
+    const sortedCategories = Object.entries(categoryScores)
+      .sort(([,a], [,b]) => b - a);
+    return sortedCategories[0][0];
+  }
+  
+  // Default fallback
+  return 'Outros';
+}
+
+function looksLikeProductDescription(text: string): boolean {
+  // Características de descrições de produto
+  const productIndicators = [
+    'característica', 'feature', 'especificação', 'specification',
+    'material', 'cor', 'color', 'tamanho', 'size', 'dimensão',
+    'qualidade', 'quality', 'design', 'style', 'marca', 'brand',
+    'produto', 'product', 'artigo', 'item'
+  ];
+  
+  const lowerText = text.toLowerCase();
+  return productIndicators.some(indicator => lowerText.includes(indicator));
 }
 
 function cleanText(text: string): string {

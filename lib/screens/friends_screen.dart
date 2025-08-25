@@ -141,49 +141,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final displayName = favorite['display_name'] as String? ?? 'Utilizador';
     final email = favorite['email'] as String?;
     final userId = favorite['id'] as String;
+    final bio = favorite['bio'] as String?;
+    final isPrivate = favorite['is_private'] as bool? ?? false;
 
-    return WishlistCard(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          child: Text(
-            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        title: Text(
-          displayName,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: email != null && email.isNotEmpty
-            ? Text(
-                email,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.star,
-              color: Colors.amber,
-              size: UIConstants.iconSizeS,
-            ),
-            Spacing.horizontalXS,
-            Icon(
-              Icons.arrow_forward_ios,
-              size: UIConstants.iconSizeS,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-            ),
-          ],
-        ),
+    return Card(
+      margin: UIConstants.cardMargin,
+      elevation: UIConstants.elevationM,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+      ),
+      child: InkWell(
         onTap: () {
           Navigator.pushNamed(
             context,
@@ -191,6 +158,162 @@ class _FriendsScreenState extends State<FriendsScreen> {
             arguments: userId,
           );
         },
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        child: Container(
+          padding: UIConstants.paddingM,
+          child: Row(
+            children: [
+              // Avatar do favorito com estrela
+              Stack(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.primary.withAlpha(204),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Estrela de favorito
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.amber,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.surface,
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.star,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              Spacing.horizontalM,
+              
+              // Informação do utilizador favorito
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nome com badge de favorito
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            displayName,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withAlpha(51),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'FAVORITO',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.amber.shade700,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    if (email != null && email.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        email,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    
+                    if (bio != null && bio.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        bio,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Status de privacidade
+                    Row(
+                      children: [
+                        Icon(
+                          isPrivate ? Icons.lock_outlined : Icons.public_outlined,
+                          size: 14,
+                          color: isPrivate 
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isPrivate ? 'Perfil privado' : 'Perfil público',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: isPrivate 
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Seta de navegação
+              Icon(
+                Icons.arrow_forward_ios,
+                size: UIConstants.iconSizeS,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

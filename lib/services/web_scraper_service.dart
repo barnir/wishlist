@@ -79,6 +79,9 @@ class WebScraperServiceSecure {
           'title': _sanitizeText(data['title']?.toString() ?? 'Título não encontrado'),
           'price': _sanitizePrice(data['price']?.toString() ?? '0.00'),
           'image': _sanitizeImageUrl(data['image']?.toString() ?? ''),
+          'description': _sanitizeText(data['description']?.toString() ?? ''),
+          'category': _detectCategory(data['title']?.toString() ?? '', data['description']?.toString() ?? ''),
+          'rating': _sanitizeRating(data['rating']?.toString()),
           'currency': data['currency']?.toString() ?? 'EUR',
           'availability': data['availability']?.toString() ?? 'Desconhecido',
         };
@@ -190,11 +193,16 @@ class WebScraperServiceSecure {
         final title = _extractTitle(document);
         final price = _extractPrice(document);
         final image = _extractImage(document, url);
+        final description = _extractDescription(document);
+        final rating = _extractRating(document);
 
         return {
           'title': _sanitizeText(title),
           'price': _sanitizePrice(price),
           'image': _sanitizeImageUrl(image),
+          'description': _sanitizeText(description),
+          'category': _detectCategory(title, description),
+          'rating': _sanitizeRating(rating),
         };
       } else {
         throw Exception('Failed to load website: ${response.statusCode}');
@@ -559,6 +567,12 @@ class WebScraperServiceSecure {
     return _extractImage(document, baseUrl);
   }
 
+  String _extractDescriptionFromHtml(String? body) {
+    if (body == null) return '';
+    final document = parser.parse(body);
+    return _extractDescription(document);
+  }
+
   String _parsePrice(dynamic price) {
     if (price == null) return '0.00';
     if (price is num) return price.toStringAsFixed(2);
@@ -607,6 +621,222 @@ class WebScraperServiceSecure {
     return uri.resolve(url).toString();
   }
   
+  /// Extrair descrição do produto
+  String _extractDescription(Document document) {
+    // Tentar extrair de meta tags primeiro
+    var description = document
+        .querySelector('meta[property="og:description"]')
+        ?.attributes['content'];
+    if (description != null && description.isNotEmpty) {
+      return description;
+    }
+
+    description = document
+        .querySelector('meta[name="description"]')
+        ?.attributes['content'];
+    if (description != null && description.isNotEmpty) {
+      return description;
+    }
+
+    // Seletores específicos para descrições de produtos
+    const descriptionSelectors = [
+      // Genéricos
+      '[itemprop="description"]',
+      '.product-description',
+      '.product-details',
+      '.product-info',
+      '.description',
+      '#description',
+      '.product-summary',
+      // Amazon
+      '#feature-bullets ul',
+      '#productDescription',
+      '.a-unordered-list',
+      '.product-facts',
+      // AliExpress
+      '.product-property',
+      '.product-info-section',
+      '.product-overview',
+      // Shein
+      '.product-intro__description',
+      '.goods-desc',
+      // Wish
+      '.ProductCard__description',
+      '.product-description-container',
+      // Temu
+      '.goods-desc',
+      '.product-desc',
+      // Outros padrões comuns
+      '[class*="desc"]',
+      '[class*="summary"]',
+      '[class*="detail"]'
+    ];
+
+    for (var selector in descriptionSelectors) {
+      final descElement = document.querySelector(selector);
+      if (descElement != null && descElement.text.isNotEmpty) {
+        // Limitar o tamanho da descrição
+        final desc = descElement.text.trim();
+        if (desc.length > 500) {
+          return '${desc.substring(0, 497)}...';
+        }
+        return desc;
+      }
+    }
+
+    // Como último recurso, tentar encontrar parágrafos com informação relevante
+    final paragraphs = document.querySelectorAll('p');
+    for (final p in paragraphs) {
+      final text = p.text.trim();
+      if (text.length > 50 && text.length < 300) {
+        // Verificar se parece ser uma descrição de produto
+        if (_looksLikeProductDescription(text)) {
+          return text;
+        }
+      }
+    }
+
+    return '';
+  }
+
+  /// Extrair rating/avaliação do produto
+  String _extractRating(Document document) {
+    // Seletores para ratings
+    const ratingSelectors = [
+      '[itemprop="ratingValue"]',
+      '.rating-value',
+      '.star-rating',
+      '.average-rating',
+      // Amazon
+      '.a-icon-alt',
+      '[data-hook="average-star-rating"]',
+      '.cr-average-stars',
+      // AliExpress
+      '.rating-value',
+      '.evaluation-score',
+      // Genéricos
+      '[class*="rating"]',
+      '[class*="star"]',
+      '[class*="score"]'
+    ];
+
+    for (var selector in ratingSelectors) {
+      final ratingElement = document.querySelector(selector);
+      if (ratingElement != null) {
+        var rating = ratingElement.attributes['content'] ?? 
+                    ratingElement.text;
+        
+        // Extrair número do rating (ex: "4.5 de 5" -> "4.5")
+        final ratingMatch = RegExp(r'(\d+[.,]\d+|\d+)').firstMatch(rating);
+        if (ratingMatch != null) {
+          return ratingMatch.group(1)!.replaceAll(',', '.');
+        }
+      }
+    }
+
+    return '';
+  }
+
+  /// Detectar categoria do produto baseado no título e descrição
+  String _detectCategory(String title, String description) {
+    final content = '${title.toLowerCase()} ${description.toLowerCase()}';
+    
+    // Mapeamento de palavras-chave para categorias
+    const categoryMappings = {
+      'Livro': [
+        'book', 'livro', 'novel', 'romance', 'biografia', 'ensaio', 'autor',
+        'literatura', 'ficção', 'história', 'poetry', 'poesia', 'manual',
+        'guia', 'encyclopedia', 'enciclopédia', 'dicionário', 'dictionary'
+      ],
+      'Eletrónico': [
+        'smartphone', 'phone', 'telemóvel', 'tablet', 'laptop', 'computador',
+        'headphones', 'auscultadores', 'camera', 'câmara', 'tv', 'televisão',
+        'gaming', 'console', 'playstation', 'xbox', 'nintendo', 'electronic',
+        'eletrónico', 'digital', 'tech', 'technology', 'gadget', 'device',
+        'smart', 'wireless', 'bluetooth', 'usb', 'charger', 'carregador'
+      ],
+      'Viagem': [
+        'mala', 'suitcase', 'bagagem', 'travel', 'viagem', 'flight', 'hotel',
+        'vacation', 'férias', 'backpack', 'mochila', 'passport', 'passaporte',
+        'luggage', 'trip', 'journey', 'tourism', 'turismo', 'destination'
+      ],
+      'Moda': [
+        'fashion', 'moda', 'clothing', 'roupa', 'shirt', 'camisa', 'dress',
+        'vestido', 'shoes', 'sapatos', 'jeans', 'jacket', 'casaco', 'pants',
+        'calças', 'skirt', 'saia', 'blouse', 'blusa', 'style', 'estilo',
+        'designer', 'brand', 'marca', 'accessories', 'acessórios', 'watch',
+        'relógio', 'jewelry', 'jóias', 'bag', 'bolsa', 'hat', 'chapéu'
+      ],
+      'Casa': [
+        'home', 'casa', 'furniture', 'móveis', 'kitchen', 'cozinha',
+        'bathroom', 'casa de banho', 'bedroom', 'quarto', 'living room',
+        'sala', 'decoration', 'decoração', 'appliance', 'eletrodoméstico',
+        'cleaning', 'limpeza', 'garden', 'jardim', 'tool', 'ferramenta',
+        'lamp', 'lâmpada', 'table', 'mesa', 'chair', 'cadeira', 'sofa'
+      ]
+    };
+
+    // Contar matches para cada categoria
+    final categoryScores = <String, int>{};
+    
+    for (final entry in categoryMappings.entries) {
+      final category = entry.key;
+      final keywords = entry.value;
+      
+      int score = 0;
+      for (final keyword in keywords) {
+        if (content.contains(keyword)) {
+          score++;
+        }
+      }
+      
+      if (score > 0) {
+        categoryScores[category] = score;
+      }
+    }
+    
+    // Retornar categoria com maior pontuação
+    if (categoryScores.isNotEmpty) {
+      final sortedCategories = categoryScores.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      return sortedCategories.first.key;
+    }
+    
+    // Default fallback
+    return 'Outros';
+  }
+
+  /// Verificar se o texto parece ser uma descrição de produto
+  bool _looksLikeProductDescription(String text) {
+    // Características de descrições de produto
+    const productIndicators = [
+      'característica', 'feature', 'especificação', 'specification',
+      'material', 'cor', 'color', 'tamanho', 'size', 'dimensão',
+      'qualidade', 'quality', 'design', 'style', 'marca', 'brand',
+      'produto', 'product', 'artigo', 'item'
+    ];
+    
+    final lowerText = text.toLowerCase();
+    return productIndicators.any((indicator) => lowerText.contains(indicator));
+  }
+
+  /// Sanitizar rating garantindo formato válido
+  String? _sanitizeRating(String? rating) {
+    if (rating == null || rating.isEmpty) return null;
+    
+    try {
+      final parsedRating = double.parse(rating);
+      // Garantir que está entre 0 e 5
+      if (parsedRating >= 0 && parsedRating <= 5) {
+        return parsedRating.toStringAsFixed(1);
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+    
+    return null;
+  }
+
   /// Métodos de cache para economizar chamadas à Edge Function
   Map<String, dynamic>? _getFromCache(String url) {
     final cacheEntry = _cache[url];

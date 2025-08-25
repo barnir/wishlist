@@ -194,38 +194,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final displayName = user['display_name'] as String? ?? 'Utilizador';
     final email = user['email'] as String?;
     final userId = user['id'] as String;
+    final bio = user['bio'] as String?;
+    final isPrivate = user['is_private'] as bool? ?? false;
 
-    return WishlistCard(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          child: Text(
-            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        title: Text(
-          displayName,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: email != null && email.isNotEmpty
-            ? Text(
-                email,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              )
-            : null,
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: UIConstants.iconSizeS,
-          color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-        ),
+    return Card(
+      margin: UIConstants.cardMargin,
+      elevation: UIConstants.elevationM,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+      ),
+      child: InkWell(
         onTap: () {
           Navigator.pushNamed(
             context,
@@ -233,6 +211,116 @@ class _ExploreScreenState extends State<ExploreScreen> {
             arguments: userId,
           );
         },
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        child: Container(
+          padding: UIConstants.paddingM,
+          child: Row(
+            children: [
+              // Avatar do utilizador maior
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withAlpha(204),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              
+              Spacing.horizontalM,
+              
+              // Informação do utilizador
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nome do utilizador
+                    Text(
+                      displayName,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    if (email != null && email.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        email,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    
+                    if (bio != null && bio.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        bio,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Status de privacidade
+                    Row(
+                      children: [
+                        Icon(
+                          isPrivate ? Icons.lock_outlined : Icons.public_outlined,
+                          size: 14,
+                          color: isPrivate 
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isPrivate ? 'Perfil privado' : 'Perfil público',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: isPrivate 
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Seta de navegação
+              Icon(
+                Icons.arrow_forward_ios,
+                size: UIConstants.iconSizeS,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

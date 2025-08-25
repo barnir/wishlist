@@ -12,6 +12,7 @@ import 'package:wishlist_app/widgets/profile_edit_bottom_sheets.dart';
 import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/language_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/memoized_widgets.dart';
+import 'package:wishlist_app/widgets/ui_components.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -361,10 +362,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profile),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
+      appBar: WishlistAppBar(
+        title: l10n.profile,
+        showBackButton: false,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

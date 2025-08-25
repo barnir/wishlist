@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
+import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:path_provider/path_provider.dart';
+import '../widgets/ui_components.dart';
+import '../constants/ui_constants.dart';
 
 class AddEditWishlistScreen extends StatefulWidget {
   final String? wishlistId;
@@ -59,6 +62,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   }
 
   Future<void> _pickImage() async {
+    HapticService.lightImpact();
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
@@ -140,87 +144,221 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.wishlistId == null ? 'Criar Wishlist' : 'Editar Wishlist',
-        ),
+      appBar: WishlistAppBar(
+        title: widget.wishlistId == null ? 'Criar Wishlist' : 'Editar Wishlist',
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _isLoading && widget.wishlistId != null
-            ? const Center(child: CircularProgressIndicator())
-            : Form(
+      body: _isLoading && widget.wishlistId != null
+          ? const WishlistLoadingIndicator(message: 'A carregar wishlist...')
+          : SingleChildScrollView(
+              padding: UIConstants.paddingM,
+              child: Form(
                 key: _formKey,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: _isUploading ? null : _pickImage,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          FutureBuilder<File?>(
-                            future: _imageFuture,
-                            builder: (context, snapshot) {
-                              final imageFile = snapshot.data;
-                              return CircleAvatar(
-                                radius: 50,
-                                backgroundImage: imageFile != null
-                                    ? FileImage(imageFile)
-                                    : null,
-                                child: imageFile == null && !_isUploading
-                                    ? const Icon(Icons.add_a_photo, size: 50)
-                                    : null,
-                              );
-                            },
-                          ),
-                          if (_isUploading) const CircularProgressIndicator(),
-                        ],
+                    // Header section
+                    Text(
+                      'Detalhes da Wishlist',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome da Wishlist',
-                        border: OutlineInputBorder(),
+                    
+                    Spacing.m,
+                    
+                    // Image picker section - modernizado
+                    Center(
+                      child: WishlistCard(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Imagem da Wishlist',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            
+                            Spacing.m,
+                            
+                            GestureDetector(
+                              onTap: _isUploading ? null : _pickImage,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(UIConstants.radiusL),
+                                      border: Border.all(
+                                        color: Theme.of(context).colorScheme.outline,
+                                        width: 2,
+                                        style: BorderStyle.solid,
+                                      ),
+                                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    ),
+                                    child: FutureBuilder<File?>(
+                                      future: _imageFuture,
+                                      builder: (context, snapshot) {
+                                        final imageFile = snapshot.data;
+                                        return ClipRRect(
+                                          borderRadius: BorderRadius.circular(UIConstants.radiusL - 2),
+                                          child: imageFile != null
+                                              ? Image.file(
+                                                  imageFile,
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                )
+                                              : Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.add_photo_alternate,
+                                                      size: UIConstants.iconSizeXL,
+                                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                    ),
+                                                    Spacing.s,
+                                                    Text(
+                                                      'Toca para adicionar',
+                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  if (_isUploading)
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surface.withAlpha(204),
+                                        borderRadius: BorderRadius.circular(UIConstants.radiusL),
+                                      ),
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CircularProgressIndicator(
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                            Spacing.s,
+                                            Text(
+                                              'A processar...',
+                                              style: Theme.of(context).textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            
+                            Spacing.s,
+                            
+                            Text(
+                              'Recomendado: 400x400px ou superior',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
+                    
+                    Spacing.l,
+                    
+                    // Form fields section
+                    WishlistTextField(
+                      label: 'Nome da Wishlist',
+                      hint: 'Digite o nome da sua wishlist',
+                      controller: _nameController,
+                      prefixIcon: const Icon(Icons.card_giftcard),
                       validator: (value) =>
                           (value == null || value.trim().isEmpty)
                           ? 'Insere um nome'
                           : null,
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Text('Privada:'),
-                        Switch(
-                          value: _isPrivate,
-                          onChanged: (newValue) =>
-                              setState(() => _isPrivate = newValue),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _isLoading || _isUploading
-                          ? null
-                          : _saveWishlist,
-                      child: _isLoading || _isUploading
-                          ? const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                    
+                    Spacing.l,
+                    
+                    // Privacy settings
+                    WishlistCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.security,
+                                size: UIConstants.iconSizeM,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                            )
-                          : Text(
-                              widget.wishlistId == null
-                                  ? 'Criar Wishlist'
-                                  : 'Guardar Alterações',
+                              Spacing.horizontalS,
+                              Text(
+                                'Privacidade',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          Spacing.s,
+                          
+                          SwitchListTile(
+                            title: Text(
+                              'Wishlist Privada',
+                              style: Theme.of(context).textTheme.bodyLarge,
                             ),
+                            subtitle: Text(
+                              _isPrivate 
+                                ? 'Apenas tu podes ver esta wishlist'
+                                : 'Outros utilizadores podem ver esta wishlist',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            value: _isPrivate,
+                            onChanged: (newValue) {
+                              HapticService.lightImpact();
+                              setState(() => _isPrivate = newValue);
+                            },
+                            secondary: Icon(
+                              _isPrivate ? Icons.lock : Icons.public,
+                              color: _isPrivate 
+                                ? Theme.of(context).colorScheme.error
+                                : Theme.of(context).colorScheme.primary,
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
                     ),
+                    
+                    Spacing.xl,
+                    
+                    // Save button
+                    WishlistButton(
+                      text: widget.wishlistId == null
+                          ? 'Criar Wishlist'
+                          : 'Guardar Alterações',
+                      onPressed: _isLoading || _isUploading ? null : _saveWishlist,
+                      isLoading: _isLoading || _isUploading,
+                      icon: widget.wishlistId == null ? Icons.add : Icons.save,
+                      width: double.infinity,
+                    ),
+                    
+                    Spacing.l,
                   ],
                 ),
               ),
-      ),
+            ),
     );
   }
 }

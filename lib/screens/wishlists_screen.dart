@@ -118,7 +118,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     );
   }
 
-  // Widget para construir cada card da wishlist
+  // Widget para construir cada card da wishlist - Modernizado
   Widget _buildWishlistCard(
     BuildContext context,
     Map<String, dynamic> wishlist,
@@ -127,87 +127,13 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     final isPrivate = wishlist['is_private'] ?? false;
     final imageUrl = wishlist['image_url'];
 
-    return WishlistCard(
-      child: ListTile(
-        contentPadding: UIConstants.paddingM,
-        leading: SizedBox(
-          width: UIConstants.imageSizeM,
-          height: UIConstants.imageSizeM,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(UIConstants.radiusS),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                      ),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: UIConstants.strokeWidthMedium,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.broken_image,
-                          size: UIConstants.iconSizeL,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  )
-                : Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.card_giftcard,
-                        size: UIConstants.iconSizeL,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withAlpha(153),
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(isPrivate ? 'Privada' : 'Pública'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                WishlistTotal(wishlistId: wishlist['id']),
-              ],
-            ),
-            Spacing.horizontalS,
-            Icon(
-              Icons.arrow_forward_ios,
-              size: UIConstants.iconSizeS,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-            ),
-          ],
-        ),
+    return Card(
+      margin: UIConstants.cardMargin,
+      elevation: UIConstants.elevationM,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+      ),
+      child: InkWell(
         onTap: () {
           Navigator.pushNamed(
             context,
@@ -215,6 +141,149 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
             arguments: wishlist['id'],
           );
         },
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        child: Container(
+          padding: UIConstants.paddingM,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Imagem da wishlist maior e mais moderna
+                _buildWishlistImage(context, imageUrl),
+                
+                Spacing.horizontalM,
+                
+                // Informação principal
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Título da wishlist
+                      Text(
+                        name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      
+                      Spacing.s,
+                      
+                      // Status de privacidade com chip
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isPrivate 
+                            ? Theme.of(context).colorScheme.errorContainer
+                            : Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isPrivate ? Icons.lock : Icons.public,
+                              size: 12,
+                              color: isPrivate 
+                                ? Theme.of(context).colorScheme.onErrorContainer
+                                : Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isPrivate ? 'Privada' : 'Pública',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: isPrivate 
+                                  ? Theme.of(context).colorScheme.onErrorContainer
+                                  : Theme.of(context).colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const Spacer(),
+                      
+                      // Bottom row com total e seta
+                      Row(
+                        children: [
+                          Expanded(
+                            child: WishlistTotal(wishlistId: wishlist['id']),
+                          ),
+                          
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: UIConstants.iconSizeS,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget para a imagem da wishlist
+  Widget _buildWishlistImage(BuildContext context, String? imageUrl) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        child: imageUrl != null && imageUrl.isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                  ),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: UIConstants.strokeWidthMedium,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      size: UIConstants.iconSizeL,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.card_giftcard,
+                    size: UIConstants.iconSizeL,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
       ),
     );
   }
@@ -262,10 +331,9 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Minhas Wishlists'),
-        centerTitle: true,
-        elevation: 0,
+      appBar: const WishlistAppBar(
+        title: 'Minhas Wishlists',
+        showBackButton: false,
       ),
       body: _isInitialLoading
           ? const WishlistLoadingIndicator(message: 'A carregar wishlists...')

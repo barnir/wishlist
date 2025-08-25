@@ -96,6 +96,20 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         _nameController.text = scrapedData['title'] ?? '';
         _priceController.text = scrapedData['price'] ?? '0.00';
         
+        // Atualizar descrição se foi extraída
+        if (scrapedData['description'] != null && scrapedData['description']!.isNotEmpty) {
+          _descriptionController.text = scrapedData['description'];
+        }
+        
+        // Atualizar categoria automaticamente se foi detectada
+        if (scrapedData['category'] != null && scrapedData['category']!.isNotEmpty) {
+          final detectedCategory = scrapedData['category'];
+          // Verificar se a categoria detectada existe na nossa lista
+          if (categories.any((cat) => cat.name == detectedCategory)) {
+            _selectedCategory = detectedCategory;
+          }
+        }
+        
         final imageUrl = scrapedData['image'];
         if (imageUrl != null && imageUrl.isNotEmpty) {
           setState(() {
@@ -116,8 +130,33 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           }
         }
         
+        // Preparar mensagem de status com detalhes do que foi extraído
+        final extractedFeatures = <String>[];
+        if (scrapedData['title'] != null && scrapedData['title']!.isNotEmpty) {
+          extractedFeatures.add('título');
+        }
+        if (scrapedData['price'] != null && scrapedData['price'] != '0.00') {
+          extractedFeatures.add('preço');
+        }
+        if (scrapedData['description'] != null && scrapedData['description']!.isNotEmpty) {
+          extractedFeatures.add('descrição');
+        }
+        if (scrapedData['category'] != null && scrapedData['category']!.isNotEmpty) {
+          extractedFeatures.add('categoria');
+        }
+        if (scrapedData['rating'] != null && scrapedData['rating']!.isNotEmpty) {
+          extractedFeatures.add('avaliação');
+        }
+        if (scrapedData['image'] != null && scrapedData['image']!.isNotEmpty) {
+          extractedFeatures.add('imagem');
+        }
+        
+        final statusMessage = extractedFeatures.isNotEmpty 
+            ? 'Extraído: ${extractedFeatures.join(', ')}. Verifique os dados!'
+            : 'Concluído! Verifique e ajuste os dados se necessário.';
+        
         setState(() {
-          _scrapingStatus = 'Concluído! Verifique e ajuste os dados se necessário.';
+          _scrapingStatus = statusMessage;
         });
         
         // Clear status after 3 seconds
