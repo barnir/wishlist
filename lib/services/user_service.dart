@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/services/notification_service.dart';
 
 /// Service for managing user data.
 ///
@@ -31,6 +32,37 @@ class UserService {
     Map<String, dynamic> data,
   ) async {
     await _supabaseClient.from(_collectionName).update(data).eq('id', userId);
+  }
+
+  /// Updates user's FCM token for push notifications
+  Future<void> updateFCMToken(String userId, String? fcmToken) async {
+    try {
+      await _supabaseClient
+          .from(_collectionName)
+          .update({'fcm_token': fcmToken})
+          .eq('id', userId);
+      
+      if (fcmToken != null) {
+        await NotificationService().subscribeToUserTopic(userId);
+      }
+    } catch (e) {
+      MonitoringService.logErrorStatic('update_fcm_token', e, stackTrace: StackTrace.current);
+      rethrow;
+    }
+  }
+
+  /// Gets user's FCM token
+  Future<String?> getFCMToken(String userId) async {
+    try {
+      final response = await _supabaseClient
+          .from(_collectionName)
+          .select('fcm_token')
+          .eq('id', userId)
+          .single();
+      return response['fcm_token'] as String?;
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Creates a new user profile.

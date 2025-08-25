@@ -6,6 +6,7 @@ import 'package:wishlist_app/services/firebase_auth_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/services/supabase_functions_service.dart';
+import 'package:wishlist_app/services/notification_service.dart';
 
 enum GoogleSignInResult {
   success,
@@ -83,6 +84,13 @@ class AuthService {
   Future<void> signOut() async {
     try {
       debugPrint('=== AuthService: Sign Out ===');
+      
+      final userId = currentUser?.uid;
+      if (userId != null) {
+        await _userService.updateFCMToken(userId, null);
+        await NotificationService().unsubscribeFromUserTopic(userId);
+      }
+      
       await _firebaseAuthService.signOut();
     } catch (e) {
       debugPrint('AuthService sign out error: $e');
@@ -111,10 +119,23 @@ class AuthService {
         return GoogleSignInResult.missingPhoneNumber;
       }
       
+      await _updateFCMTokenOnSignIn(user.uid);
       return GoogleSignInResult.success;
     } catch (e) {
       debugPrint('AuthService Google sign-in error: $e');
       return GoogleSignInResult.failed;
+    }
+  }
+
+  Future<void> _updateFCMTokenOnSignIn(String userId) async {
+    try {
+      final fcmToken = await NotificationService().getDeviceToken();
+      if (fcmToken != null) {
+        await _userService.updateFCMToken(userId, fcmToken);
+        debugPrint('AuthService: FCM token updated on sign in');
+      }
+    } catch (e) {
+      debugPrint('AuthService: FCM token update error: $e');
     }
   }
 

@@ -7,12 +7,15 @@ import 'package:flutter_sharing_intent/model/sharing_file.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/services/theme_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
+import 'package:wishlist_app/services/notification_service.dart';
+import 'package:wishlist_app/firebase_background_handler.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
 import 'screens/login_screen.dart';
@@ -38,6 +41,9 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
 
+  // Set up background message handler for FCM
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   // Initialize Supabase (for database only)
   await Supabase.initialize(
     url: Config.supabaseUrl,
@@ -49,6 +55,9 @@ void main() async {
 
   // Initialize language service
   await LanguageService().initialize();
+
+  // Initialize notification service
+  await NotificationService().initialize();
 
   runApp(const MyApp());
 }
