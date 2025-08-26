@@ -1,0 +1,15 @@
+🚀 Wishlist App Beta v1.0.0
+
+✨ New Features:
+- Push notifications system with 4 types of alerts
+- Modern harmonized UI with star ratings
+- Advanced web scraping (85% auto-fill)
+- FCM token management
+
+🔧 Technical:
+- 0 Flutter analyze issues
+- Firebase Cloud Messaging integration
+- Rating system with visual stars
+- Android-optimized performance
+
+Ready for beta testing! 🎯

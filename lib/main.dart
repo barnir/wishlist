@@ -77,6 +77,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
+    // Handle sharing intent
     _intentDataStreamSubscription = FlutterSharingIntent.instance
         .getMediaStream()
         .listen((List<SharedFile> value) {

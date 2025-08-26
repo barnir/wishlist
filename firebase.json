@@ -1,0 +1,7 @@
+{
+  "appDistribution": {
+    "app": "1:515293340951:android:c9caa6afc7bcfd5f040352",
+    "releaseNotesFile": "release_notes.txt",
+    "groups": ["wishlist-beta-testers"]
+  }
+}
