@@ -104,7 +104,22 @@ class AuthService {
       
       final userCredential = await _firebaseAuthService.signInWithGoogle();
       if (userCredential == null) {
-        return GoogleSignInResult.cancelled;
+        // Check if user is actually logged in (fallback scenario)
+        final user = currentUser;
+        if (user == null) {
+          return GoogleSignInResult.cancelled;
+        }
+        
+        // User is logged in via fallback, proceed with validation
+        final profile = await _userService.getUserProfile(user.uid);
+        if (profile == null || 
+            profile['phone_number'] == null || 
+            profile['phone_number'].toString().isEmpty) {
+          return GoogleSignInResult.missingPhoneNumber;
+        }
+        
+        await _updateFCMTokenOnSignIn(user.uid);
+        return GoogleSignInResult.success;
       }
       
       final user = userCredential.user;

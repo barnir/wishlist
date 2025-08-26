@@ -11,7 +11,7 @@ class FirebaseAuthService {
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
   User? get currentUser => _firebaseAuth.currentUser;
 
-  /// Google Sign-In
+  /// Google Sign-In with fallback for type casting errors
   Future<UserCredential?> signInWithGoogle() async {
     try {
       debugPrint('=== Firebase Google Sign-In Started ===');
@@ -32,13 +32,33 @@ class FirebaseAuthService {
       final userCredential = await _firebaseAuth.signInWithCredential(credential);
       
       if (userCredential.user != null) {
-        await _createOrUpdateUserProfile(userCredential.user!);
         debugPrint('Google sign-in successful: ${userCredential.user!.email}');
+        debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
       }
       
       return userCredential;
     } catch (e) {
       debugPrint('Firebase Google sign-in error: $e');
+      debugPrint('Current user after error: ${_firebaseAuth.currentUser?.email}');
+      
+      // Check if user is actually logged in despite the error
+      if (_firebaseAuth.currentUser != null) {
+        debugPrint('🎯 ERROR OCCURRED BUT USER IS LOGGED IN - Using fallback!');
+        final user = _firebaseAuth.currentUser!;
+        
+        try {
+          debugPrint('✅ Fallback: User authenticated successfully');
+          debugPrint('Fallback Google sign-in successful: ${user.email}');
+          debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
+          
+          // Return null to indicate successful login, auth_service.dart will handle this
+          return null;
+        } catch (profileError) {
+          debugPrint('❌ Fallback: Profile creation failed: $profileError');
+          rethrow;
+        }
+      }
+      
       rethrow;
     }
   }
@@ -61,7 +81,10 @@ class FirebaseAuthService {
           throw Exception('Verification failed: ${e.message}');
         },
         codeSent: (String verificationId, int? resendToken) {
-          debugPrint('SMS code sent, verification ID: $verificationId');
+          debugPrint('🎯 SMS code sent successfully!');
+          debugPrint('Verification ID: $verificationId');
+          debugPrint('Phone number: $phoneNumber');
+          debugPrint('Resend token: $resendToken');
           // Store verification ID for later use
           _currentVerificationId = verificationId;
         },
@@ -125,8 +148,8 @@ class FirebaseAuthService {
 
       if (userCredential.user != null) {
         await userCredential.user!.updateDisplayName(displayName);
-        await _createOrUpdateUserProfile(userCredential.user!, displayName: displayName);
         debugPrint('Email sign-up successful: ${userCredential.user!.email}');
+        debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
       }
 
       return userCredential;
@@ -148,8 +171,8 @@ class FirebaseAuthService {
       );
 
       if (userCredential.user != null) {
-        await _createOrUpdateUserProfile(userCredential.user!);
         debugPrint('Email sign-in successful: ${userCredential.user!.email}');
+        debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
       }
 
       return userCredential;

@@ -122,6 +122,32 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  /// Cleanup incomplete accounts - force logout and delete orphaned profile
+  Future<void> _cleanupIncompleteAccount(firebase_auth.User user) async {
+    try {
+      debugPrint('=== Cleaning up incomplete account ===');
+      debugPrint('User ID: ${user.uid}');
+      debugPrint('Email: ${user.email}');
+      
+      // Try to delete orphaned profile from Supabase (may fail if doesn't exist)
+      try {
+        await UserService().deleteUserProfile(user.uid);
+        debugPrint('Orphaned profile deleted from Supabase');
+      } catch (e) {
+        debugPrint('Profile not found in Supabase (expected): $e');
+      }
+      
+      // Sign out from Firebase (this will also sign out from Google)
+      await AuthService().signOut();
+      
+      debugPrint('Incomplete account cleaned up successfully');
+    } catch (e) {
+      debugPrint('Error cleaning up incomplete account: $e');
+      // Force logout anyway
+      await AuthService().signOut();
+    }
+  }
+
   @override
   void dispose() {
     _intentDataStreamSubscription.cancel();
@@ -216,8 +242,35 @@ class _MyAppState extends State<MyApp> {
                     if (profile == null ||
                         profile['phone_number'] == null ||
                         profile['phone_number'].toString().isEmpty) {
-                      // Phone number is missing, navigate to AddPhoneScreen
-                      return const AddPhoneScreen();
+                      
+                      // Check if user just logged in (no profile exists yet) - go to phone screen
+                      if (profile == null) {
+                        debugPrint('No profile found - redirecting to phone screen');
+                        return const AddPhoneScreen();
+                      }
+                      
+                      // Profile exists but no phone - account is incomplete, cleanup needed
+                      debugPrint('Profile exists but missing phone - cleaning up');
+                      return FutureBuilder<void>(
+                        future: _cleanupIncompleteAccount(snapshot.data!),
+                        builder: (context, cleanupSnapshot) {
+                          if (cleanupSnapshot.connectionState == ConnectionState.waiting) {
+                            return const Scaffold(
+                              body: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CircularProgressIndicator(),
+                                    SizedBox(height: 16),
+                                    Text('Cleaning up incomplete account...'),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          return const LoginScreen();
+                        },
+                      );
                     } else if (profile['display_name'] == null ||
                                profile['display_name'].toString().isEmpty) {
                       // Phone number exists but display name is missing, navigate to SetupNameScreen
