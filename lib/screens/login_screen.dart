@@ -3,7 +3,6 @@ import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/services/rate_limiter_service.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
-import '../constants/ui_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -203,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
                           ),
                         ),
                         filled: true,
-                        fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: ValidationUtils.validateEmail,
@@ -239,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
                           ),
                         ),
                         filled: true,
-                        fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                       ),
                       obscureText: true,
                       validator: (value) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/user_service.dart';
 
 class FirebaseAuthService {
@@ -80,17 +81,19 @@ class FirebaseAuthService {
           debugPrint('Phone verification failed: ${e.message}');
           throw Exception('Verification failed: ${e.message}');
         },
-        codeSent: (String verificationId, int? resendToken) {
+        codeSent: (String verificationId, int? resendToken) async {
           debugPrint('🎯 SMS code sent successfully!');
           debugPrint('Verification ID: $verificationId');
           debugPrint('Phone number: $phoneNumber');
           debugPrint('Resend token: $resendToken');
-          // Store verification ID for later use
+          // Store verification ID persistently
           _currentVerificationId = verificationId;
+          await _storeVerificationId(verificationId, phoneNumber);
         },
-        codeAutoRetrievalTimeout: (String verificationId) {
+        codeAutoRetrievalTimeout: (String verificationId) async {
           debugPrint('Auto-retrieval timeout: $verificationId');
           _currentVerificationId = verificationId;
+          await _storeVerificationId(verificationId, phoneNumber);
         },
       );
     } catch (e) {
@@ -100,6 +103,8 @@ class FirebaseAuthService {
   }
 
   String? _currentVerificationId;
+  static const String _verificationIdKey = 'phone_verification_id';
+  static const String _phoneNumberKey = 'phone_verification_number';
 
   /// Phone Authentication - Verify OTP
   Future<UserCredential?> verifyPhoneOtp(String phoneNumber, String smsCode) async {
@@ -109,7 +114,12 @@ class FirebaseAuthService {
       debugPrint('Verification ID: $_currentVerificationId');
 
       if (_currentVerificationId == null) {
-        throw Exception('No verification ID found. Please request OTP again.');
+        // Try to retrieve from persistent storage
+        _currentVerificationId = await _getStoredVerificationId();
+        if (_currentVerificationId == null) {
+          throw Exception('No verification ID found. Please request OTP again.');
+        }
+        debugPrint('Retrieved verification ID from storage: $_currentVerificationId');
       }
 
       final credential = PhoneAuthProvider.credential(
@@ -121,6 +131,7 @@ class FirebaseAuthService {
       
       if (userCredential.user != null) {
         await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
+        await _clearVerificationData(); // Clear stored verification data after success
         debugPrint('Phone verification successful: ${userCredential.user!.uid}');
       }
 
@@ -271,5 +282,52 @@ class FirebaseAuthService {
   bool hasEmail() {
     final user = currentUser;
     return user?.email != null && user!.email!.isNotEmpty;
+  }
+
+  /// Store verification ID persistently
+  Future<void> _storeVerificationId(String verificationId, String phoneNumber) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_verificationIdKey, verificationId);
+      await prefs.setString(_phoneNumberKey, phoneNumber);
+      debugPrint('Verification ID stored successfully');
+    } catch (e) {
+      debugPrint('Error storing verification ID: $e');
+    }
+  }
+
+  /// Retrieve verification ID from persistent storage
+  Future<String?> _getStoredVerificationId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_verificationIdKey);
+    } catch (e) {
+      debugPrint('Error retrieving verification ID: $e');
+      return null;
+    }
+  }
+
+  /// Get stored phone number
+  Future<String?> getStoredPhoneNumber() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_phoneNumberKey);
+    } catch (e) {
+      debugPrint('Error retrieving phone number: $e');
+      return null;
+    }
+  }
+
+  /// Clear stored verification data
+  Future<void> _clearVerificationData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_verificationIdKey);
+      await prefs.remove(_phoneNumberKey);
+      _currentVerificationId = null;
+      debugPrint('Verification data cleared');
+    } catch (e) {
+      debugPrint('Error clearing verification data: $e');
+    }
   }
 }

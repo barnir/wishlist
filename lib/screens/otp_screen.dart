@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/firebase_auth_service.dart';
 import '../constants/ui_constants.dart';
 
 class OTPScreen extends StatefulWidget {
@@ -11,20 +12,27 @@ class OTPScreen extends StatefulWidget {
   State<OTPScreen> createState() => _OTPScreenState();
 }
 
-class _OTPScreenState extends State<OTPScreen> {
+class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
   final _authService = AuthService();
+  final _firebaseAuthService = FirebaseAuthService();
   final _otpControllers = List.generate(6, (index) => TextEditingController());
   final _focusNodes = List.generate(6, (index) => FocusNode());
   
   bool _isLoading = false;
   bool _hasSubmitted = false;
+  String? _storedPhoneNumber;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
     // Firebase Auth has native SMS auto-fill, no custom implementation needed
     debugPrint('=== Firebase OTP Screen Initialized ===');
     debugPrint('Phone number: ${widget.phoneNumber}');
+    
+    // Check for stored phone number to validate consistency
+    _checkStoredPhoneNumber();
     
     // Auto-focus first field
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -34,6 +42,7 @@ class _OTPScreenState extends State<OTPScreen> {
   
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (var controller in _otpControllers) {
       controller.dispose();
     }
@@ -41,6 +50,29 @@ class _OTPScreenState extends State<OTPScreen> {
       node.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('OTP Screen: App resumed, checking for stored verification data');
+      _checkStoredPhoneNumber();
+    }
+  }
+
+  Future<void> _checkStoredPhoneNumber() async {
+    try {
+      _storedPhoneNumber = await _firebaseAuthService.getStoredPhoneNumber();
+      if (_storedPhoneNumber != null) {
+        debugPrint('Stored phone number found: $_storedPhoneNumber');
+        if (_storedPhoneNumber != widget.phoneNumber) {
+          debugPrint('Warning: Phone number mismatch. Current: ${widget.phoneNumber}, Stored: $_storedPhoneNumber');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking stored phone number: $e');
+    }
   }
 
   Future<void> _submitOTP() async {
@@ -76,7 +108,11 @@ class _OTPScreenState extends State<OTPScreen> {
     } catch (e) {
       debugPrint('OTP verification error: $e');
       if (mounted) {
-        _showSnackBar('Código inválido. Tente novamente.');
+        String errorMessage = 'Código inválido. Tente novamente.';
+        if (e.toString().contains('No verification ID found')) {
+          errorMessage = 'Sessão expirou. Por favor, volte e reenvie o código.';
+        }
+        _showSnackBar(errorMessage);
         setState(() {
           _hasSubmitted = false;
         });
