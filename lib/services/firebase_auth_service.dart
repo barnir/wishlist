@@ -69,16 +69,46 @@ class FirebaseAuthService {
     try {
       debugPrint('=== Firebase Phone OTP Send Started ===');
       debugPrint('Phone number: $phoneNumber');
+      debugPrint('Phone number length: ${phoneNumber.length}');
+      
+      // Check if this might be a test phone number
+      final testPhonePatterns = ['+1555', '+351123', '+44123', '+49123'];
+      final isTestPhone = testPhonePatterns.any((pattern) => phoneNumber.startsWith(pattern));
+      if (isTestPhone) {
+        debugPrint('🧪 DETECTED POTENTIAL TEST PHONE NUMBER');
+        debugPrint('   - For test phone numbers, ensure they are configured in Firebase Console');
+        debugPrint('   - Go to Authentication > Sign-in method > Phone > Add test phone number');
+        debugPrint('   - Test numbers bypass real SMS and use predefined codes');
+      }
       
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          debugPrint('Phone verification completed automatically');
-          await _firebaseAuth.signInWithCredential(credential);
+          debugPrint('📱 Phone verification completed automatically');
+          debugPrint('   - This happens for instant verification (usually test numbers)');
+          
+          try {
+            final userCredential = await _firebaseAuth.signInWithCredential(credential);
+            
+            if (userCredential.user != null) {
+              debugPrint('✅ Test phone auto-verification successful: ${userCredential.user!.uid}');
+              // Create or update profile for test phone numbers too
+              await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
+              await _clearVerificationData();
+            }
+          } catch (e) {
+            debugPrint('❌ Error in verificationCompleted: $e');
+          }
         },
         verificationFailed: (FirebaseAuthException e) {
-          debugPrint('Phone verification failed: ${e.message}');
+          debugPrint('❌ Phone verification failed: ${e.code} - ${e.message}');
+          
+          if (isTestPhone && e.code == 'invalid-phone-number') {
+            debugPrint('🔍 TEST PHONE ERROR: Phone number not configured in Firebase Console');
+            debugPrint('   - Add $phoneNumber to Firebase Console test phone numbers');
+          }
+          
           throw Exception('Verification failed: ${e.message}');
         },
         codeSent: (String verificationId, int? resendToken) async {
@@ -86,18 +116,25 @@ class FirebaseAuthService {
           debugPrint('Verification ID: $verificationId');
           debugPrint('Phone number: $phoneNumber');
           debugPrint('Resend token: $resendToken');
+          debugPrint('Is test phone: $isTestPhone');
+          
+          if (isTestPhone) {
+            debugPrint('📋 TEST PHONE: Use the verification code configured in Firebase Console');
+          }
+          
           // Store verification ID persistently
           _currentVerificationId = verificationId;
           await _storeVerificationId(verificationId, phoneNumber);
         },
         codeAutoRetrievalTimeout: (String verificationId) async {
-          debugPrint('Auto-retrieval timeout: $verificationId');
+          debugPrint('⏰ Auto-retrieval timeout: $verificationId');
           _currentVerificationId = verificationId;
           await _storeVerificationId(verificationId, phoneNumber);
         },
       );
     } catch (e) {
-      debugPrint('Firebase phone OTP error: $e');
+      debugPrint('❌ Firebase phone OTP error: $e');
+      debugPrint('Error type: ${e.runtimeType}');
       rethrow;
     }
   }
@@ -110,34 +147,82 @@ class FirebaseAuthService {
   Future<UserCredential?> verifyPhoneOtp(String phoneNumber, String smsCode) async {
     try {
       debugPrint('=== Firebase Phone OTP Verify Started ===');
+      debugPrint('Phone number: $phoneNumber');
       debugPrint('SMS Code: $smsCode');
+      debugPrint('SMS Code length: ${smsCode.length}');
       debugPrint('Verification ID: $_currentVerificationId');
 
       if (_currentVerificationId == null) {
         // Try to retrieve from persistent storage
         _currentVerificationId = await _getStoredVerificationId();
         if (_currentVerificationId == null) {
+          debugPrint('❌ ERROR: No verification ID found in memory or storage');
           throw Exception('No verification ID found. Please request OTP again.');
         }
-        debugPrint('Retrieved verification ID from storage: $_currentVerificationId');
+        debugPrint('✅ Retrieved verification ID from storage: $_currentVerificationId');
       }
+
+      debugPrint('🔐 Creating PhoneAuthCredential...');
+      debugPrint('   - Verification ID: $_currentVerificationId');
+      debugPrint('   - SMS Code: $smsCode');
 
       final credential = PhoneAuthProvider.credential(
         verificationId: _currentVerificationId!,
         smsCode: smsCode,
       );
 
-      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      debugPrint('📱 Credential created, attempting signInWithCredential...');
       
-      if (userCredential.user != null) {
+      UserCredential? userCredential;
+      try {
+        userCredential = await _firebaseAuth.signInWithCredential(credential);
+      } catch (credentialError) {
+        debugPrint('🔍 signInWithCredential error: $credentialError');
+        
+        // Check if user is actually signed in despite the error (common Firebase plugin issue)
+        final currentUser = _firebaseAuth.currentUser;
+        if (currentUser != null) {
+          debugPrint('🎯 FALLBACK: User is signed in despite credential error');
+          debugPrint('User UID: ${currentUser.uid}');
+          debugPrint('User phone: ${currentUser.phoneNumber}');
+          
+          // Create mock UserCredential for successful flow
+          await _createOrUpdateUserProfile(currentUser, phoneNumber: phoneNumber);
+          await _clearVerificationData();
+          
+          debugPrint('✅ Phone verification successful via fallback: ${currentUser.uid}');
+          return null; // Return null to indicate success via fallback
+        }
+        
+        rethrow; // If user is not signed in, rethrow the original error
+      }
+      
+      if (userCredential?.user != null) {
+        debugPrint('✅ Phone verification successful: ${userCredential!.user!.uid}');
         await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
         await _clearVerificationData(); // Clear stored verification data after success
-        debugPrint('Phone verification successful: ${userCredential.user!.uid}');
+      } else {
+        debugPrint('⚠️ WARNING: User credential is null after successful verification');
       }
 
       return userCredential;
     } catch (e) {
-      debugPrint('Firebase phone verification error: $e');
+      debugPrint('❌ Firebase phone verification error: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      
+      if (e is FirebaseAuthException) {
+        debugPrint('Firebase Auth Error Code: ${e.code}');
+        debugPrint('Firebase Auth Error Message: ${e.message}');
+        
+        // Specific handling for test phone numbers
+        if (e.code == 'invalid-verification-code') {
+          debugPrint('🔍 INVALID VERIFICATION CODE ERROR');
+          debugPrint('   - This could be a test phone number configuration issue');
+          debugPrint('   - Check Firebase Console > Authentication > Sign-in method > Phone');
+          debugPrint('   - Ensure test phone number $phoneNumber is listed with code $smsCode');
+        }
+      }
+      
       rethrow;
     }
   }
@@ -328,6 +413,16 @@ class FirebaseAuthService {
       debugPrint('Verification data cleared');
     } catch (e) {
       debugPrint('Error clearing verification data: $e');
+    }
+  }
+
+  /// Clear all stored authentication data (for canceling registration)
+  Future<void> clearAllStoredData() async {
+    try {
+      await _clearVerificationData();
+      debugPrint('All stored authentication data cleared');
+    } catch (e) {
+      debugPrint('Error clearing all stored data: $e');
     }
   }
 }

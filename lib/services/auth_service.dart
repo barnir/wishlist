@@ -98,6 +98,24 @@ class AuthService {
     }
   }
 
+  /// Cancel registration - sign out and clear all stored data
+  Future<void> cancelRegistration() async {
+    try {
+      debugPrint('=== AuthService: Cancel Registration ===');
+      
+      // Clear stored data first
+      await _firebaseAuthService.clearAllStoredData();
+      
+      // Then sign out
+      await signOut();
+      
+      debugPrint('Registration cancelled successfully');
+    } catch (e) {
+      debugPrint('AuthService cancel registration error: $e');
+      rethrow;
+    }
+  }
+
   Future<GoogleSignInResult> signInWithGoogle() async {
     try {
       debugPrint('=== AuthService: Google Sign-In ===');

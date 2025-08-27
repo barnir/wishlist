@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/screens/otp_screen.dart';
 
 class AddPhoneScreen extends StatefulWidget {
@@ -30,10 +31,75 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
     debugPrint('Current user: $user');
     debugPrint('User email: ${user?.email}');
     debugPrint('User display name: ${user?.displayName}');
+    debugPrint('User phone: ${user?.phoneNumber}');
+    
+    // Check for invalid state: user with phone only (shouldn't happen)
+    if (user != null && 
+        user.phoneNumber != null && 
+        user.phoneNumber!.isNotEmpty &&
+        (user.email == null || user.email!.isEmpty) &&
+        (user.displayName == null || user.displayName!.isEmpty)) {
+      
+      debugPrint('⚠️ INVALID STATE: User authenticated with phone only - this should not happen!');
+      debugPrint('   - Signing out and redirecting to login');
+      _authService.signOut();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      }
+      return;
+    }
+    
     setState(() {
-      _userEmail = user?.email ?? 'Utilizador logado';
+      // Better fallback chain for user identification
+      _userEmail = user?.email?.isNotEmpty == true 
+          ? user!.email!
+          : user?.displayName?.isNotEmpty == true
+              ? user!.displayName!
+              : 'Utilizador em processo de registo';
     });
     debugPrint('Set _userEmail to: $_userEmail');
+  }
+
+  Future<void> _cancelRegistration() async {
+    // Show confirmation dialog
+    final bool? shouldCancel = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Cancelar Registo'),
+          content: const Text(
+            'Tem a certeza que deseja cancelar o registo? '
+            'Perderá o progresso atual e terá de começar novamente.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Continuar Registo'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Cancelar Registo'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldCancel == true) {
+      try {
+        await _authService.cancelRegistration();
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao cancelar registo: $e')),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _sendVerificationCode() async {
@@ -80,6 +146,15 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
       appBar: AppBar(
         title: const Text('Completar Registo'),
         automaticallyImplyLeading: false,
+        actions: [
+          TextButton(
+            onPressed: _cancelRegistration,
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -107,32 +182,50 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
-        if (_userEmail != null) ...[
+        if (_userEmail != null && _userEmail != 'Utilizador logado') ...[
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.symmetric(horizontal: 0),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade200),
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade200),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Icon(Icons.account_circle, color: Colors.blue.shade600),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Logado como: $_userEmail',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.blue.shade800,
-                      fontWeight: FontWeight.w500,
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green.shade600),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Continuando registo para:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const SizedBox(width: 32), // Align with icon above
+                    Expanded(
+                      child: Text(
+                        _userEmail!,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.green.shade800,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
         const Text(
           'Para completar o registo, é necessário verificar um número de telemóvel.',
