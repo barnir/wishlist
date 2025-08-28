@@ -320,14 +320,14 @@ class FirebaseAuthService {
     }
   }
 
-  /// Create or update user profile in Supabase database
+  /// Create or update user profile in Firebase database
   Future<void> _createOrUpdateUserProfile(
     User user, {
     String? phoneNumber,
     String? displayName,
   }) async {
     try {
-      debugPrint('=== 🔄 ENHANCED: Syncing Firebase User to Supabase Database ===');
+      debugPrint('=== 🔄 ENHANCED: Syncing Firebase User to Firebase Database ===');
       debugPrint('Firebase UID: ${user.uid}');
       debugPrint('Email: ${user.email}');
       debugPrint('Display Name: ${user.displayName}');
@@ -404,7 +404,7 @@ class FirebaseAuthService {
     // Check Firebase user first
     if (user.phoneNumber != null) return true;
     
-    // Check Supabase database
+    // Check Firebase database
     final profile = await _databaseService.getUserProfile(user.uid);
     return profile != null && 
            profile['phone_number'] != null && 
@@ -440,8 +440,8 @@ class FirebaseAuthService {
     }
   }
 
-  /// Sync existing Firebase user to Supabase database
-  /// This is used when user already has both Google + Phone providers but no Supabase profile
+  /// Sync existing Firebase user to Firebase database
+  /// This is used when user already has both Google + Phone providers but no Firebase profile
   Future<void> syncExistingUserProfile() async {
     final currentUser = _firebaseAuth.currentUser;
     if (currentUser == null) {
@@ -450,7 +450,7 @@ class FirebaseAuthService {
     }
 
     try {
-      debugPrint('=== 🔄 Syncing Existing Firebase User to Supabase ===');
+      debugPrint('=== 🔄 Syncing Existing Firebase User to Firebase ===');
       debugPrint('User UID: ${currentUser.uid}');
       debugPrint('Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
       

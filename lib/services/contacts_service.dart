@@ -217,14 +217,12 @@ class ContactsService {
       // Dividir em batches para evitar URL muito longa
       final registeredUsers = <Map<String, dynamic>>[];
       
-      const batchSize = 50; // Supabase tem limites de URL
+      const batchSize = 50; // Batch processing for phone number lookup
       for (int i = 0; i < phoneNumbers.length; i += batchSize) {
         final batch = phoneNumbers.skip(i).take(batchSize).toList();
         
-        final batchResults = await _supabase
-            .from('users')
-            .select('id, display_name, phone_number')
-            .inFilter('phone_number', batch);
+        // TODO: Implement phone number lookup with Firestore
+        final batchResults = <Map<String, dynamic>>[];
             
         registeredUsers.addAll(batchResults);
       }
@@ -270,15 +268,10 @@ class ContactsService {
       // Isto pode ser útil para mostrar sugestões de amigos
       for (final friend in registeredFriends) {
         // Verificar se já está nos favoritos
-        final existingFavorite = await _supabase
-            .from('user_favorites')
-            .select('id')
-            .eq('user_id', currentUserId)
-            .eq('favorite_user_id', friend['id'])
-            .maybeSingle();
+        final existingFavorite = await _database.isFavorite(friend['id']);
 
         // Se não está nos favoritos, pode criar uma sugestão (opcional)
-        if (existingFavorite == null) {
+        if (!existingFavorite) {
           // TODO: Implementar sistema de sugestões se necessário
         }
       }
@@ -301,15 +294,10 @@ class ContactsService {
       
       for (final friend in registeredFriends) {
         // Verificar se já está nos favoritos
-        final existingFavorite = await _supabase
-            .from('user_favorites')
-            .select('id')
-            .eq('user_id', currentUserId)
-            .eq('favorite_user_id', friend['id'])
-            .maybeSingle();
+        final existingFavorite = await _database.isFavorite(friend['id']);
 
         // Se não está nos favoritos, adicionar às sugestões
-        if (existingFavorite == null && friend['id'] != currentUserId) {
+        if (!existingFavorite && friend['id'] != currentUserId) {
           suggestions.add({
             ...friend,
             'suggestion_reason': 'Está nos teus contactos',

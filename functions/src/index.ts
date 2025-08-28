@@ -5,40 +5,22 @@ import {logger} from "firebase-functions";
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Usage monitoring
-interface UsageStats {
-  reads: number;
-  writes: number;
-  functions: number;
-  date: string;
-}
+// Simple rate limiting without persistent storage
+const rateLimiter = new Map<string, number>();
 
-// Monitor usage to stay within free tier
-const monitorUsage = async (functionName: string): Promise<boolean> => {
-  try {
-    const today = new Date().toISOString().split("T")[0];
-    const statsRef = admin.firestore().collection("_usage").doc(today);
-    
-    const doc = await statsRef.get();
-    const stats: UsageStats = doc.exists ? 
-      doc.data() as UsageStats : 
-      {reads: 0, writes: 0, functions: 0, date: today};
-    
-    // Check if we're approaching limits (80% threshold)
-    if (stats.functions >= 53333) { // 80% of 66,666 daily limit
-      logger.warn(`Function ${functionName} blocked - approaching daily limit`);
-      return false;
-    }
-    
-    // Increment function counter
-    stats.functions += 1;
-    await statsRef.set(stats, {merge: true});
-    
-    return true;
-  } catch (error) {
-    logger.error("Error monitoring usage:", error);
-    return true; // Allow execution on monitoring error
+const checkRateLimit = (functionName: string): boolean => {
+  const now = Date.now();
+  const key = functionName;
+  const lastCall = rateLimiter.get(key) || 0;
+  
+  // Simple rate limiting: max 1 call per second per function
+  if (now - lastCall < 1000) {
+    logger.warn(`Function ${functionName} rate limited`);
+    return false;
   }
+  
+  rateLimiter.set(key, now);
+  return true;
 };
 
 // CORS headers for web requests (if needed for HTTP functions)
@@ -49,9 +31,8 @@ const monitorUsage = async (functionName: string): Promise<boolean> => {
 // };
 
 export const deleteUser = onCall(async (request: CallableRequest) => {
-  const canExecute = await monitorUsage("deleteUser");
-  if (!canExecute) {
-    throw new Error("Daily function limit reached. Try again tomorrow.");
+  if (!checkRateLimit("deleteUser")) {
+    throw new Error("Rate limit exceeded. Please wait a moment.");
   }
 
   try {
@@ -186,9 +167,8 @@ const SUSPICIOUS_PATTERNS = [
 ];
 
 export const secureScraper = onCall(async (request: CallableRequest) => {
-  const canExecute = await monitorUsage("secureScraper");
-  if (!canExecute) {
-    throw new Error("Daily function limit reached. Try again tomorrow.");
+  if (!checkRateLimit("secureScraper")) {
+    throw new Error("Rate limit exceeded. Please wait a moment.");
   }
 
   try {
@@ -351,30 +331,3 @@ function extractDataFromHtml(html: string, baseUrl: string): ScrapedData {
   };
 }
 
-// Health check function for monitoring
-export const healthCheck = onCall(async (request: CallableRequest) => {
-  const today = new Date().toISOString().split("T")[0];
-  
-  try {
-    const statsRef = admin.firestore().collection("_usage").doc(today);
-    const doc = await statsRef.get();
-    const stats = doc.exists ? doc.data() : {reads: 0, writes: 0, functions: 0};
-    
-    return {
-      status: "healthy",
-      usage: stats,
-      limits: {
-        reads: 50000,
-        writes: 20000,
-        functions: 66666
-      },
-      date: today
-    };
-  } catch (error) {
-    logger.error("Health check error:", error);
-    return {
-      status: "error",
-      error: error instanceof Error ? error.message : "Unknown error"
-    };
-  }
-});

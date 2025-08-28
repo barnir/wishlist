@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
@@ -20,6 +21,7 @@ class AddEditWishlistScreen extends StatefulWidget {
 class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _authService = AuthService();
   final _databaseService = FirebaseDatabaseService();
 
   bool _isPrivate = false;
@@ -96,15 +98,13 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         ).writeAsBytes(_imageBytes!);
       }
 
-      await _databaseService.saveWishlist(
-        name: _nameController.text.trim(),
-        isPrivate: _isPrivate,
-        imageFile: tempFileForUpload, // Pass File if available
-        imageUrl: _imageBytes == null
-            ? _existingImageUrl
-            : null, // Pass existing URL only if no new image
-        wishlistId: widget.wishlistId,
-      );
+      await _databaseService.saveWishlist({
+        'name': _nameController.text.trim(),
+        'is_private': _isPrivate,
+        'image_url': _imageBytes == null ? _existingImageUrl : tempFileForUpload?.path,
+        'user_id': _authService.currentUser?.uid,
+        if (widget.wishlistId != null) 'id': widget.wishlistId,
+      });
 
       if (finalImageUrl != null && _imageBytes != null) {
         // Only cache if a new image was uploaded

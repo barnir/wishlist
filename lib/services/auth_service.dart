@@ -98,7 +98,7 @@ class AuthService {
     }
   }
 
-  /// Sync existing Firebase user to Supabase database
+  /// Sync existing Firebase user to Firebase database
   Future<void> syncExistingUserProfile() async {
     await _firebaseAuthService.syncExistingUserProfile();
   }

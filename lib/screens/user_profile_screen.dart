@@ -223,8 +223,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildPublicWishlistsTab() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _databaseService.getPublicWishlistsForUser(widget.userId),
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _databaseService.getPublicWishlistsForUser(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const WishlistLoadingIndicator(message: 'A carregar wishlists...');

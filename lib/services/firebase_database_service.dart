@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 /// Firebase Firestore Database Service
-/// Replaces SupabaseDatabaseService with Firebase Firestore
+/// Firebase Firestore database service - complete NoSQL integration
 class FirebaseDatabaseService {
   static final FirebaseDatabaseService _instance = FirebaseDatabaseService._internal();
   factory FirebaseDatabaseService() => _instance;

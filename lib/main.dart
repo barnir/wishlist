@@ -251,7 +251,7 @@ class _MyAppState extends State<MyApp> {
                         final hasEmailPassword = providerIds.contains('password');
                         
                         if ((hasGoogle || hasEmailPassword) && hasPhone && user.phoneNumber != null) {
-                          debugPrint('User has both auth providers and phone number - syncing to Supabase');
+                          debugPrint('User has both auth providers and phone number - syncing to Firebase');
                           return FutureBuilder<void>(
                             future: AuthService().syncExistingUserProfile(),
                             builder: (context, syncSnapshot) {

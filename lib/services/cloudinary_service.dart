@@ -216,7 +216,7 @@ class CloudinaryService {
         'success': true,
         'message': 'Image cleanup logged - requires server-side deletion',
         'profile_images': [profileImageId],
-        'note': 'Use Supabase delete-user function or Cloudinary Admin API for actual deletion'
+        'note': 'Use Firebase Cloud Functions or Cloudinary Admin API for actual deletion'
       };
     } catch (e) {
       debugPrint('Error preparing image cleanup: $e');

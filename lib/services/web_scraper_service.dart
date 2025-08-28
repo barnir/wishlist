@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
 import 'package:wishlist_app/services/firebase_functions_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 
 /// Serviço de web scraping seguro usando Firebase Cloud Functions
 /// 
@@ -104,7 +105,8 @@ class WebScraperServiceSecure {
     
     // ⚠️ PLANO GRATUITO: ScraperAPI tem apenas 1k requests/mês
     // Usar apenas como último recurso para domínios confiáveis
-    if (Config.scraperApiKey.isNotEmpty && isTrusted) {
+    // TODO: Implement config service for scraperApiKey
+    if (false && isTrusted) { // Disabled until Config is implemented
       try {
         debugPrint('🔄 Using ScraperAPI (free tier: 1k requests/month)');
         result = await _scrapeWithScraperAPI(url);
@@ -131,7 +133,8 @@ class WebScraperServiceSecure {
 
   /// Scraping usando ScraperAPI (fallback)
   Future<Map<String, dynamic>> _scrapeWithScraperAPI(String url) async {
-    final scraperApiUrl = 'http://api.scraperapi.com?api_key=${Config.scraperApiKey}&url=${Uri.encodeComponent(url)}&autoparse=true';
+    // TODO: Implement config service
+    final scraperApiUrl = 'http://api.scraperapi.com?api_key=PLACEHOLDER&url=${Uri.encodeComponent(url)}&autoparse=true';
     
     final response = await http.get(
       Uri.parse(scraperApiUrl),

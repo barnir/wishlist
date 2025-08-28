@@ -259,10 +259,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-      final itemData = await _databaseService.getWishItem(
-        widget.wishlistId!,
-        itemId: widget.itemId,
-      );
+      final itemData = await _databaseService.getWishItem(widget.itemId!);
 
       if (itemData != null) {
         _nameController.text = itemData['name'] ?? '';
@@ -331,22 +328,20 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ).writeAsBytes(_imageBytes!);
 
-        await _databaseService.saveWishItem(
-          wishlistId: finalWishlistId,
-          name: _nameController.text.trim(),
-          description: _descriptionController.text.trim().isNotEmpty 
+        await _databaseService.saveWishItem({
+          'wishlist_id': finalWishlistId,
+          'name': _nameController.text.trim(),
+          'description': _descriptionController.text.trim().isNotEmpty 
               ? _descriptionController.text.trim() : null,
-          price:
-              double.tryParse(
+          'price': double.tryParse(
                 _priceController.text.trim().replaceAll(',', '.'),
-              ) ??
-              0.0,
-          category: _selectedCategory!,
-          rating: _rating,
-          link: _linkController.text.trim(),
-          imageFile: tempFileForUpload,
-          itemId: widget.itemId,
-        );
+              ) ?? 0.0,
+          'category': _selectedCategory!,
+          'rating': _rating,
+          'link': _linkController.text.trim(),
+          'image_url': tempFileForUpload?.path, // Handle file upload separately
+          if (widget.itemId != null) 'id': widget.itemId,
+        });
         if (finalImageUrl != null) {
           await ImageCacheService.putFile(finalImageUrl, _imageBytes!);
           setState(() {
@@ -359,22 +354,20 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         setState(() => _isUploading = false);
       }
     } else {
-      await _databaseService.saveWishItem(
-        wishlistId: finalWishlistId,
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isNotEmpty 
+      await _databaseService.saveWishItem({
+        'wishlist_id': finalWishlistId,
+        'name': _nameController.text.trim(),
+        'description': _descriptionController.text.trim().isNotEmpty 
             ? _descriptionController.text.trim() : null,
-        price:
-            double.tryParse(
+        'price': double.tryParse(
               _priceController.text.trim().replaceAll(',', '.'),
-            ) ??
-            0.0,
-        category: _selectedCategory!,
-        rating: _rating,
-        link: _linkController.text.trim(),
-        imageUrl: _existingImageUrl,
-        itemId: widget.itemId,
-      );
+            ) ?? 0.0,
+        'category': _selectedCategory!,
+        'rating': _rating,
+        'link': _linkController.text.trim(),
+        'image_url': _existingImageUrl,
+        if (widget.itemId != null) 'id': widget.itemId,
+      });
     }
 
     if (!mounted) return;
