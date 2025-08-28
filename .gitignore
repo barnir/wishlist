@@ -166,6 +166,13 @@ android/NDH6SA~M
 **/*-secret.txt
 cloudinary.config.js
 
+# Firebase Functions
+functions/node_modules/
+functions/lib/
+functions/.firebase/
+functions/firebase-debug.log
+functions/firebase-debug.*.log
+
 # Temporary files
 android/NDH6SA~M
 supabase/migrations/20250825000001_add_fcm_token_to_users.sql

@@ -1,4 +1,16 @@
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
   "appDistribution": {
     "app": "1:515293340951:android:c9caa6afc7bcfd5f040352",
     "releaseNotesFile": "release_notes.txt",

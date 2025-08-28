@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/firebase_functions_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
-import 'package:wishlist_app/services/user_service.dart';
-import 'package:wishlist_app/services/supabase_functions_service.dart';
 import 'package:wishlist_app/services/notification_service.dart';
 
 enum GoogleSignInResult {
@@ -15,13 +15,13 @@ enum GoogleSignInResult {
   failed,
 }
 
-/// Wrapper around FirebaseAuthService to maintain compatibility
-/// Firebase for Auth, Supabase for Database, Cloudinary for Images
+/// Firebase-only Auth Service
+/// Firebase for Auth, Database, and Cloud Functions, Cloudinary for Images
 class AuthService {
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
+  final FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
+  final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
-  final UserService _userService = UserService();
-  final SupabaseFunctionsService _supabaseFunctionsService = SupabaseFunctionsService();
 
   Stream<firebase_auth.User?> get authStateChanges => _firebaseAuthService.authStateChanges;
 
@@ -87,7 +87,7 @@ class AuthService {
       
       final userId = currentUser?.uid;
       if (userId != null) {
-        await _userService.updateFCMToken(userId, null);
+        await _databaseService.updateUserProfile(userId, {'fcm_token': null});
         await NotificationService().unsubscribeFromUserTopic(userId);
       }
       
@@ -134,7 +134,7 @@ class AuthService {
         }
         
         // User is logged in via fallback, proceed with validation
-        final profile = await _userService.getUserProfile(user.uid);
+        final profile = await _databaseService.getUserProfile(user.uid);
         if (profile == null || 
             profile['phone_number'] == null || 
             profile['phone_number'].toString().isEmpty) {
@@ -150,7 +150,7 @@ class AuthService {
         return GoogleSignInResult.failed;
       }
       
-      final profile = await _userService.getUserProfile(user.uid);
+      final profile = await _databaseService.getUserProfile(user.uid);
       if (profile == null || 
           profile['phone_number'] == null || 
           profile['phone_number'].toString().isEmpty) {
@@ -169,7 +169,7 @@ class AuthService {
     try {
       final fcmToken = await NotificationService().getDeviceToken();
       if (fcmToken != null) {
-        await _userService.updateFCMToken(userId, fcmToken);
+        await _databaseService.updateUserProfile(userId, {'fcm_token': fcmToken});
         debugPrint('AuthService: FCM token updated on sign in');
       }
     } catch (e) {
@@ -212,7 +212,7 @@ class AuthService {
       );
       
       await user.linkWithCredential(credential);
-      await _userService.updateUserProfile(user.uid, {'email': email});
+      await _databaseService.updateUserProfile(user.uid, {'email': email});
     } catch (e) {
       debugPrint('AuthService link email/password error: $e');
       rethrow;
@@ -235,7 +235,7 @@ class AuthService {
       final imageUrl = await _cloudinaryService.uploadProfileImage(image, user.uid);
       if (imageUrl != null) {
         await user.updatePhotoURL(imageUrl);
-        await _userService.updateUserProfile(user.uid, {'photo_url': imageUrl});
+        await _databaseService.updateUserProfile(user.uid, {'photo_url': imageUrl});
       }
     } catch (e) {
       debugPrint('AuthService update profile picture error: $e');
@@ -265,7 +265,7 @@ class AuthService {
       if (photoURL != null) updateData['photo_url'] = photoURL;
       
       if (updateData.isNotEmpty) {
-        await _userService.updateUserProfile(user.uid, updateData);
+        await _databaseService.updateUserProfile(user.uid, updateData);
       }
     } catch (e) {
       debugPrint('AuthService update user error: $e');
@@ -340,20 +340,15 @@ class AuthService {
         // Continue anyway
       }
       
-      // Step 2: Delete all Supabase data using edge function
+      // Step 2: Delete all Firebase data using Cloud Function
       try {
-        final supabaseResult = await _supabaseFunctionsService.deleteUser();
-        debugPrint('Supabase cleanup result: $supabaseResult');
-        
-        if (!supabaseResult['success']) {
-          debugPrint('Warning: Supabase cleanup failed: ${supabaseResult['error']}');
-          // Continue with Firebase deletion anyway to avoid user being stuck
-        }
+        await _functionsService.deleteUserAccount();
+        debugPrint('Firebase data cleanup completed successfully');
       } catch (e) {
-        debugPrint('Warning: Supabase cleanup failed: $e');
+        debugPrint('Warning: Firebase data cleanup failed: $e');
         // Fallback: try basic profile deletion
         try {
-          await _userService.deleteUserProfile(user.uid);
+          await _databaseService.deleteUserProfile(user.uid);
         } catch (fallbackError) {
           debugPrint('Fallback deletion also failed: $fallbackError');
         }
@@ -379,7 +374,7 @@ class AuthService {
       return true;
     }
     
-    final profile = await _userService.getUserProfile(user.uid);
+    final profile = await _databaseService.getUserProfile(user.uid);
     return profile != null && 
            profile['phone_number'] != null && 
            profile['phone_number'].toString().isNotEmpty;
@@ -394,7 +389,7 @@ class AuthService {
       return true;
     }
     
-    final profile = await _userService.getUserProfile(user.uid);
+    final profile = await _databaseService.getUserProfile(user.uid);
     return profile != null && 
            profile['email'] != null && 
            profile['email'].toString().isNotEmpty;

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final UserService _userService = UserService();
+  final FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
   User? get currentUser => _firebaseAuth.currentUser;
@@ -336,7 +336,7 @@ class FirebaseAuthService {
       debugPrint('User.phoneNumber: ${user.phoneNumber}');
 
       debugPrint('🔍 Step 1: Checking existing profile...');
-      final existingProfile = await _userService.getUserProfile(user.uid);
+      final existingProfile = await _databaseService.getUserProfile(user.uid);
       debugPrint('Existing profile result: $existingProfile');
       
       final profileData = <String, dynamic>{
@@ -366,7 +366,7 @@ class FirebaseAuthService {
         
         if (updateData.isNotEmpty) {
           debugPrint('📝 Calling updateUserProfile...');
-          await _userService.updateUserProfile(user.uid, updateData);
+          await _databaseService.updateUserProfile(user.uid, updateData);
           debugPrint('✅ Updated existing profile with: $updateData');
         } else {
           debugPrint('ℹ️  No updates needed - profile is up to date');
@@ -374,7 +374,7 @@ class FirebaseAuthService {
       } else {
         debugPrint('🔍 Step 2: No existing profile, creating new...');
         debugPrint('📝 Calling createUserProfile...');
-        await _userService.createUserProfile(user.uid, profileData);
+        await _databaseService.createUserProfile(user.uid, profileData);
         debugPrint('✅ Created new profile: $profileData');
       }
       
@@ -405,7 +405,7 @@ class FirebaseAuthService {
     if (user.phoneNumber != null) return true;
     
     // Check Supabase database
-    final profile = await _userService.getUserProfile(user.uid);
+    final profile = await _databaseService.getUserProfile(user.uid);
     return profile != null && 
            profile['phone_number'] != null && 
            profile['phone_number'].toString().isNotEmpty;

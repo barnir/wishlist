@@ -44,11 +44,9 @@ void main() async {
   // Set up background message handler for FCM
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  // Initialize Supabase (for database only)
-  await Supabase.initialize(
-    url: Config.supabaseUrl,
-    anonKey: Config.supabaseAnonKey,
-  );
+  // Initialize Firestore (for database)
+  // Note: Firestore is automatically initialized with Firebase.initializeApp()
+  debugPrint('🔥 Firebase Firestore initialized');
 
   // Initialize theme service
   await ThemeService().initialize();
