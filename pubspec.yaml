@@ -21,7 +21,6 @@ dependencies:
   http: ^1.2.1
   cached_network_image: ^3.3.1
   flutter_cache_manager: ^3.3.1
-  supabase_flutter: ^2.9.1  # Keep for database only
   flutter_dotenv: ^5.2.1
   shared_preferences: ^2.2.2
   shimmer: ^3.0.0

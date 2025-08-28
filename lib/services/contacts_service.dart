@@ -1,11 +1,10 @@
 import 'package:flutter_contacts/flutter_contacts.dart';
 // Using flutter_contacts built-in permission system
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 
 class ContactsService {
-  final _supabase = Supabase.instance.client;
+  final _database = FirebaseDatabaseService();
 
   // Solicitar permissão para aceder aos contactos usando flutter_contacts
   Future<bool> requestContactsPermission() async {

@@ -1,9 +1,9 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import '../models/wish_item_status.dart';
 
 class WishItemStatusService {
-  final _supabase = Supabase.instance.client;
+  final _database = FirebaseDatabaseService();
 
   // Marcar item como "vou comprar" ou "comprado"
   Future<WishItemStatus> setItemStatus({
@@ -19,7 +19,7 @@ class WishItemStatusService {
       }
 
       // Verificar se já existe um status para este item pelo utilizador atual
-      final existingStatus = await _supabase
+      final existingStatus = await _database
           .from('wish_item_statuses')
           .select()
           .eq('wish_item_id', wishItemId)
@@ -37,7 +37,7 @@ class WishItemStatusService {
 
       if (existingStatus != null) {
         // Atualizar status existente
-        final updated = await _supabase
+        final updated = await _database
             .from('wish_item_statuses')
             .update(statusData)
             .eq('id', existingStatus['id'])
@@ -49,7 +49,7 @@ class WishItemStatusService {
         // Criar novo status
         statusData['created_at'] = DateTime.now().toIso8601String();
         
-        final created = await _supabase
+        final created = await _database
             .from('wish_item_statuses')
             .insert(statusData)
             .select()
@@ -70,7 +70,7 @@ class WishItemStatusService {
         throw Exception('Utilizador não autenticado');
       }
 
-      await _supabase
+      await _database
           .from('wish_item_statuses')
           .delete()
           .eq('wish_item_id', wishItemId)
@@ -88,7 +88,7 @@ class WishItemStatusService {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return null;
 
-      final status = await _supabase
+      final status = await _database
           .from('wish_item_statuses')
           .select()
           .eq('wish_item_id', wishItemId)
@@ -109,7 +109,7 @@ class WishItemStatusService {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return [];
 
-      final statuses = await _supabase
+      final statuses = await _database
           .from('wish_item_statuses')
           .select()
           .eq('wish_item_id', wishItemId)
@@ -145,7 +145,7 @@ class WishItemStatusService {
       if (currentUserId == null) return {};
 
       // Primeiro, verificar se o utilizador atual é o dono da wishlist
-      final wishlist = await _supabase
+      final wishlist = await _database
           .from('wishlists')
           .select('user_id')
           .eq('id', wishlistId)
@@ -156,7 +156,7 @@ class WishItemStatusService {
       }
 
       // Obter todos os itens da wishlist
-      final wishItems = await _supabase
+      final wishItems = await _database
           .from('wish_items')
           .select('id')
           .eq('wishlist_id', wishlistId);
@@ -166,7 +166,7 @@ class WishItemStatusService {
       if (itemIds.isEmpty) return {};
 
       // Obter status dos itens
-      var query = _supabase
+      var query = _database
           .from('wish_item_statuses')
           .select('*, users!user_id(display_name)')
           .inFilter('wish_item_id', itemIds);
@@ -204,7 +204,7 @@ class WishItemStatusService {
       return Stream.value([]);
     }
 
-    return _supabase
+    return _database
         .from('wish_item_statuses')
         .stream(primaryKey: ['id'])
         .eq('user_id', currentUserId)
@@ -217,7 +217,7 @@ class WishItemStatusService {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return false;
 
-      final wishlist = await _supabase
+      final wishlist = await _database
           .from('wishlists')
           .select('user_id, is_private')
           .eq('id', wishlistId)
@@ -241,7 +241,7 @@ class WishItemStatusService {
   // Verificar se utilizador marcou outro como favorito
   Future<bool> _isFavorite(String userId, String favoriteUserId) async {
     try {
-      final favorite = await _supabase
+      final favorite = await _database
           .from('user_favorites')
           .select('id')
           .eq('user_id', userId)

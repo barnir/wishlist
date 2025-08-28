@@ -4,14 +4,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_sharing_intent/flutter_sharing_intent.dart';
 import 'package:flutter_sharing_intent/model/sharing_file.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:wishlist_app/config.dart';
 import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/theme_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
 import 'package:wishlist_app/services/notification_service.dart';
@@ -127,12 +125,12 @@ class _MyAppState extends State<MyApp> {
       debugPrint('User ID: ${user.uid}');
       debugPrint('Email: ${user.email}');
       
-      // Try to delete orphaned profile from Supabase (may fail if doesn't exist)
+      // Try to delete orphaned profile from Firestore (may fail if doesn't exist)
       try {
-        await UserService().deleteUserProfile(user.uid);
-        debugPrint('Orphaned profile deleted from Supabase');
+        await FirebaseDatabaseService().deleteUserProfile(user.uid);
+        debugPrint('Orphaned profile deleted from Firestore');
       } catch (e) {
-        debugPrint('Profile not found in Supabase (expected): $e');
+        debugPrint('Profile not found in Firestore (expected): $e');
       }
       
       // Sign out from Firebase (this will also sign out from Google)
@@ -226,7 +224,7 @@ class _MyAppState extends State<MyApp> {
               if (snapshot.hasData) {
                 // User is logged in, check for phone number
                 return FutureBuilder<Map<String, dynamic>?>(
-                  future: UserService().getUserProfile(snapshot.data!.uid),
+                  future: FirebaseDatabaseService().getUserProfile(snapshot.data!.uid),
                   builder: (context, profileSnapshot) {
                     if (profileSnapshot.connectionState ==
                         ConnectionState.waiting) {
@@ -285,7 +283,7 @@ class _MyAppState extends State<MyApp> {
                               
                               // Sync completed, refresh the profile check
                               return FutureBuilder<Map<String, dynamic>?>(
-                                future: UserService().getUserProfile(user.uid),
+                                future: FirebaseDatabaseService().getUserProfile(user.uid),
                                 builder: (context, profileSnapshot) {
                                   if (profileSnapshot.connectionState == ConnectionState.waiting) {
                                     return const Scaffold(body: Center(child: CircularProgressIndicator()));

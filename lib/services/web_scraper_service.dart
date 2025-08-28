@@ -1,16 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
-import 'package:wishlist_app/config.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/services/firebase_functions_service.dart';
 
-/// Serviço de web scraping seguro usando Edge Function do Supabase
+/// Serviço de web scraping seguro usando Firebase Cloud Functions
 /// 
 /// ⚠️ LIMITAÇÕES PLANO GRATUITO:
-/// - Supabase: 500k Edge Function calls/mês
+/// - Firebase: 2M Cloud Functions calls/mês (66k/dia)
 /// - ScraperAPI: 1k requests/mês (fallback)
 /// 
 /// OTIMIZAÇÕES IMPLEMENTADAS:
@@ -19,7 +17,7 @@ import 'package:wishlist_app/services/monitoring_service.dart';
 /// - Fallback para scraping básico (sem API externa)
 /// - Validação de domínios para reduzir chamadas desnecessárias
 class WebScraperServiceSecure {
-  final SupabaseClient _supabaseClient = Supabase.instance.client;
+  final FirebaseFunctionsService _functions = FirebaseFunctionsService();
   
   // Cache local para economizar chamadas à Edge Function (plano gratuito)
   static final Map<String, Map<String, dynamic>> _cache = {};
@@ -33,23 +31,23 @@ class WebScraperServiceSecure {
   /// - Fallback para scraping básico (sem custo)
   Future<Map<String, dynamic>> scrape(String url, {String? userId}) async {
     try {
-      // Verificar cache primeiro (economiza chamadas à Edge Function)
+      // Verificar cache primeiro (economiza chamadas à Cloud Function)
       final cachedResult = _getFromCache(url);
       if (cachedResult != null) {
         debugPrint('📦 Cache hit for URL: $url');
         return cachedResult;
       }
       
-      // Primeiro tentar usar a Edge Function segura
-      final result = await _scrapeWithEdgeFunction(url);
+      // Primeiro tentar usar a Cloud Function segura
+      final result = await _scrapeWithCloudFunction(url);
       
       // Guardar no cache (economiza futuras chamadas)
       _saveToCache(url, result);
       
       return result;
     } catch (e) {
-      // Se a Edge Function falhar, usar fallback com validação
-      MonitoringService.logErrorStatic('web_scraping_edge_function', e, stackTrace: StackTrace.current);
+      // Se a Cloud Function falhar, usar fallback com validação
+      MonitoringService.logErrorStatic('web_scraping_cloud_function', e, stackTrace: StackTrace.current);
       final fallbackResult = await _scrapeWithFallback(url);
       
       // Guardar resultado do fallback no cache também
@@ -59,21 +57,12 @@ class WebScraperServiceSecure {
     }
   }
 
-  /// Scraping usando Edge Function segura
-  Future<Map<String, dynamic>> _scrapeWithEdgeFunction(String url) async {
+  /// Scraping usando Firebase Cloud Function segura
+  Future<Map<String, dynamic>> _scrapeWithCloudFunction(String url) async {
     try {
-      final response = await _supabaseClient.functions.invoke(
-        'secure-scraper',
-        body: {'url': url},
-      );
-
-      if (response.status != 200) {
-        throw Exception('Edge Function failed with status: ${response.status}');
-      }
-
-      final data = response.data;
+      final data = await _functions.scrapeUrl(url);
       
-      // Validar resposta da Edge Function
+      // Validar resposta da Cloud Function
       if (data is Map<String, dynamic>) {
         return {
           'title': _sanitizeText(data['title']?.toString() ?? 'Título não encontrado'),
@@ -86,10 +75,10 @@ class WebScraperServiceSecure {
           'availability': data['availability']?.toString() ?? 'Desconhecido',
         };
       } else {
-        throw Exception('Invalid response format from Edge Function');
+        throw Exception('Invalid response format from Cloud Function');
       }
     } catch (e) {
-      throw Exception('Edge Function error: ${e.toString()}');
+      throw Exception('Cloud Function error: ${e.toString()}');
     }
   }
 

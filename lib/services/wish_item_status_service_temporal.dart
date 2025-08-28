@@ -1,6 +1,5 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import '../models/wish_item_status.dart';
 
 /// Enhanced WishItemStatusService with temporal intentions system.
@@ -12,7 +11,7 @@ import '../models/wish_item_status.dart';
 /// - Push notifications for expiration warnings
 /// - Favorites visibility (not friends visibility)
 class WishItemStatusServiceTemporal {
-  final _supabase = Supabase.instance.client;
+  final _database = FirebaseDatabaseService();
 
   // ============================================================================
   // CORE STATUS OPERATIONS WITH TEMPORAL LOGIC
@@ -38,7 +37,7 @@ class WishItemStatusServiceTemporal {
       }
 
       // Check for existing status
-      final existingStatus = await _supabase
+      final existingStatus = await _database
           .from('wish_item_statuses')
           .select()
           .eq('wish_item_id', wishItemId)
@@ -56,7 +55,7 @@ class WishItemStatusServiceTemporal {
 
       if (existingStatus != null) {
         // Update existing status
-        final updated = await _supabase
+        final updated = await _database
             .from('wish_item_statuses')
             .update(statusData)
             .eq('id', existingStatus['id'])
@@ -68,7 +67,7 @@ class WishItemStatusServiceTemporal {
         // Create new status
         statusData['created_at'] = DateTime.now().toIso8601String();
         
-        final created = await _supabase
+        final created = await _database
             .from('wish_item_statuses')
             .insert(statusData)
             .select()
@@ -90,7 +89,7 @@ class WishItemStatusServiceTemporal {
         throw Exception('Utilizador não autenticado');
       }
 
-      await _supabase
+      await _database
           .from('wish_item_statuses')
           .delete()
           .eq('wish_item_id', wishItemId)
@@ -115,7 +114,7 @@ class WishItemStatusServiceTemporal {
       if (currentUserId == null) return [];
 
       // Use the database view that filters expired intentions
-      final statuses = await _supabase
+      final statuses = await _database
           .from('valid_wish_item_intentions')
           .select()
           .eq('wish_item_id', wishItemId)
@@ -134,7 +133,7 @@ class WishItemStatusServiceTemporal {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return null;
 
-      final status = await _supabase
+      final status = await _database
           .from('wish_item_statuses')
           .select()
           .eq('wish_item_id', wishItemId)
@@ -188,7 +187,7 @@ class WishItemStatusServiceTemporal {
       final tomorrow = now.add(Duration(days: 1));
       final weekAgo = now.subtract(Duration(days: 7));
 
-      final statuses = await _supabase
+      final statuses = await _database
           .from('wish_item_statuses')
           .select()
           .eq('user_id', currentUserId)
@@ -217,7 +216,7 @@ class WishItemStatusServiceTemporal {
 
       final weekAgo = DateTime.now().subtract(Duration(days: 7));
 
-      final result = await _supabase
+      final result = await _database
           .from('wish_item_statuses')
           .delete()
           .eq('user_id', currentUserId)
@@ -242,13 +241,13 @@ class WishItemStatusServiceTemporal {
       if (currentUserId == null) return false;
 
       // Get wishlist info through item
-      final wishItem = await _supabase
+      final wishItem = await _database
           .from('wish_items')
           .select('wishlist_id')
           .eq('id', wishItemId)
           .single();
 
-      final wishlist = await _supabase
+      final wishlist = await _database
           .from('wishlists')
           .select('user_id, is_private')
           .eq('id', wishItem['wishlist_id'])
@@ -276,7 +275,7 @@ class WishItemStatusServiceTemporal {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return false;
 
-      final result = await _supabase
+      final result = await _database
           .from('user_favorites')
           .select('id')
           .eq('user_id', currentUserId)
@@ -301,7 +300,7 @@ class WishItemStatusServiceTemporal {
       return Stream.value([]);
     }
 
-    return _supabase
+    return _database
         .from('wish_item_statuses')
         .stream(primaryKey: ['id'])
         .eq('user_id', currentUserId)
@@ -310,7 +309,7 @@ class WishItemStatusServiceTemporal {
 
   /// Stream of valid statuses for a specific item (excludes expired)
   Stream<List<Map<String, dynamic>>> getItemStatusesStream(String wishItemId) {
-    return _supabase
+    return _database
         .from('valid_wish_item_intentions')
         .stream(primaryKey: ['id'])
         .eq('wish_item_id', wishItemId)

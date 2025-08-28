@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 
 class MonitoringService {
   static final MonitoringService _instance = MonitoringService._internal();
@@ -11,7 +11,7 @@ class MonitoringService {
   MonitoringService._internal();
 
 
-  final SupabaseClient _supabaseClient = Supabase.instance.client;
+  final FirebaseDatabaseService _database = FirebaseDatabaseService();
   final Map<String, DateTime> _operationStartTimes = {};
   final List<PerformanceMetric> _metrics = [];
   final List<ErrorLog> _errorLogs = [];
@@ -193,7 +193,7 @@ class MonitoringService {
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId != null) {
-        await _supabaseClient.from('analytics_events').insert({
+        await _database.from('analytics_events').insert({
           'user_id': userId,
           'event_name': eventName,
           'properties': properties ?? {},

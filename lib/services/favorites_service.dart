@@ -1,13 +1,12 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 
 /// Service for managing user favorites system.
 /// 
 /// Simple unidirectional system where users can mark other users as favorites
 /// without approval process. Replaces the complex friendship system.
 class FavoritesService {
-  final _supabase = Supabase.instance.client;
+  final _database = FirebaseDatabaseService();
 
   // ============================================================================
   // CRUD OPERATIONS
@@ -26,7 +25,7 @@ class FavoritesService {
       }
 
       // Check if target user exists and is public
-      final targetUser = await _supabase
+      final targetUser = await _database
           .from('users')
           .select('id, is_private')
           .eq('id', favoriteUserId)
@@ -41,7 +40,7 @@ class FavoritesService {
       }
 
       // Insert favorite (will fail if already exists due to UNIQUE constraint)
-      await _supabase.from('user_favorites').insert({
+      await _database.from('user_favorites').insert({
         'user_id': currentUserId,
         'favorite_user_id': favoriteUserId,
       });
@@ -64,7 +63,7 @@ class FavoritesService {
         throw Exception('Utilizador não autenticado');
       }
 
-      await _supabase
+      await _database
           .from('user_favorites')
           .delete()
           .eq('user_id', currentUserId)
@@ -83,7 +82,7 @@ class FavoritesService {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return false;
 
-      final result = await _supabase
+      final result = await _database
           .from('user_favorites')
           .select('id')
           .eq('user_id', currentUserId)
@@ -110,7 +109,7 @@ class FavoritesService {
       }
 
       // Use the view that only shows public profiles
-      final result = await _supabase
+      final result = await _database
           .from('user_favorites_with_profile')
           .select('*')
           .eq('user_id', currentUserId)
@@ -134,7 +133,7 @@ class FavoritesService {
         throw Exception('Utilizador não autenticado');
       }
 
-      final result = await _supabase
+      final result = await _database
           .from('user_favorites_with_profile')
           .select('*')
           .eq('user_id', currentUserId)
@@ -162,7 +161,7 @@ class FavoritesService {
       if (cleanedNumbers.isEmpty) return [];
 
       // Find users by phone numbers (only public profiles)
-      final result = await _supabase
+      final result = await _database
           .from('users')
           .select('id, display_name, phone_number')
           .inFilter('phone_number', cleanedNumbers)
@@ -186,7 +185,7 @@ class FavoritesService {
       if (currentUserId == null) return [];
 
       // Search by display name or phone (only public profiles)
-      final result = await _supabase
+      final result = await _database
           .from('users')
           .select('id, display_name, phone_number')
           .eq('is_private', false)
@@ -218,7 +217,7 @@ class FavoritesService {
       }
 
       // Get only public wishlists
-      final result = await _supabase
+      final result = await _database
           .from('wishlists')
           .select('id, name, description, is_private, created_at, user_id')
           .eq('user_id', favoriteUserId)
@@ -258,7 +257,7 @@ class FavoritesService {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return 0;
 
-      final result = await _supabase
+      final result = await _database
           .from('user_favorites')
           .select('*')
           .eq('user_id', currentUserId);
@@ -287,7 +286,7 @@ class FavoritesService {
         'favorite_user_id': favoriteUserId,
       }).toList();
 
-      await _supabase.from('user_favorites').insert(batch);
+      await _database.from('user_favorites').insert(batch);
       return validUserIds.length;
     } catch (e) {
       MonitoringService.logErrorStatic('add_multiple_favorites', e, stackTrace: StackTrace.current);
