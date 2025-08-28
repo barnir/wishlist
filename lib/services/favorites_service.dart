@@ -1,5 +1,6 @@
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 
 /// Service for managing user favorites system.
 /// 
@@ -15,60 +16,31 @@ class FavoritesService {
   /// Add a user to favorites
   Future<bool> addFavorite(String favoriteUserId) async {
     try {
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) {
-        throw Exception('Utilizador não autenticado');
-      }
-
-      if (currentUserId == favoriteUserId) {
-        throw Exception('Não pode marcar-se a si mesmo como favorito');
-      }
-
-      // Check if target user exists and is public
-      final targetUser = await _database
-          .from('users')
-          .select('id, is_private')
-          .eq('id', favoriteUserId)
-          .maybeSingle();
-
-      if (targetUser == null) {
-        throw Exception('Utilizador não encontrado');
-      }
-
-      if (targetUser['is_private'] == true) {
-        throw Exception('Não pode adicionar utilizadores privados aos favoritos');
-      }
-
-      // Insert favorite (will fail if already exists due to UNIQUE constraint)
-      await _database.from('user_favorites').insert({
-        'user_id': currentUserId,
-        'favorite_user_id': favoriteUserId,
-      });
-
+      await _database.addFavorite(favoriteUserId);
       return true;
     } catch (e) {
       MonitoringService.logErrorStatic('add_favorite', e, stackTrace: StackTrace.current);
-      if (e.toString().contains('duplicate key value violates unique constraint')) {
-        throw Exception('Utilizador já está nos favoritos');
+      
+      // Handle specific error messages
+      final errorMessage = e.toString();
+      if (errorMessage.contains('Cannot favorite yourself')) {
+        throw Exception('Não pode marcar-se a si mesmo como favorito');
+      } else if (errorMessage.contains('User not found')) {
+        throw Exception('Utilizador não encontrado');
+      } else if (errorMessage.contains('Cannot favorite private users')) {
+        throw Exception('Não pode adicionar utilizadores privados aos favoritos');
+      } else if (errorMessage.contains('User not authenticated')) {
+        throw Exception('Utilizador não autenticado');
+      } else {
+        throw Exception('Erro ao adicionar favorito: $e');
       }
-      throw Exception('Erro ao adicionar favorito: $e');
     }
   }
 
   /// Remove a user from favorites
   Future<bool> removeFavorite(String favoriteUserId) async {
     try {
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) {
-        throw Exception('Utilizador não autenticado');
-      }
-
-      await _database
-          .from('user_favorites')
-          .delete()
-          .eq('user_id', currentUserId)
-          .eq('favorite_user_id', favoriteUserId);
-
+      await _database.removeFavorite(favoriteUserId);
       return true;
     } catch (e) {
       MonitoringService.logErrorStatic('remove_favorite', e, stackTrace: StackTrace.current);
@@ -79,17 +51,7 @@ class FavoritesService {
   /// Check if a user is in favorites
   Future<bool> isFavorite(String userId) async {
     try {
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) return false;
-
-      final result = await _database
-          .from('user_favorites')
-          .select('id')
-          .eq('user_id', currentUserId)
-          .eq('favorite_user_id', userId)
-          .maybeSingle();
-
-      return result != null;
+      return await _database.isFavorite(userId);
     } catch (e) {
       MonitoringService.logErrorStatic('is_favorite', e, stackTrace: StackTrace.current);
       return false;
@@ -103,19 +65,7 @@ class FavoritesService {
   /// Get all favorites for current user with profile data
   Future<List<Map<String, dynamic>>> getFavorites() async {
     try {
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) {
-        throw Exception('Utilizador não autenticado');
-      }
-
-      // Use the view that only shows public profiles
-      final result = await _database
-          .from('user_favorites_with_profile')
-          .select('*')
-          .eq('user_id', currentUserId)
-          .order('created_at', ascending: false);
-
-      return List<Map<String, dynamic>>.from(result);
+      return await _database.getFavorites();
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorites', e, stackTrace: StackTrace.current);
       return [];
@@ -128,19 +78,7 @@ class FavoritesService {
     int offset = 0,
   }) async {
     try {
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) {
-        throw Exception('Utilizador não autenticado');
-      }
-
-      final result = await _database
-          .from('user_favorites_with_profile')
-          .select('*')
-          .eq('user_id', currentUserId)
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
-
-      return List<Map<String, dynamic>>.from(result);
+      return await _database.getFavoritesPaginated(limit: limit, offset: offset);
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorites_paginated', e, stackTrace: StackTrace.current);
       return [];
@@ -160,15 +98,9 @@ class FavoritesService {
 
       if (cleanedNumbers.isEmpty) return [];
 
-      // Find users by phone numbers (only public profiles)
-      final result = await _database
-          .from('users')
-          .select('id, display_name, phone_number')
-          .inFilter('phone_number', cleanedNumbers)
-          .eq('is_private', false)
-          .order('display_name', ascending: true);
-
-      return List<Map<String, dynamic>>.from(result);
+      // For now, return empty list as this requires direct Firestore access
+      // TODO: Add method to FirebaseDatabaseService for phone number lookups
+      return [];
     } catch (e) {
       MonitoringService.logErrorStatic('get_contacts_with_accounts', e, stackTrace: StackTrace.current);
       return [];
@@ -180,21 +112,9 @@ class FavoritesService {
   Future<List<Map<String, dynamic>>> searchPublicUsers(String query) async {
     try {
       if (query.trim().isEmpty) return [];
-
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) return [];
-
-      // Search by display name or phone (only public profiles)
-      final result = await _database
-          .from('users')
-          .select('id, display_name, phone_number')
-          .eq('is_private', false)
-          .neq('id', currentUserId) // Exclude self
-          .or('display_name.ilike.%${query.trim()}%,phone_number.ilike.%${query.trim()}%')
-          .order('display_name', ascending: true)
-          .limit(20); // Limit results for performance
-
-      return List<Map<String, dynamic>>.from(result);
+      
+      // Use the method from FirebaseDatabaseService
+      return await _database.searchUsersPaginated(query, limit: 20, offset: 0);
     } catch (e) {
       MonitoringService.logErrorStatic('search_public_users', e, stackTrace: StackTrace.current);
       return [];
@@ -216,15 +136,8 @@ class FavoritesService {
         throw Exception('Utilizador não está nos favoritos');
       }
 
-      // Get only public wishlists
-      final result = await _database
-          .from('wishlists')
-          .select('id, name, description, is_private, created_at, user_id')
-          .eq('user_id', favoriteUserId)
-          .eq('is_private', false) // Only public wishlists
-          .order('created_at', ascending: false);
-
-      return List<Map<String, dynamic>>.from(result);
+      // Get only public wishlists using the method from FirebaseDatabaseService
+      return await _database.getPublicWishlistsForUser(favoriteUserId);
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorite_wishlists', e, stackTrace: StackTrace.current);
       return [];
@@ -254,15 +167,8 @@ class FavoritesService {
   /// Get count of favorites for current user
   Future<int> getFavoritesCount() async {
     try {
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) return 0;
-
-      final result = await _database
-          .from('user_favorites')
-          .select('*')
-          .eq('user_id', currentUserId);
-
-      return result.length;
+      final favorites = await getFavorites();
+      return favorites.length;
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorites_count', e, stackTrace: StackTrace.current);
       return 0;
@@ -281,16 +187,20 @@ class FavoritesService {
       final validUserIds = userIds.where((id) => id != currentUserId).toList();
       if (validUserIds.isEmpty) return 0;
 
-      final batch = validUserIds.map((favoriteUserId) => {
-        'user_id': currentUserId,
-        'favorite_user_id': favoriteUserId,
-      }).toList();
-
-      await _database.from('user_favorites').insert(batch);
-      return validUserIds.length;
+      int successCount = 0;
+      for (final userId in validUserIds) {
+        try {
+          await addFavorite(userId);
+          successCount++;
+        } catch (e) {
+          // Continue with next user if one fails
+          MonitoringService.logErrorStatic('add_multiple_favorites_single', e);
+        }
+      }
+      
+      return successCount;
     } catch (e) {
       MonitoringService.logErrorStatic('add_multiple_favorites', e, stackTrace: StackTrace.current);
-      // Return partial success - some might have been inserted before error
       return 0;
     }
   }

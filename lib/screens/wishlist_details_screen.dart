@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/widgets/swipe_action_widget.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import '../models/wish_item.dart';
@@ -19,7 +19,7 @@ class WishlistDetailsScreen extends StatefulWidget {
 }
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
-  final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
   final _scrollController = ScrollController();
 
   String _wishlistName = 'Carregando...';
@@ -55,7 +55,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       final currentUserId = AuthService.getCurrentUserId();
       if (currentUserId == null) return;
       
-      final wishlistData = await _supabaseDatabaseService.getWishlist(widget.wishlistId);
+      final wishlistData = await _databaseService.getWishlist(widget.wishlistId);
       if (wishlistData != null && mounted) {
         setState(() {
           // Ownership check can be added here if needed
@@ -68,7 +68,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _loadWishlistDetails() async {
     try {
-      final wishlistData = await _supabaseDatabaseService.getWishlist(
+      final wishlistData = await _databaseService.getWishlist(
         widget.wishlistId,
       );
       if (mounted && wishlistData != null) {
@@ -107,7 +107,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     });
 
     try {
-      final newItemsData = await _supabaseDatabaseService.getWishItemsPaginatedFuture(
+      final newItemsData = await _databaseService.getWishItemsPaginatedFuture(
         widget.wishlistId,
         limit: _pageSize,
         offset: _currentPage * _pageSize,
@@ -157,7 +157,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _deleteItem(String itemId) async {
     try {
-      await _supabaseDatabaseService.deleteWishItem(widget.wishlistId, itemId);
+      await _databaseService.deleteWishItemFromWishlist(widget.wishlistId, itemId);
       if (!mounted) return;
       _showSnackBar('Item eliminado com sucesso!');
       

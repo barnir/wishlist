@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -20,7 +20,7 @@ class AddEditWishlistScreen extends StatefulWidget {
 class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
 
   bool _isPrivate = false;
   bool _isLoading = false;
@@ -40,7 +40,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   Future<void> _loadWishlistData() async {
     setState(() => _isLoading = true);
     try {
-      final wishlistData = await _supabaseDatabaseService.getWishlist(
+      final wishlistData = await _databaseService.getWishlist(
         widget.wishlistId!,
       );
       if (wishlistData != null) {
@@ -96,7 +96,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         ).writeAsBytes(_imageBytes!);
       }
 
-      await _supabaseDatabaseService.saveWishlist(
+      await _databaseService.saveWishlist(
         name: _nameController.text.trim(),
         isPrivate: _isPrivate,
         imageFile: tempFileForUpload, // Pass File if available

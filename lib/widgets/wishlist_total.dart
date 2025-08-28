@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 
 class WishlistTotal extends StatefulWidget {
   final String wishlistId;
@@ -11,12 +11,12 @@ class WishlistTotal extends StatefulWidget {
 }
 
 class _WishlistTotalState extends State<WishlistTotal> {
-  final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _supabaseDatabaseService.getWishItems(widget.wishlistId),
+      stream: _databaseService.getWishItems(widget.wishlistId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(

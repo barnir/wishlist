@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/rate_limiter_service.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
 
@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with RateLimited {
   final _authService = AuthService();
-  final _userService = UserService();
+  final _databaseService = FirebaseDatabaseService();
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
         // After email login, check for phone number
         final user = _authService.currentUser;
         if (user != null) {
-          final userProfile = await _userService.getUserProfile(user.uid);
+          final userProfile = await _databaseService.getUserProfile(user.uid);
           if (!mounted) return;
           if (userProfile == null ||
               userProfile['phone_number'] == null ||

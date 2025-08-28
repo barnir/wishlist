@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wishlist_app/services/web_scraper_service.dart';
@@ -31,7 +31,7 @@ class AddEditItemScreen extends StatefulWidget {
 
 class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
   final _webScraperService = WebScraperServiceSecure();
 
   late TextEditingController _nameController;
@@ -203,7 +203,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _isLoadingWishlists = true;
     });
     try {
-      final wishlists = await _supabaseDatabaseService
+      final wishlists = await _databaseService
           .getWishlistsForCurrentUser();
       setState(() {
         _wishlists = wishlists;
@@ -231,11 +231,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     });
     try {
       final userId = AuthService.getCurrentUserId()!;
-      final newWishlist = await _supabaseDatabaseService.saveWishlist(
-        name: _newWishlistNameController.text.trim(),
-        isPrivate: false, // Default to public for quick add
-        userId: userId,
-      );
+      final newWishlist = await _databaseService.saveWishlist({
+        'name': _newWishlistNameController.text.trim(),
+        'is_private': false, // Default to public for quick add
+        'user_id': userId,
+      });
       _newWishlistNameController.clear();
       if (newWishlist != null) {
         // No need to call _loadWishlists() again, just add the new one to the list
@@ -259,7 +259,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-      final itemData = await _supabaseDatabaseService.getWishItem(
+      final itemData = await _databaseService.getWishItem(
         widget.wishlistId!,
         itemId: widget.itemId,
       );
@@ -331,7 +331,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ).writeAsBytes(_imageBytes!);
 
-        await _supabaseDatabaseService.saveWishItem(
+        await _databaseService.saveWishItem(
           wishlistId: finalWishlistId,
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim().isNotEmpty 
@@ -359,7 +359,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         setState(() => _isUploading = false);
       }
     } else {
-      await _supabaseDatabaseService.saveWishItem(
+      await _databaseService.saveWishItem(
         wishlistId: finalWishlistId,
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim().isNotEmpty 

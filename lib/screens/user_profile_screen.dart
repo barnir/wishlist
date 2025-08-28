@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../services/supabase_database_service.dart';
+import '../services/firebase_database_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
@@ -15,7 +15,7 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
   final _favoritesService = FavoritesService();
 
   Map<String, dynamic>? _userProfile;
@@ -31,7 +31,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadUserProfile() async {
     try {
-      final profile = await _supabaseDatabaseService.getUserProfile(widget.userId);
+      final profile = await _databaseService.getUserProfile(widget.userId);
       if (mounted) {
         setState(() {
           _userProfile = profile;
@@ -224,7 +224,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildPublicWishlistsTab() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _supabaseDatabaseService.getPublicWishlistsForUser(widget.userId),
+      stream: _databaseService.getPublicWishlistsForUser(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const WishlistLoadingIndicator(message: 'A carregar wishlists...');

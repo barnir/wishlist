@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,7 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmarPasswordController = TextEditingController();
   final _authService = AuthService();
-  final _userService = UserService();
+  final _databaseService = FirebaseDatabaseService();
 
   bool _isLoading = false;
   String? _erro;
@@ -24,7 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _navigateToHomeOrLinkPhone() async {
     final user = _authService.currentUser;
     if (user != null) {
-      final userProfile = await _userService.getUserProfile(user.uid);
+      final userProfile = await _databaseService.getUserProfile(user.uid);
       if (userProfile == null ||
           userProfile['phone_number'] == null ||
           userProfile['phone_number'].isEmpty) {

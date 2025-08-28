@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 
 class SetupNameScreen extends StatefulWidget {
   const SetupNameScreen({super.key});
@@ -11,7 +11,7 @@ class SetupNameScreen extends StatefulWidget {
 
 class _SetupNameScreenState extends State<SetupNameScreen> {
   final _authService = AuthService();
-  final _userService = UserService();
+  final _databaseService = FirebaseDatabaseService();
   final _nameController = TextEditingController();
   bool _isLoading = false;
 
@@ -36,7 +36,7 @@ class _SetupNameScreenState extends State<SetupNameScreen> {
       
       // Update both user metadata and profile
       await _authService.updateUser(displayName: _nameController.text.trim());
-      await _userService.updateUserProfile(user.uid, {
+      await _databaseService.updateUserProfile(user.uid, {
         'display_name': _nameController.text.trim(),
       });
 

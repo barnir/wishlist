@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/wishlist_total.dart';
 import '../widgets/ui_components.dart';
@@ -15,7 +15,7 @@ class WishlistsScreen extends StatefulWidget {
 
 class _WishlistsScreenState extends State<WishlistsScreen> {
   final _authService = AuthService();
-  final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
   final _scrollController = ScrollController();
 
   // Paginação
@@ -70,7 +70,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     });
 
     try {
-      final newWishlists = await _supabaseDatabaseService.getWishlistsPaginated(
+      final newWishlists = await _databaseService.getWishlistsPaginated(
         user.uid,
         limit: _pageSize,
         offset: _currentPage * _pageSize,

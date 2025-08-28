@@ -193,11 +193,9 @@ class MonitoringService {
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId != null) {
-        await _database.from('analytics_events').insert({
+        await _database.logAnalyticsEvent(eventName, {
           'user_id': userId,
-          'event_name': eventName,
           'properties': properties ?? {},
-          'timestamp': DateTime.now().toIso8601String(),
         });
       }
     } catch (e) {

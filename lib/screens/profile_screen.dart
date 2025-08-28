@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/user_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
-import 'package:wishlist_app/services/supabase_database_service.dart';
 import 'package:wishlist_app/widgets/profile_widgets.dart';
 import 'package:wishlist_app/widgets/profile_edit_bottom_sheets.dart';
 import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
@@ -23,8 +22,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
-  final _userService = UserService();
-  final _databaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
   final _languageService = LanguageService();
 
   String _displayName = '';
@@ -60,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = _authService.currentUser;
       
       // Carregar dados do utilizador
-      final userData = await _userService.getUserProfile(userId);
+      final userData = await _databaseService.getUserProfile(userId);
       if (userData != null) {
         _displayName = userData['display_name'] ?? '';
         _bio = userData['bio'] ?? '';
@@ -74,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Se não tem nome na base de dados, usar do Firebase
       if (_displayName.isEmpty && user?.displayName != null) {
         _displayName = user!.displayName!;
-        await _userService.updateUserProfile(userId, {
+        await _databaseService.updateUserProfile(userId, {
           'display_name': _displayName,
         });
       }
@@ -188,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onSave: (name, bio) async {
         final userId = _authService.currentUser!.uid;
         await _authService.updateUser(displayName: name);
-        await _userService.updateUserProfile(userId, {
+        await _databaseService.updateUserProfile(userId, {
           'display_name': name,
           'bio': bio,
         });
@@ -207,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       initialIsPrivate: _isPrivate,
       onSave: (isPrivate) async {
         final userId = _authService.currentUser!.uid;
-        await _userService.updateUserProfile(userId, {'is_private': isPrivate});
+        await _databaseService.updateUserProfile(userId, {'is_private': isPrivate});
         setState(() => _isPrivate = isPrivate);
       },
     );

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/supabase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 
@@ -12,7 +12,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final _supabaseDatabaseService = SupabaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService();
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   
@@ -96,7 +96,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
-      final newUsers = await _supabaseDatabaseService.searchUsersPaginated(
+      final newUsers = await _databaseService.searchUsersPaginated(
         _searchQuery,
         limit: _pageSize,
         offset: _currentPage * _pageSize,
