@@ -98,6 +98,11 @@ class AuthService {
     }
   }
 
+  /// Sync existing Firebase user to Supabase database
+  Future<void> syncExistingUserProfile() async {
+    await _firebaseAuthService.syncExistingUserProfile();
+  }
+
   /// Cancel registration - sign out and clear all stored data
   Future<void> cancelRegistration() async {
     try {

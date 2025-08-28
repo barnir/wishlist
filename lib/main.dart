@@ -243,10 +243,74 @@ class _MyAppState extends State<MyApp> {
                         profile['phone_number'] == null ||
                         profile['phone_number'].toString().isEmpty) {
                       
-                      // Check if user just logged in (no profile exists yet) - go to phone screen
+                      // Check if user just logged in (no profile exists yet)
                       if (profile == null) {
-                        debugPrint('No profile found - redirecting to phone screen');
-                        return const AddPhoneScreen();
+                        debugPrint('No profile found - checking if user has both providers already');
+                        
+                        // Check if Firebase user already has both Google and Phone providers
+                        final user = snapshot.data!;
+                        final providerIds = user.providerData.map((p) => p.providerId).toList();
+                        final hasGoogle = providerIds.contains('google.com');
+                        final hasPhone = providerIds.contains('phone');
+                        final hasEmailPassword = providerIds.contains('password');
+                        
+                        if ((hasGoogle || hasEmailPassword) && hasPhone && user.phoneNumber != null) {
+                          debugPrint('User has both auth providers and phone number - syncing to Supabase');
+                          return FutureBuilder<void>(
+                            future: AuthService().syncExistingUserProfile(),
+                            builder: (context, syncSnapshot) {
+                              if (syncSnapshot.connectionState == ConnectionState.waiting) {
+                                return const Scaffold(
+                                  body: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(),
+                                        SizedBox(height: 16),
+                                        Text('Syncing profile...'),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                              
+                              if (syncSnapshot.hasError) {
+                                debugPrint('Error syncing profile: ${syncSnapshot.error}');
+                                // If sync fails, clean up and return to login
+                                return FutureBuilder<void>(
+                                  future: _cleanupIncompleteAccount(user),
+                                  builder: (context, cleanupSnapshot) {
+                                    return const LoginScreen();
+                                  },
+                                );
+                              }
+                              
+                              // Sync completed, refresh the profile check
+                              return FutureBuilder<Map<String, dynamic>?>(
+                                future: UserService().getUserProfile(user.uid),
+                                builder: (context, profileSnapshot) {
+                                  if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                                    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                                  }
+                                  
+                                  final syncedProfile = profileSnapshot.data;
+                                  if (syncedProfile != null && 
+                                      syncedProfile['display_name'] != null &&
+                                      syncedProfile['display_name'].toString().isNotEmpty) {
+                                    return const HomeScreen();
+                                  } else if (syncedProfile != null) {
+                                    return const SetupNameScreen();
+                                  } else {
+                                    return const LoginScreen();
+                                  }
+                                },
+                              );
+                            },
+                          );
+                        } else {
+                          debugPrint('No profile found - redirecting to phone screen');
+                          return const AddPhoneScreen();
+                        }
                       }
                       
                       // Profile exists but no phone - account is incomplete, cleanup needed

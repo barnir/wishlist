@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/user_service.dart';
 import 'package:wishlist_app/screens/otp_screen.dart';
 
 class AddPhoneScreen extends StatefulWidget {

@@ -71,29 +71,18 @@ class FirebaseAuthService {
       debugPrint('Phone number: $phoneNumber');
       debugPrint('Phone number length: ${phoneNumber.length}');
       
-      // Check if this might be a test phone number
-      final testPhonePatterns = ['+1555', '+351123', '+44123', '+49123'];
-      final isTestPhone = testPhonePatterns.any((pattern) => phoneNumber.startsWith(pattern));
-      if (isTestPhone) {
-        debugPrint('🧪 DETECTED POTENTIAL TEST PHONE NUMBER');
-        debugPrint('   - For test phone numbers, ensure they are configured in Firebase Console');
-        debugPrint('   - Go to Authentication > Sign-in method > Phone > Add test phone number');
-        debugPrint('   - Test numbers bypass real SMS and use predefined codes');
-      }
       
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
           debugPrint('📱 Phone verification completed automatically');
-          debugPrint('   - This happens for instant verification (usually test numbers)');
           
           try {
             final userCredential = await _firebaseAuth.signInWithCredential(credential);
             
             if (userCredential.user != null) {
-              debugPrint('✅ Test phone auto-verification successful: ${userCredential.user!.uid}');
-              // Create or update profile for test phone numbers too
+              debugPrint('✅ Auto-verification successful: ${userCredential.user!.uid}');
               await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
               await _clearVerificationData();
             }
@@ -103,12 +92,6 @@ class FirebaseAuthService {
         },
         verificationFailed: (FirebaseAuthException e) {
           debugPrint('❌ Phone verification failed: ${e.code} - ${e.message}');
-          
-          if (isTestPhone && e.code == 'invalid-phone-number') {
-            debugPrint('🔍 TEST PHONE ERROR: Phone number not configured in Firebase Console');
-            debugPrint('   - Add $phoneNumber to Firebase Console test phone numbers');
-          }
-          
           throw Exception('Verification failed: ${e.message}');
         },
         codeSent: (String verificationId, int? resendToken) async {
@@ -116,11 +99,6 @@ class FirebaseAuthService {
           debugPrint('Verification ID: $verificationId');
           debugPrint('Phone number: $phoneNumber');
           debugPrint('Resend token: $resendToken');
-          debugPrint('Is test phone: $isTestPhone');
-          
-          if (isTestPhone) {
-            debugPrint('📋 TEST PHONE: Use the verification code configured in Firebase Console');
-          }
           
           // Store verification ID persistently
           _currentVerificationId = verificationId;
@@ -171,34 +149,87 @@ class FirebaseAuthService {
         smsCode: smsCode,
       );
 
-      debugPrint('📱 Credential created, attempting signInWithCredential...');
+      debugPrint('📱 Credential created...');
       
+      final currentUser = _firebaseAuth.currentUser;
       UserCredential? userCredential;
-      try {
-        userCredential = await _firebaseAuth.signInWithCredential(credential);
-      } catch (credentialError) {
-        debugPrint('🔍 signInWithCredential error: $credentialError');
+      
+      if (currentUser != null) {
+        debugPrint('🔗 Current user exists - attempting LINKING...');
+        debugPrint('   - Current User UID: ${currentUser.uid}');
+        debugPrint('   - Current User Email: ${currentUser.email}');
+        debugPrint('   - Current User Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
         
-        // Check if user is actually signed in despite the error (common Firebase plugin issue)
-        final currentUser = _firebaseAuth.currentUser;
-        if (currentUser != null) {
-          debugPrint('🎯 FALLBACK: User is signed in despite credential error');
-          debugPrint('User UID: ${currentUser.uid}');
-          debugPrint('User phone: ${currentUser.phoneNumber}');
+        try {
+          userCredential = await currentUser.linkWithCredential(credential);
+          debugPrint('✅ LINKING SUCCESSFUL!');
+          debugPrint('   - Same UID maintained: ${userCredential.user?.uid}');
+          debugPrint('   - Updated Providers: ${userCredential.user?.providerData.map((p) => p.providerId).join(", ")}');
+          debugPrint('   - Now has phone: ${userCredential.user?.phoneNumber}');
+        } catch (linkError) {
+          debugPrint('❌ LINKING FAILED: $linkError');
           
-          // Create mock UserCredential for successful flow
-          await _createOrUpdateUserProfile(currentUser, phoneNumber: phoneNumber);
-          await _clearVerificationData();
+          if (linkError is FirebaseAuthException && linkError.code == 'provider-already-linked') {
+            debugPrint('🔍 Provider already linked - user probably already has phone number');
+            // Continue with profile update using current user
+            await _createOrUpdateUserProfile(currentUser, phoneNumber: phoneNumber);
+            await _clearVerificationData();
+            debugPrint('✅ Phone verification successful (already linked): ${currentUser.uid}');
+            return null;
+          } else if (linkError is FirebaseAuthException && linkError.code == 'credential-already-in-use') {
+            debugPrint('🔍 Phone number already in use by another account');
+            debugPrint('   - This suggests there are multiple accounts that need merging');
+            throw Exception('Este número de telefone já está associado a outra conta. Por favor, use um número diferente ou faça login com a conta existente.');
+          }
           
-          debugPrint('✅ Phone verification successful via fallback: ${currentUser.uid}');
-          return null; // Return null to indicate success via fallback
+          // Check if linking actually succeeded despite the casting error
+          final updatedUser = _firebaseAuth.currentUser;
+          if (updatedUser != null && updatedUser.phoneNumber == phoneNumber) {
+            debugPrint('🎯 LINKING FALLBACK: Linking succeeded despite error');
+            debugPrint('   - User UID: ${updatedUser.uid}');
+            debugPrint('   - User phone: ${updatedUser.phoneNumber}');
+            debugPrint('   - Updated Providers: ${updatedUser.providerData.map((p) => p.providerId).join(", ")}');
+            
+            // Create user profile for successful linking
+            await _createOrUpdateUserProfile(updatedUser, phoneNumber: phoneNumber);
+            await _clearVerificationData();
+            
+            debugPrint('✅ Phone verification successful via linking fallback: ${updatedUser.uid}');
+            return null; // Return null to indicate success via fallback
+          }
+          
+          rethrow;
         }
+      } else {
+        debugPrint('📱 No current user - attempting signInWithCredential...');
         
-        rethrow; // If user is not signed in, rethrow the original error
+        try {
+          userCredential = await _firebaseAuth.signInWithCredential(credential);
+          debugPrint('✅ Sign-in successful for phone-only user: ${userCredential.user?.uid}');
+        } catch (credentialError) {
+          debugPrint('🔍 signInWithCredential error: $credentialError');
+          
+          // Check if user is actually signed in despite the error (common Firebase plugin issue)
+          final nowCurrentUser = _firebaseAuth.currentUser;
+          if (nowCurrentUser != null) {
+            debugPrint('🎯 FALLBACK: User is signed in despite credential error');
+            debugPrint('User UID: ${nowCurrentUser.uid}');
+            debugPrint('User phone: ${nowCurrentUser.phoneNumber}');
+            
+            // Create user profile for successful linking
+            await _createOrUpdateUserProfile(nowCurrentUser, phoneNumber: phoneNumber);
+            await _clearVerificationData();
+            
+            debugPrint('✅ Phone verification successful via fallback: ${nowCurrentUser.uid}');
+            return null; // Return null to indicate success via fallback
+          }
+          
+          rethrow; // If user is not signed in, rethrow the original error
+        }
       }
       
-      if (userCredential?.user != null) {
-        debugPrint('✅ Phone verification successful: ${userCredential!.user!.uid}');
+      if (userCredential.user != null) {
+        debugPrint('✅ Phone verification successful: ${userCredential.user!.uid}');
         await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
         await _clearVerificationData(); // Clear stored verification data after success
       } else {
@@ -214,12 +245,10 @@ class FirebaseAuthService {
         debugPrint('Firebase Auth Error Code: ${e.code}');
         debugPrint('Firebase Auth Error Message: ${e.message}');
         
-        // Specific handling for test phone numbers
         if (e.code == 'invalid-verification-code') {
           debugPrint('🔍 INVALID VERIFICATION CODE ERROR');
-          debugPrint('   - This could be a test phone number configuration issue');
-          debugPrint('   - Check Firebase Console > Authentication > Sign-in method > Phone');
-          debugPrint('   - Ensure test phone number $phoneNumber is listed with code $smsCode');
+          debugPrint('   - Please check the OTP code entered');
+          debugPrint('   - Verification code may have expired');
         }
       }
       
@@ -298,21 +327,27 @@ class FirebaseAuthService {
     String? displayName,
   }) async {
     try {
-      debugPrint('=== Syncing Firebase User to Supabase Database ===');
+      debugPrint('=== 🔄 ENHANCED: Syncing Firebase User to Supabase Database ===');
       debugPrint('Firebase UID: ${user.uid}');
       debugPrint('Email: ${user.email}');
       debugPrint('Display Name: ${user.displayName}');
       debugPrint('Phone: ${user.phoneNumber ?? phoneNumber}');
+      debugPrint('Phone Number param: $phoneNumber');
+      debugPrint('User.phoneNumber: ${user.phoneNumber}');
 
+      debugPrint('🔍 Step 1: Checking existing profile...');
       final existingProfile = await _userService.getUserProfile(user.uid);
+      debugPrint('Existing profile result: $existingProfile');
       
       final profileData = <String, dynamic>{
         'email': user.email,
         'display_name': displayName ?? user.displayName ?? _extractNameFromEmail(user.email),
         'phone_number': phoneNumber ?? user.phoneNumber,
       };
+      debugPrint('Profile data to sync: $profileData');
 
       if (existingProfile != null) {
+        debugPrint('🔍 Step 2: Profile exists, updating...');
         // Update existing profile, preserving existing data
         final updateData = <String, dynamic>{};
         
@@ -327,18 +362,31 @@ class FirebaseAuthService {
           updateData['phone_number'] = profileData['phone_number'];
         }
         
+        debugPrint('Update data: $updateData');
+        
         if (updateData.isNotEmpty) {
+          debugPrint('📝 Calling updateUserProfile...');
           await _userService.updateUserProfile(user.uid, updateData);
-          debugPrint('Updated existing profile with: $updateData');
+          debugPrint('✅ Updated existing profile with: $updateData');
+        } else {
+          debugPrint('ℹ️  No updates needed - profile is up to date');
         }
       } else {
-        // Create new profile
+        debugPrint('🔍 Step 2: No existing profile, creating new...');
+        debugPrint('📝 Calling createUserProfile...');
         await _userService.createUserProfile(user.uid, profileData);
-        debugPrint('Created new profile: $profileData');
+        debugPrint('✅ Created new profile: $profileData');
       }
-    } catch (e) {
-      debugPrint('Error syncing user profile to database: $e');
-      // Don't rethrow - authentication should succeed even if profile sync fails
+      
+      debugPrint('🎉 Profile sync completed successfully!');
+    } catch (e, stackTrace) {
+      debugPrint('❌ CRITICAL ERROR syncing user profile to database: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // FORCE RETHROW FOR DEBUGGING - this will cause OTP to fail and show exact error
+      debugPrint('🚨 FORCING RETHROW FOR DEBUGGING PURPOSES');
+      rethrow;
     }
   }
 
@@ -389,6 +437,28 @@ class FirebaseAuthService {
     } catch (e) {
       debugPrint('Error retrieving verification ID: $e');
       return null;
+    }
+  }
+
+  /// Sync existing Firebase user to Supabase database
+  /// This is used when user already has both Google + Phone providers but no Supabase profile
+  Future<void> syncExistingUserProfile() async {
+    final currentUser = _firebaseAuth.currentUser;
+    if (currentUser == null) {
+      debugPrint('❌ No current Firebase user to sync');
+      return;
+    }
+
+    try {
+      debugPrint('=== 🔄 Syncing Existing Firebase User to Supabase ===');
+      debugPrint('User UID: ${currentUser.uid}');
+      debugPrint('Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
+      
+      await _createOrUpdateUserProfile(currentUser);
+      debugPrint('✅ Existing user profile synced successfully');
+    } catch (e) {
+      debugPrint('❌ Error syncing existing user profile: $e');
+      rethrow;
     }
   }
 
