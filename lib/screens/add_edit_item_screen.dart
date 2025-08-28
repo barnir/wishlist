@@ -237,14 +237,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         'user_id': userId,
       });
       _newWishlistNameController.clear();
-      if (newWishlist != null) {
-        // No need to call _loadWishlists() again, just add the new one to the list
-        setState(() {
-          _wishlists.add(newWishlist);
-          _selectedWishlistId = newWishlist['id'];
-          _showCreateWishlistForm = false; // Hide the form after creation
-        });
-      }
+      // No need to call _loadWishlists() again, just add the new one to the list  
+      setState(() {
+        _wishlists.add(newWishlist);
+        _selectedWishlistId = newWishlist['id'];
+        _showCreateWishlistForm = false; // Hide the form after creation
+      });
     } catch (e) {
       setState(() {
         _erro = 'Erro ao criar wishlist: $e';
@@ -339,7 +337,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           'category': _selectedCategory!,
           'rating': _rating,
           'link': _linkController.text.trim(),
-          'image_url': tempFileForUpload?.path, // Handle file upload separately
+          'image_url': tempFileForUpload.path, // Handle file upload separately
           if (widget.itemId != null) 'id': widget.itemId,
         });
         if (finalImageUrl != null) {

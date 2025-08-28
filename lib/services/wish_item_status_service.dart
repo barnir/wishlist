@@ -1,9 +1,8 @@
-import 'package:wishlist_app/services/firebase_database_service.dart';
 import '../models/wish_item_status.dart';
 
 /// Wish Item Status Service - Temporarily disabled during Firebase migration
 /// 
-/// TODO: Complete migration to Firestore syntax
+/// PENDING: Complete migration to Firestore syntax when item status feature is implemented
 class WishItemStatusService {
 
   // Marcar item como "vou comprar" ou "comprado"

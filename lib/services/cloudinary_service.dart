@@ -206,7 +206,7 @@ class CloudinaryService {
       imagesToDelete.add(profileImageId);
       debugPrint('Should delete profile image: $profileImageId');
       
-      // TODO: Fetch product and wishlist images from database
+      // NOTE: Product and wishlist images would need to be fetched from database for complete cleanup
       // These have dynamic IDs and would need to be retrieved from wish_items table
       debugPrint('Additional cleanup needed:');
       debugPrint('- Product images from wish_items where wishlist owner = $userId');

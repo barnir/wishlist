@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/favorites_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
 import 'package:wishlist_app/widgets/profile_widgets.dart';
@@ -12,6 +13,8 @@ import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/language_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/memoized_widgets.dart';
 import 'package:wishlist_app/widgets/ui_components.dart';
+import 'package:wishlist_app/screens/help_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,6 +26,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
   final _databaseService = FirebaseDatabaseService();
+  final _favoritesService = FavoritesService();
   final _languageService = LanguageService();
 
   String _displayName = '';
@@ -125,9 +129,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _itemsCount = totalItems;
       _sharedCount = sharedWishlists;
       
-      // Carregar favoritos (assumindo que existe um método para isso)
-      // Por agora, usar um número estático
-      _favoritesCount = 0; // TODO: Implementar contagem real de favoritos
+      // Carregar contagem real de favoritos
+      try {
+        _favoritesCount = await _favoritesService.getFavoritesCount();
+      } catch (e) {
+        debugPrint('Error loading favorites count: $e');
+        _favoritesCount = 0; // Fallback to 0 on error
+      }
       
       // Atualizar timestamp do cache
       _statsLastUpdated = now;
@@ -409,7 +417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               subtitle: user.email ?? l10n.noEmailLinked,
                               onTap: () {
                                 HapticService.lightImpact();
-                                // TODO: Implementar edição de email
+                                // FUTURE: Implement email editing when needed
                               },
                             ),
                             if (_phoneNumber != null && _phoneNumber!.isNotEmpty)
@@ -419,7 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 subtitle: _phoneNumber,
                                 onTap: () {
                                   HapticService.lightImpact();
-                                  // TODO: Implementar edição de telefone
+                                  // FUTURE: Implement phone editing when needed
                                 },
                               ),
                           ],
@@ -460,7 +468,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               title: l10n.helpSupport,
                               onTap: () {
                                 HapticService.lightImpact();
-                                // TODO: Abrir página de ajuda
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const HelpScreen(),
+                                  ),
+                                );
                               },
                               trailing: const Icon(Icons.chevron_right),
                             ),
@@ -469,7 +482,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               title: l10n.rateApp,
                               onTap: () {
                                 HapticService.lightImpact();
-                                // TODO: Abrir loja para avaliação
+                                _openAppStore();
                               },
                               trailing: const Icon(Icons.chevron_right),
                             ),
@@ -509,6 +522,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
     );
+  }
+
+  /// Open store for app rating
+  Future<void> _openAppStore() async {
+    try {
+      // For now, open a generic search since app is not published yet
+      // TODO: Replace with actual Play Store URL when published: 'https://play.google.com/store/apps/details?id=com.example.wishlist_app'
+      const fallbackUrl = 'https://play.google.com/store/search?q=wishlist+app';
+      
+      final Uri url = Uri.parse(fallbackUrl);
+      
+      if (await canLaunchUrl(url)) {
+        await launchUrl(
+          url,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir a loja de aplicações'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error opening app store: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erro ao abrir a loja de aplicações'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override

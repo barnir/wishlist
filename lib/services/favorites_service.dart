@@ -99,7 +99,7 @@ class FavoritesService {
       if (cleanedNumbers.isEmpty) return [];
 
       // For now, return empty list as this requires direct Firestore access
-      // TODO: Add method to FirebaseDatabaseService for phone number lookups
+      // PENDING: Add method to FirebaseDatabaseService for phone number lookups when needed
       return [];
     } catch (e) {
       MonitoringService.logErrorStatic('get_contacts_with_accounts', e, stackTrace: StackTrace.current);

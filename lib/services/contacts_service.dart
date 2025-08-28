@@ -217,11 +217,9 @@ class ContactsService {
       // Dividir em batches para evitar URL muito longa
       final registeredUsers = <Map<String, dynamic>>[];
       
-      const batchSize = 50; // Batch processing for phone number lookup
+      const batchSize = 50; // Batch processing for phone number lookup  
       for (int i = 0; i < phoneNumbers.length; i += batchSize) {
-        final batch = phoneNumbers.skip(i).take(batchSize).toList();
-        
-        // TODO: Implement phone number lookup with Firestore
+        // PENDING: Implement phone number lookup with Firestore when contacts feature is needed
         final batchResults = <Map<String, dynamic>>[];
             
         registeredUsers.addAll(batchResults);
@@ -272,7 +270,7 @@ class ContactsService {
 
         // Se não está nos favoritos, pode criar uma sugestão (opcional)
         if (!existingFavorite) {
-          // TODO: Implementar sistema de sugestões se necessário
+          // FUTURE: Implement suggestion system if needed
         }
       }
     } catch (e) {

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
@@ -63,9 +62,8 @@ class WebScraperServiceSecure {
     try {
       final data = await _functions.scrapeUrl(url);
       
-      // Validar resposta da Cloud Function
-      if (data is Map<String, dynamic>) {
-        return {
+      // Process Cloud Function response  
+      return {
           'title': _sanitizeText(data['title']?.toString() ?? 'Título não encontrado'),
           'price': _sanitizePrice(data['price']?.toString() ?? '0.00'),
           'image': _sanitizeImageUrl(data['image']?.toString() ?? ''),
@@ -75,9 +73,6 @@ class WebScraperServiceSecure {
           'currency': data['currency']?.toString() ?? 'EUR',
           'availability': data['availability']?.toString() ?? 'Desconhecido',
         };
-      } else {
-        throw Exception('Invalid response format from Cloud Function');
-      }
     } catch (e) {
       throw Exception('Cloud Function error: ${e.toString()}');
     }
@@ -103,22 +98,9 @@ class WebScraperServiceSecure {
     // Variável para armazenar resultado
     Map<String, dynamic> result = {};
     
-    // ⚠️ PLANO GRATUITO: ScraperAPI tem apenas 1k requests/mês
-    // Usar apenas como último recurso para domínios confiáveis
-    // TODO: Implement config service for scraperApiKey
-    if (false && isTrusted) { // Disabled until Config is implemented
-      try {
-        debugPrint('🔄 Using ScraperAPI (free tier: 1k requests/month)');
-        result = await _scrapeWithScraperAPI(url);
-      } catch (e) {
-        debugPrint('ScraperAPI failed: $e');
-        result = await _basicScrape(url);
-      }
-    } else {
-      // Para domínios não confiáveis ou sem ScraperAPI, usar scraping básico
-      debugPrint('🔄 Using basic scraping (no external API cost)');
-      result = await _basicScrape(url);
-    }
+    // Use basic scraping (no external API cost)
+    debugPrint('🔄 Using basic scraping (no external API cost)');
+    result = await _basicScrape(url);
     
     // Adicionar aviso se não for domínio totalmente confiável
     if (!isTrusted) {
@@ -131,40 +113,6 @@ class WebScraperServiceSecure {
     return result;
   }
 
-  /// Scraping usando ScraperAPI (fallback)
-  Future<Map<String, dynamic>> _scrapeWithScraperAPI(String url) async {
-    // TODO: Implement config service
-    final scraperApiUrl = 'http://api.scraperapi.com?api_key=PLACEHOLDER&url=${Uri.encodeComponent(url)}&autoparse=true';
-    
-    final response = await http.get(
-      Uri.parse(scraperApiUrl),
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json,text/html',
-      },
-    ).timeout(const Duration(seconds: 15));
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-
-      var title = data['name'] ?? data['title'] ?? _extractTitleFromHtml(data['body']);
-      var price = _parsePrice(data['price'] ?? data['price_string']);
-      var image = data['image'] ?? data['image_url'] ?? _extractImageFromHtml(data['body'], url);
-
-      if ((price == '0.00' || price.isEmpty) && data['body'] != null) {
-        final document = parser.parse(data['body']);
-        price = _extractPrice(document);
-      }
-
-      return {
-        'title': _sanitizeText(title),
-        'price': _sanitizePrice(price),
-        'image': _sanitizeImageUrl(image),
-      };
-    } else {
-      throw Exception('ScraperAPI request failed with status: ${response.statusCode}');
-    }
-  }
 
   /// Scraping básico com validação
   Future<Map<String, dynamic>> _basicScrape(String url) async {
@@ -546,19 +494,6 @@ class WebScraperServiceSecure {
 
     return '';
   }
-
-  String _extractTitleFromHtml(String? body) {
-    if (body == null) return 'No title found';
-    final document = parser.parse(body);
-    return _extractTitle(document);
-  }
-
-  String _extractImageFromHtml(String? body, String baseUrl) {
-    if (body == null) return '';
-    final document = parser.parse(body);
-    return _extractImage(document, baseUrl);
-  }
-
 
   String _parsePrice(dynamic price) {
     if (price == null) return '0.00';
