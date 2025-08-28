@@ -6,6 +6,7 @@
 *.swp
 .buildlog/
 .history
+/.vscode/
 
 # Environment variables (NEVER COMMIT)
 .env
