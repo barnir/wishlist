@@ -520,6 +520,30 @@ class AppLocalizationsPt extends AppLocalizations {
   String get language => 'Idioma';
 
   @override
+  String get themeSettings => 'Tema da App';
+
+  @override
+  String get themeLight => 'Tema Claro';
+
+  @override
+  String get themeLightSubtitle => 'Usar sempre o tema claro';
+
+  @override
+  String get themeDark => 'Tema Escuro';
+
+  @override
+  String get themeDarkSubtitle => 'Usar sempre o tema escuro';
+
+  @override
+  String get themeSystem => 'Automático';
+
+  @override
+  String get themeSystemSubtitle => 'Seguir as definições do sistema';
+
+  @override
+  String get close => 'Fechar';
+
+  @override
   String get registerTitle => 'Registar nova conta';
 
   @override

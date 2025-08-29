@@ -1040,6 +1040,54 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get language;
 
+  /// No description provided for @themeSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'App Theme'**
+  String get themeSettings;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light Theme'**
+  String get themeLight;
+
+  /// No description provided for @themeLightSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always use the light theme'**
+  String get themeLightSubtitle;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Theme'**
+  String get themeDark;
+
+  /// No description provided for @themeDarkSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always use the dark theme'**
+  String get themeDarkSubtitle;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get themeSystem;
+
+  /// No description provided for @themeSystemSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow system setting'**
+  String get themeSystemSubtitle;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
   /// No description provided for @registerTitle.
   ///
   /// In en, this message translates to:

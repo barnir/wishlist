@@ -135,7 +135,8 @@ class _MyAppState extends State<MyApp> {
           title: 'Wishlist App',
           theme: lightAppTheme,
           darkTheme: darkAppTheme,
-          themeMode: ThemeMode.system,
+          // Use dynamic theme mode from ThemeService instead of fixed system
+          themeMode: themeService.themeMode,
           
           // Configuração de localização - cache do locale
           locale: languageService.currentLocale,

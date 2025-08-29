@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/theme_service.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import '../constants/ui_constants.dart';
 
@@ -125,7 +126,7 @@ class _ThemeSelectorBottomSheetState extends State<ThemeSelectorBottomSheet>
                           ),
                           Spacing.horizontalS,
                           Text(
-                            'Tema da App',
+                            AppLocalizations.of(context)?.themeSettings ?? 'Tema',
                             style: textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -134,7 +135,7 @@ class _ThemeSelectorBottomSheetState extends State<ThemeSelectorBottomSheet>
                           IconButton(
                             onPressed: _handleClose,
                             icon: const Icon(Icons.close),
-                            tooltip: 'Fechar',
+                            tooltip: AppLocalizations.of(context)?.close ?? 'Fechar',
                           ),
                         ],
                       ),
@@ -149,20 +150,20 @@ class _ThemeSelectorBottomSheetState extends State<ThemeSelectorBottomSheet>
                         children: [
                           _buildThemeOption(
                             ThemeMode.light,
-                            'Tema Claro',
-                            'Sempre usar o tema claro',
+                            AppLocalizations.of(context)?.themeLight ?? 'Tema Claro',
+                            AppLocalizations.of(context)?.themeLightSubtitle ?? 'Sempre usar o tema claro',
                           ),
                           Spacing.s,
                           _buildThemeOption(
                             ThemeMode.dark,
-                            'Tema Escuro',
-                            'Sempre usar o tema escuro',
+                            AppLocalizations.of(context)?.themeDark ?? 'Tema Escuro',
+                            AppLocalizations.of(context)?.themeDarkSubtitle ?? 'Sempre usar o tema escuro',
                           ),
                           Spacing.s,
                           _buildThemeOption(
                             ThemeMode.system,
-                            'Automático',
-                            'Seguir as definições do sistema',
+                            AppLocalizations.of(context)?.themeSystem ?? 'Automático',
+                            AppLocalizations.of(context)?.themeSystemSubtitle ?? 'Seguir as definições do sistema',
                           ),
                         ],
                       ),
