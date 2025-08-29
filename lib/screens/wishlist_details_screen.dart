@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/widgets/swipe_action_widget.dart';
 import 'package:wishlist_app/models/sort_options.dart';
@@ -352,16 +354,21 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       topLeft: Radius.circular(UIConstants.radiusM),
                       topRight: Radius.circular(UIConstants.radiusM),
                     ),
-                    child: Image.network(
-                      item.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        child: Icon(
-                          Icons.broken_image,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                    child: OptimizedCloudinaryImage(
+                      originalUrl: item.imageUrl!,
+                      transformationType: ImageType.productLarge,
+                      width: double.infinity,
+                      height: 200,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(UIConstants.radiusM),
+                        topRight: Radius.circular(UIConstants.radiusM),
                       ),
+                      fallbackIcon: Icon(
+                        Icons.broken_image,
+                        color: Theme.of(context).colorScheme.error,
+                        size: 48,
+                      ),
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
@@ -598,16 +605,14 @@ class _FullscreenImageViewer extends StatelessWidget {
         child: Hero(
           tag: heroTag,
           child: InteractiveViewer(
-            child: Image.network(
-              imageUrl,
+            child: OptimizedCloudinaryImage(
+              originalUrl: imageUrl,
+              transformationType: ImageType.productLarge,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  Icons.broken_image,
-                  color: Theme.of(context).colorScheme.error,
-                  size: 64,
-                ),
+              fallbackIcon: Icon(
+                Icons.broken_image,
+                color: Theme.of(context).colorScheme.error,
+                size: 64,
               ),
             ),
           ),

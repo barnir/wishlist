@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wishlist_app/services/web_scraper_service.dart';
@@ -46,6 +47,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   bool _isUploading = false;
   Future<File?>? _imageFuture;
   String? _existingImageUrl;
+  final _cloudinaryService = CloudinaryService();
 
   bool _isSaving = false;
   bool _isScraping = false;
@@ -318,55 +320,43 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
     setState(() => _isSaving = true);
 
-    String? finalImageUrl = _existingImageUrl;
+    String? uploadedUrl;
     if (_imageBytes != null) {
       setState(() => _isUploading = true);
       try {
         final tempFileForUpload = await File(
           '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ).writeAsBytes(_imageBytes!);
-
-        await _databaseService.saveWishItem({
-          'wishlist_id': finalWishlistId,
-          'name': _nameController.text.trim(),
-          'description': _descriptionController.text.trim().isNotEmpty 
-              ? _descriptionController.text.trim() : null,
-          'price': double.tryParse(
-                _priceController.text.trim().replaceAll(',', '.'),
-              ) ?? 0.0,
-          'category': _selectedCategory!,
-          'rating': _rating,
-          'link': _linkController.text.trim(),
-          'image_url': tempFileForUpload.path, // Handle file upload separately
-          if (widget.itemId != null) 'id': widget.itemId,
-        });
-        if (finalImageUrl != null) {
-          await ImageCacheService.putFile(finalImageUrl, _imageBytes!);
+        final targetId = widget.itemId ?? DateTime.now().millisecondsSinceEpoch.toString();
+        uploadedUrl = await _cloudinaryService.uploadProductImage(tempFileForUpload, targetId);
+        _existingImageUrl = uploadedUrl;
+        if (uploadedUrl != null) {
+          await ImageCacheService.putFile(uploadedUrl, _imageBytes!);
           setState(() {
-            _imageFuture = ImageCacheService.getFile(finalImageUrl);
+            _imageFuture = ImageCacheService.getFile(uploadedUrl!);
           });
         }
       } catch (e) {
-        setState(() => _erro = 'Erro ao carregar imagem: $e');
+        setState(() => _erro = 'Falha upload imagem: $e');
       } finally {
         setState(() => _isUploading = false);
       }
-    } else {
-      await _databaseService.saveWishItem({
-        'wishlist_id': finalWishlistId,
-        'name': _nameController.text.trim(),
-        'description': _descriptionController.text.trim().isNotEmpty 
-            ? _descriptionController.text.trim() : null,
-        'price': double.tryParse(
-              _priceController.text.trim().replaceAll(',', '.'),
-            ) ?? 0.0,
-        'category': _selectedCategory!,
-        'rating': _rating,
-        'link': _linkController.text.trim(),
-        'image_url': _existingImageUrl,
-        if (widget.itemId != null) 'id': widget.itemId,
-      });
     }
+
+    await _databaseService.saveWishItem({
+      'wishlist_id': finalWishlistId,
+      'name': _nameController.text.trim(),
+      'description': _descriptionController.text.trim().isNotEmpty 
+          ? _descriptionController.text.trim() : null,
+      'price': double.tryParse(
+            _priceController.text.trim().replaceAll(',', '.'),
+          ) ?? 0.0,
+      'category': _selectedCategory!,
+      'rating': _rating,
+      'link': _linkController.text.trim(),
+      'image_url': uploadedUrl ?? _existingImageUrl,
+      if (widget.itemId != null) 'id': widget.itemId,
+    });
 
     if (!mounted) return;
     Navigator.of(context).pop(true);

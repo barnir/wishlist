@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -23,6 +24,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   final _nameController = TextEditingController();
   final _authService = AuthService();
   final _databaseService = FirebaseDatabaseService();
+  final _cloudinaryService = CloudinaryService();
 
   bool _isPrivate = false;
   bool _isLoading = false;
@@ -86,32 +88,74 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
 
     setState(() => _isLoading = true);
 
-    String? finalImageUrl = _existingImageUrl; // Start with existing URL
     File? tempFileForUpload;
+    String? uploadedImageUrl;
 
     try {
+      // If user picked a new image, persist it temporarily to upload
       if (_imageBytes != null) {
         setState(() => _isUploading = true);
-        // Create a temporary file from bytes for upload
         tempFileForUpload = await File(
           '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ).writeAsBytes(_imageBytes!);
       }
 
-      await _databaseService.saveWishlist({
-        'name': _nameController.text.trim(),
-        'is_private': _isPrivate,
-        'image_url': _imageBytes == null ? _existingImageUrl : tempFileForUpload?.path,
-        'user_id': _authService.currentUser?.uid,
-        if (widget.wishlistId != null) 'id': widget.wishlistId,
-      });
-
-      if (finalImageUrl != null && _imageBytes != null) {
-        // Only cache if a new image was uploaded
-        await ImageCacheService.putFile(finalImageUrl, _imageBytes!);
-        setState(() {
-          _imageFuture = ImageCacheService.getFile(finalImageUrl);
+      if (widget.wishlistId == null) {
+        // CREATE FLOW
+        // 1. Create wishlist without image (so we get Firestore ID)
+        final created = await _databaseService.saveWishlist({
+          'name': _nameController.text.trim(),
+          'is_private': _isPrivate,
+          'image_url': null, // placeholder, updated after upload
+          'user_id': _authService.currentUser?.uid,
         });
+
+        final newId = created['id'] as String;
+
+        // 2. If we have a new image, upload it then update wishlist
+        if (tempFileForUpload != null) {
+          try {
+            uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(tempFileForUpload, newId);
+            if (uploadedImageUrl != null) {
+              await _databaseService.updateWishlist(newId, {
+                'image_url': uploadedImageUrl,
+              });
+              _existingImageUrl = uploadedImageUrl;
+              await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
+              setState(() {
+                _imageFuture = ImageCacheService.getFile(uploadedImageUrl!);
+              });
+            }
+          } catch (e) {
+            _showError('Imagem criada mas falhou upload: $e');
+          }
+        }
+      } else {
+        // UPDATE FLOW
+        final id = widget.wishlistId!;
+
+        if (tempFileForUpload != null) {
+          // New image selected -> upload first to get secure URL
+            try {
+              uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(tempFileForUpload, id);
+              _existingImageUrl = uploadedImageUrl;
+            } catch (e) {
+              _showError('Falha upload imagem: $e');
+            }
+        }
+
+        await _databaseService.updateWishlist(id, {
+          'name': _nameController.text.trim(),
+          'is_private': _isPrivate,
+          'image_url': uploadedImageUrl ?? _existingImageUrl,
+        });
+
+        if (uploadedImageUrl != null) {
+          await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
+          setState(() {
+            _imageFuture = ImageCacheService.getFile(uploadedImageUrl!);
+          });
+        }
       }
 
       if (!mounted) return;

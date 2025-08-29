@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 import '../services/firebase_database_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
@@ -265,49 +266,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           height: UIConstants.imageSizeM,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(UIConstants.radiusS),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                      ),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: UIConstants.strokeWidthMedium,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.card_giftcard,
-                          size: UIConstants.iconSizeL,
-                          color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                        ),
-                      ),
-                    ),
-                  )
-                : Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.card_giftcard,
-                        size: UIConstants.iconSizeL,
-                        color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                      ),
-                    ),
-                  ),
+            child: OptimizedCloudinaryImage(
+              originalUrl: imageUrl,
+              transformationType: ImageType.wishlistIcon,
+              width: UIConstants.imageSizeM,
+              height: UIConstants.imageSizeM,
+              borderRadius: BorderRadius.circular(UIConstants.radiusS),
+              fallbackIcon: Icon(
+                Icons.card_giftcard,
+                size: UIConstants.iconSizeL,
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+              ),
+            ),
           ),
         ),
         title: Text(

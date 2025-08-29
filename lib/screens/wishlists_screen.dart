@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 import '../widgets/wishlist_total.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
@@ -232,59 +233,13 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
 
   // Widget para a imagem da wishlist
   Widget _buildWishlistImage(BuildContext context, String? imageUrl) {
-    return Container(
+    return OptimizedCloudinaryImage(
+      originalUrl: imageUrl,
+      transformationType: ImageType.wishlistIcon,
       width: 80,
       height: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
-        child: imageUrl != null && imageUrl.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(UIConstants.radiusM),
-                  ),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: UIConstants.strokeWidthMedium,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(UIConstants.radiusM),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.broken_image,
-                      size: UIConstants.iconSizeL,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              )
-            : Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(UIConstants.radiusM),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.card_giftcard,
-                    size: UIConstants.iconSizeL,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
-      ),
+      borderRadius: BorderRadius.circular(UIConstants.radiusM),
+      fallbackIcon: const Icon(Icons.card_giftcard),
     );
   }
 
