@@ -6,6 +6,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Structured result for phone verification (Android only)
+/// success: phone linked / verified
+/// alreadyLinked: provider already linked (idempotent success)
+/// invalidCode: wrong or expired SMS code
+/// codeExpired: session / code expired (request resend)
+/// phoneInUse: phone already linked to different account
+/// internalError: unexpected failure
+enum PhoneVerificationResult {
+  success,
+  alreadyLinked,
+  invalidCode,
+  codeExpired,
+  phoneInUse,
+  internalError,
+}
+
 class FirebaseAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
@@ -13,6 +29,11 @@ class FirebaseAuthService {
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
   User? get currentUser => _firebaseAuth.currentUser;
+
+  // Unified Android-focused auth logging helper (used selectively)
+  void _log(String tag, String message) {
+    if (kDebugMode) debugPrint('[AUTH][$tag] $message');
+  }
 
   /// Google Sign-In with fallback for type casting errors
   Future<UserCredential?> signInWithGoogle() async {
@@ -80,20 +101,24 @@ class FirebaseAuthService {
       debugPrint('=== Firebase Phone OTP Send Started ===');
       debugPrint('Phone number: $phoneNumber');
       debugPrint('Phone number length: ${phoneNumber.length}');
-      
-      
+      if (_lastOtpSentAt != null) {
+        final diff = DateTime.now().difference(_lastOtpSentAt!);
+        if (diff < _otpResendMinInterval) {
+          final wait = _otpResendMinInterval - diff;
+          throw Exception('Aguarde ${wait.inSeconds}s para reenviar o código.');
+        }
+      }
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
-        timeout: const Duration(seconds: 60),
+        timeout: const Duration(seconds: 40),
         verificationCompleted: (PhoneAuthCredential credential) async {
           debugPrint('📱 Phone verification completed automatically');
-          
           try {
             final userCredential = await _firebaseAuth.signInWithCredential(credential);
-            
             if (userCredential.user != null) {
               debugPrint('✅ Auto-verification successful: ${userCredential.user!.uid}');
               await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
+              await _databaseService.updateUserProfile(userCredential.user!.uid, {'phone_verified': true});
               await _clearVerificationData();
             }
           } catch (e) {
@@ -109,8 +134,8 @@ class FirebaseAuthService {
           debugPrint('Verification ID: $verificationId');
           debugPrint('Phone number: $phoneNumber');
           debugPrint('Resend token: $resendToken');
-          
-          // Store verification ID persistently
+          _resendToken = resendToken;
+          _lastOtpSentAt = DateTime.now();
           _currentVerificationId = verificationId;
           await _storeVerificationId(verificationId, phoneNumber);
         },
@@ -130,6 +155,9 @@ class FirebaseAuthService {
   String? _currentVerificationId;
   static const String _verificationIdKey = 'phone_verification_id';
   static const String _phoneNumberKey = 'phone_verification_number';
+  int? _resendToken; // Firebase resend token (Android)
+  DateTime? _lastOtpSentAt; // Timestamp of last OTP sent
+  static const Duration _otpResendMinInterval = Duration(seconds: 20);
 
   /// Phone Authentication - Verify OTP
   Future<UserCredential?> verifyPhoneOtp(String phoneNumber, String smsCode) async {
@@ -170,7 +198,7 @@ class FirebaseAuthService {
         debugPrint('   - Current User Email: ${currentUser.email}');
         debugPrint('   - Current User Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
         
-        try {
+    try {
           userCredential = await currentUser.linkWithCredential(credential);
           debugPrint('✅ LINKING SUCCESSFUL!');
           debugPrint('   - Same UID maintained: ${userCredential.user?.uid}');
@@ -183,6 +211,7 @@ class FirebaseAuthService {
             debugPrint('🔍 Provider already linked - user probably already has phone number');
             // Continue with profile update using current user
             await _createOrUpdateUserProfile(currentUser, phoneNumber: phoneNumber);
+      await _databaseService.updateUserProfile(currentUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             debugPrint('✅ Phone verification successful (already linked): ${currentUser.uid}');
             return null;
@@ -202,6 +231,7 @@ class FirebaseAuthService {
             
             // Create user profile for successful linking
             await _createOrUpdateUserProfile(updatedUser, phoneNumber: phoneNumber);
+            await _databaseService.updateUserProfile(updatedUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             
             debugPrint('✅ Phone verification successful via linking fallback: ${updatedUser.uid}');
@@ -228,6 +258,7 @@ class FirebaseAuthService {
             
             // Create user profile for successful linking
             await _createOrUpdateUserProfile(nowCurrentUser, phoneNumber: phoneNumber);
+            await _databaseService.updateUserProfile(nowCurrentUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             
             debugPrint('✅ Phone verification successful via fallback: ${nowCurrentUser.uid}');
@@ -248,6 +279,7 @@ class FirebaseAuthService {
           await _databaseService.updateUserProfile(userCredential.user!.uid, {
             'phone_number': phoneNumber,
             'registration_complete': true,
+            'phone_verified': true,
           });
           debugPrint('✅ Email registration completed successfully with phone number');
         } else if (profile == null) {
@@ -259,12 +291,14 @@ class FirebaseAuthService {
             'phone_number': phoneNumber,
             'is_private': false,  // Default to public profile
             'registration_complete': true,
+            'phone_verified': true,
           };
           await _databaseService.createUserProfile(userCredential.user!.uid, profileData);
           debugPrint('✅ Created complete profile after phone verification');
         } else {
           // Normal phone verification flow
           await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
+          await _databaseService.updateUserProfile(userCredential.user!.uid, {'phone_verified': true});
         }
         
         await _clearVerificationData(); // Clear stored verification data after success
@@ -288,6 +322,84 @@ class FirebaseAuthService {
         }
       }
       
+      rethrow;
+    }
+  }
+
+  /// Enhanced phone verification returning a structured enum result
+  Future<PhoneVerificationResult> verifyPhoneOtpEnhanced(String phoneNumber, String smsCode) async {
+    try {
+  await verifyPhoneOtp(phoneNumber, smsCode);
+  _log('OTP','Enhanced verification success');
+  // Any non-exception path is success (including null fallback path)
+      return PhoneVerificationResult.success;
+    } catch (e) {
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'invalid-verification-code':
+            return PhoneVerificationResult.invalidCode;
+          case 'session-expired':
+          case 'code-expired':
+            return PhoneVerificationResult.codeExpired;
+          case 'credential-already-in-use':
+            return PhoneVerificationResult.phoneInUse;
+        }
+      }
+      return PhoneVerificationResult.internalError;
+    }
+  }
+
+  /// Resend OTP using stored forceResendingToken (Android only optimization)
+  Future<void> resendPhoneOtp(String phoneNumber) async {
+    // If no token yet, fallback to normal send
+    if (_resendToken == null) {
+      await sendPhoneOtp(phoneNumber);
+      return;
+    }
+    if (_lastOtpSentAt != null) {
+      final diff = DateTime.now().difference(_lastOtpSentAt!);
+      if (diff < _otpResendMinInterval) {
+        final wait = _otpResendMinInterval - diff;
+        throw Exception('Aguarde ${wait.inSeconds}s para reenviar o código.');
+      }
+    }
+    try {
+      debugPrint('=== Firebase Phone OTP RESEND Started (forceResendingToken) ===');
+      await _firebaseAuth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        forceResendingToken: _resendToken,
+        timeout: const Duration(seconds: 40),
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          debugPrint('📱 Auto verification triggered on resend');
+          try {
+            final userCredential = await _firebaseAuth.signInWithCredential(credential);
+            if (userCredential.user != null) {
+              await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
+              await _databaseService.updateUserProfile(userCredential.user!.uid, {'phone_verified': true});
+              await _clearVerificationData();
+            }
+          } catch (e) {
+            debugPrint('❌ Error in auto verification (resend): $e');
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          debugPrint('❌ Phone verification resend failed: ${e.code} - ${e.message}');
+          throw Exception('Falha no reenvio: ${e.message}');
+        },
+        codeSent: (String verificationId, int? resendToken) async {
+          debugPrint('🎯 RESEND SMS code sent successfully!');
+          _currentVerificationId = verificationId;
+          _resendToken = resendToken ?? _resendToken;
+          _lastOtpSentAt = DateTime.now();
+          await _storeVerificationId(verificationId, phoneNumber);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) async {
+          _currentVerificationId = verificationId;
+          await _storeVerificationId(verificationId, phoneNumber);
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ Firebase phone OTP resend error: $e');
       rethrow;
     }
   }
@@ -542,6 +654,8 @@ class FirebaseAuthService {
       await prefs.remove(_verificationIdKey);
       await prefs.remove(_phoneNumberKey);
       _currentVerificationId = null;
+  _resendToken = null;
+  _lastOtpSentAt = null;
       debugPrint('Verification data cleared');
     } catch (e) {
       debugPrint('Error clearing verification data: $e');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/auth_service.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
 import '../constants/ui_constants.dart';
 import '../main.dart';
@@ -14,7 +15,6 @@ class OTPScreen extends StatefulWidget {
 }
 
 class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
-  final _authService = AuthService();
   final _firebaseAuthService = FirebaseAuthService();
   final _otpControllers = List.generate(6, (index) => TextEditingController());
   final _focusNodes = List.generate(6, (index) => FocusNode());
@@ -22,6 +22,9 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
   bool _isLoading = false;
   bool _hasSubmitted = false;
   String? _storedPhoneNumber;
+  int _secondsRemaining = 0;
+  static const int _resendIntervalSeconds = 20;
+  Timer? _countdownTimer;
 
   @override
   void initState() {
@@ -39,6 +42,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
     });
+  _startCountdown();
   }
   
   @override
@@ -50,6 +54,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     for (var node in _focusNodes) {
       node.dispose();
     }
+  _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -97,22 +102,41 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
       debugPrint('=== Verifying Firebase OTP ===');
       debugPrint('Code: $code');
       
-      final userCredential = await _authService.verifyPhoneOtp(
+      final result = await _firebaseAuthService.verifyPhoneOtpEnhanced(
         widget.phoneNumber,
         code,
       );
-      
-      // Check if verification was successful - either via userCredential or fallback (null return but user is authenticated)
-      final currentUser = AuthService().currentUser;
-      final isSuccessful = userCredential?.user != null || (userCredential == null && currentUser != null);
-      
-      if (isSuccessful && mounted) {
-        debugPrint('OTP verification successful${userCredential == null ? ' (via fallback)' : ''}');
-        debugPrint('🚀 Navigating to HomeScreen directly (avoiding auth stream reset)');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+
+      if (!mounted) return;
+      switch (result) {
+        case PhoneVerificationResult.success:
+        case PhoneVerificationResult.alreadyLinked:
+          debugPrint('OTP verification successful ($result)');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+          break;
+        case PhoneVerificationResult.invalidCode:
+          HapticFeedback.lightImpact();
+          _showSnackBar('Código inválido. Tente novamente.');
+          setState(() => _hasSubmitted = false);
+          break;
+        case PhoneVerificationResult.codeExpired:
+          HapticFeedback.mediumImpact();
+          _showSnackBar('Código expirou. Reenvie o código.');
+          setState(() => _hasSubmitted = false);
+          break;
+        case PhoneVerificationResult.phoneInUse:
+          HapticFeedback.mediumImpact();
+          _showSnackBar('Telefone já associado a outra conta.');
+          setState(() => _hasSubmitted = false);
+          break;
+        case PhoneVerificationResult.internalError:
+          HapticFeedback.heavyImpact();
+          _showSnackBar('Erro interno. Tente novamente.');
+          setState(() => _hasSubmitted = false);
+          break;
       }
     } catch (e) {
       debugPrint('OTP verification error: $e');
@@ -132,6 +156,38 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _startCountdown() {
+    _countdownTimer?.cancel();
+    setState(() => _secondsRemaining = _resendIntervalSeconds);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_secondsRemaining <= 1) {
+        timer.cancel();
+        setState(() => _secondsRemaining = 0);
+      } else {
+        setState(() => _secondsRemaining--);
+      }
+    });
+  }
+
+  Future<void> _resendCode() async {
+    if (_secondsRemaining > 0 || _isLoading) return;
+    try {
+      setState(() => _isLoading = true);
+      await _firebaseAuthService.resendPhoneOtp(widget.phoneNumber);
+      if (!mounted) return;
+      _showSnackBar('Código reenviado.');
+      HapticFeedback.selectionClick();
+      _startCountdown();
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(e.toString().replaceFirst('Exception: ', ''));
+      HapticFeedback.lightImpact();
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
   
@@ -214,19 +270,12 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
                   ),
                   Spacing.m,
                   TextButton(
-                    onPressed: () async {
-                      try {
-                        await _authService.sendPhoneOtp(widget.phoneNumber);
-                        if (mounted) {
-                          _showSnackBar('Código reenviado com sucesso!');
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          _showSnackBar('Erro ao reenviar código.');
-                        }
-                      }
-                    },
-                    child: const Text('Reenviar Código'),
+                    onPressed: _secondsRemaining == 0 ? _resendCode : null,
+                    child: Text(
+                      _secondsRemaining == 0
+                          ? 'Reenviar Código'
+                          : 'Reenviar em $_secondsRemaining s',
+                    ),
                   ),
                 ],
               ),
