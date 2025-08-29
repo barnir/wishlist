@@ -82,7 +82,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar favoritos: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)?.errorLoadingFavorites(e.toString()) ?? 'Erro ao carregar favoritos: $e')),
         );
       }
     }
@@ -243,7 +243,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'FAVORITO',
+                            AppLocalizations.of(context)?.favoriteBadge ?? 'FAVORITO',
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: Colors.amber.shade700,
                               fontWeight: FontWeight.bold,

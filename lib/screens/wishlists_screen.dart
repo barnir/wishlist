@@ -95,7 +95,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           // TODO(l10n): Replace with generated getter errorLoadingWishlists when running gen-l10n
-          SnackBar(content: Text('Erro ao carregar wishlists: $e')),
+          SnackBar(content: Text((AppLocalizations.of(context)?.errorLoadingWishlists(e.toString())) ?? 'Erro ao carregar wishlists: $e')),
         );
       }
     }
@@ -118,8 +118,8 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     return WishlistEmptyState(
       icon: Icons.card_giftcard_rounded,
   // TODO(l10n): Replace with l10n.noWishlistsYetTitle / Subtitle
-  title: 'Nenhuma wishlist por aqui',
-  subtitle: 'Toque em "+" para criar a sua primeira!',
+  title: AppLocalizations.of(context)?.noWishlistsYetTitle ?? 'Nenhuma wishlist por aqui',
+  subtitle: AppLocalizations.of(context)?.noWishlistsYetSubtitle ?? 'Toque em "+" para criar a sua primeira!',
     );
   }
 
@@ -129,7 +129,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     Map<String, dynamic> wishlist,
   ) {
   // l10n placeholder (getters ainda não regenerados)
-  final name = wishlist['name'] ?? 'Sem nome'; // TODO(l10n): use l10n.noName
+  final name = wishlist['name'] ?? (AppLocalizations.of(context)?.noName ?? 'Sem nome');
     final isPrivate = wishlist['is_private'] ?? false;
     final imageUrl = wishlist['image_url'];
 
@@ -197,7 +197,9 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              isPrivate ? 'Privada' : 'Pública', // TODO(l10n): use l10n.private / l10n.public
+                              isPrivate
+                                  ? (AppLocalizations.of(context)?.privateLabel ?? 'Privada')
+                                  : (AppLocalizations.of(context)?.publicLabel ?? 'Pública'),
                               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                 color: isPrivate 
                                   ? Theme.of(context).colorScheme.onErrorContainer
@@ -284,8 +286,8 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     if (user == null) {
       return Scaffold(
   appBar: AppBar(title: Text(AppLocalizations.of(context)?.myWishlists ?? 'Minhas Wishlists')),
-        body: const Center(
-          child: Text('Por favor, faça login para ver suas wishlists.'), // TODO(l10n): l10n.pleaseLoginToSeeWishlists
+        body: Center(
+          child: Text(AppLocalizations.of(context)?.pleaseLoginToSeeWishlists ?? 'Por favor, faça login para ver suas wishlists.'),
         ),
       );
     }
@@ -296,7 +298,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         showBackButton: false,
       ),
       body: _isInitialLoading
-          ? const WishlistLoadingIndicator(message: 'A carregar wishlists...')
+          ? WishlistLoadingIndicator(message: AppLocalizations.of(context)?.loadingWishlists ?? 'A carregar wishlists...')
           : _wishlists.isEmpty
               ? _buildEmptyState(context)
               : RefreshIndicator(
@@ -320,7 +322,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
             _loadInitialData();
           });
         },
-  tooltip: 'Adicionar nova wishlist',
+  tooltip: AppLocalizations.of(context)?.addNewWishlistTooltip ?? 'Adicionar nova wishlist',
         child: const Icon(Icons.add),
       ),
     );

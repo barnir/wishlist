@@ -407,4 +407,103 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get saveChanges => 'Guardar Alterações';
+
+  @override
+  String get addedToFavorites => 'Adicionado aos favoritos!';
+
+  @override
+  String get removedFromFavorites => 'Removido dos favoritos';
+
+  @override
+  String get contactSuggestionsTitle => 'Sugestões dos Contactos';
+
+  @override
+  String get loadingSuggestions => 'A carregar sugestões...';
+
+  @override
+  String get noSuggestionsTitle => 'Nenhuma sugestão';
+
+  @override
+  String get noSuggestionsSubtitle =>
+      'Não foram encontrados utilizadores da app nos seus contactos.';
+
+  @override
+  String get contactsAccessTitle => 'Acesso aos Contactos';
+
+  @override
+  String get contactsAccessExplanation =>
+      'Para encontrar amigos dos seus contactos que já usam a app, precisamos de acesso à sua lista de contactos.';
+
+  @override
+  String get grantContactsAccess => 'Permitir Acesso aos Contactos';
+
+  @override
+  String get viewProfile => 'Ver perfil';
+
+  @override
+  String get profileNotFoundTitle => 'Perfil não encontrado';
+
+  @override
+  String get profileNotFoundSubtitle =>
+      'Este utilizador pode ter sido removido.';
+
+  @override
+  String get shareProfileTooltip => 'Partilhar perfil';
+
+  @override
+  String get profileInfoSectionTitle => 'Informações do Perfil';
+
+  @override
+  String get memberSinceLabel => 'Membro desde';
+
+  @override
+  String get recentlyLabel => 'Recentemente';
+
+  @override
+  String get otpVerifyTitle => 'Verificar Código';
+
+  @override
+  String otpInstructionPhone(Object phone) {
+    return 'Insira o código de 6 dígitos enviado para $phone.';
+  }
+
+  @override
+  String get otpAutoDetectNote =>
+      'O Firebase irá detectar automaticamente o SMS.';
+
+  @override
+  String get otpInvalidCode => 'Código inválido. Tente novamente.';
+
+  @override
+  String get otpCodeExpired => 'Código expirou. Reenvie o código.';
+
+  @override
+  String get otpPhoneInUse => 'Telefone já associado a outra conta.';
+
+  @override
+  String get otpInternalError => 'Erro interno. Tente novamente.';
+
+  @override
+  String get otpCodeResent => 'Código reenviado.';
+
+  @override
+  String get otpResend => 'Reenviar Código';
+
+  @override
+  String otpResendIn(Object seconds) {
+    return 'Reenviar em $seconds s';
+  }
+
+  @override
+  String get otpVerifyButton => 'Verificar';
+
+  @override
+  String shareProfileMessage(Object link) {
+    return 'Vê o meu perfil no Wishlist App: $link';
+  }
+
+  @override
+  String errorLoadingProfile(Object error) {
+    return 'Erro ao carregar perfil: $error';
+  }
 }

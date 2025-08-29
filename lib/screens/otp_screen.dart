@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../constants/ui_constants.dart';
 import '../main.dart';
 
@@ -89,7 +90,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     
     final code = _otpControllers.map((c) => c.text).join();
     if (code.length != 6) {
-      _showSnackBar('Por favor, insira o código completo de 6 dígitos.');
+  _showSnackBar(AppLocalizations.of(context)?.otpInstructionPhone(widget.phoneNumber) ?? 'Por favor, insira o código completo de 6 dígitos.');
       return;
     }
     
@@ -119,31 +120,31 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
           break;
         case PhoneVerificationResult.invalidCode:
           HapticFeedback.lightImpact();
-          _showSnackBar('Código inválido. Tente novamente.');
+          _showSnackBar(AppLocalizations.of(context)?.otpInvalidCode ?? 'Código inválido. Tente novamente.');
           setState(() => _hasSubmitted = false);
           break;
         case PhoneVerificationResult.codeExpired:
           HapticFeedback.mediumImpact();
-          _showSnackBar('Código expirou. Reenvie o código.');
+          _showSnackBar(AppLocalizations.of(context)?.otpCodeExpired ?? 'Código expirou. Reenvie o código.');
           setState(() => _hasSubmitted = false);
           break;
         case PhoneVerificationResult.phoneInUse:
           HapticFeedback.mediumImpact();
-          _showSnackBar('Telefone já associado a outra conta.');
+          _showSnackBar(AppLocalizations.of(context)?.otpPhoneInUse ?? 'Telefone já associado a outra conta.');
           setState(() => _hasSubmitted = false);
           break;
         case PhoneVerificationResult.internalError:
           HapticFeedback.heavyImpact();
-          _showSnackBar('Erro interno. Tente novamente.');
+          _showSnackBar(AppLocalizations.of(context)?.otpInternalError ?? 'Erro interno. Tente novamente.');
           setState(() => _hasSubmitted = false);
           break;
       }
     } catch (e) {
       debugPrint('OTP verification error: $e');
       if (mounted) {
-        String errorMessage = 'Código inválido. Tente novamente.';
+  String errorMessage = AppLocalizations.of(context)?.otpInvalidCode ?? 'Código inválido. Tente novamente.';
         if (e.toString().contains('No verification ID found')) {
-          errorMessage = 'Sessão expirou. Por favor, volte e reenvie o código.';
+          errorMessage = AppLocalizations.of(context)?.otpCodeExpired ?? 'Sessão expirou. Por favor, volte e reenvie o código.';
         }
         _showSnackBar(errorMessage);
         setState(() {
@@ -179,7 +180,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
       setState(() => _isLoading = true);
       await _firebaseAuthService.resendPhoneOtp(widget.phoneNumber);
       if (!mounted) return;
-      _showSnackBar('Código reenviado.');
+  _showSnackBar(AppLocalizations.of(context)?.otpCodeResent ?? 'Código reenviado.');
       HapticFeedback.selectionClick();
       _startCountdown();
     } catch (e) {
@@ -214,22 +215,22 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verificar Código')),
+  appBar: AppBar(title: Text(AppLocalizations.of(context)?.otpVerifyTitle ?? 'Verificar Código')),
       body: Padding(
         padding: UIConstants.paddingL,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Insira o código de 6 dígitos enviado para ${widget.phoneNumber}.',
+              AppLocalizations.of(context)?.otpInstructionPhone(widget.phoneNumber) ?? 'Insira o código de 6 dígitos enviado para ${widget.phoneNumber}.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'O Firebase irá detectar automaticamente o SMS.',
+            Text(
+              AppLocalizations.of(context)?.otpAutoDetectNote ?? 'O Firebase irá detectar automaticamente o SMS.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 color: Colors.grey,
               ),
@@ -266,15 +267,15 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
                     ),
-                    child: const Text('Verificar'),
+                    child: Text(AppLocalizations.of(context)?.otpVerifyButton ?? 'Verificar'),
                   ),
                   Spacing.m,
                   TextButton(
                     onPressed: _secondsRemaining == 0 ? _resendCode : null,
                     child: Text(
                       _secondsRemaining == 0
-                          ? 'Reenviar Código'
-                          : 'Reenviar em $_secondsRemaining s',
+                          ? (AppLocalizations.of(context)?.otpResend ?? 'Reenviar Código')
+                          : (AppLocalizations.of(context)?.otpResendIn(_secondsRemaining.toString()) ?? 'Reenviar em $_secondsRemaining s'),
                     ),
                   ),
                 ],

@@ -306,7 +306,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          isPrivate ? 'Perfil privado' : 'Perfil público',
+              isPrivate
+                ? (AppLocalizations.of(context)?.privateProfileBadge ?? 'Perfil privado')
+                : (AppLocalizations.of(context)?.publicProfileBadge ?? 'Perfil público'),
                           style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: isPrivate 
                               ? Theme.of(context).colorScheme.error

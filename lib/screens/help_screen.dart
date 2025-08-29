@@ -95,7 +95,7 @@ class HelpScreen extends StatelessWidget {
             _buildHelpItem(
               context,
               icon: Icons.favorite_outline,
-              title: 'Favoritos',
+              title: AppLocalizations.of(context)?.favoritesTitle ?? 'Favoritos',
               description: 'Marque wishlists de outros utilizadores como favoritas para acesso rápido.',
             ),
             

@@ -216,7 +216,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       });
     } catch (e) {
       setState(() {
-        _erro = 'Erro ao carregar wishlists: $e';
+  _erro = AppLocalizations.of(context)?.errorLoadingWishlists(e.toString()) ?? 'Erro ao carregar wishlists: $e';
       });
     } finally {
       setState(() {
@@ -498,7 +498,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                     () => _showCreateWishlistForm = true,
                                   ),
                                   child: const Text(
-                                    'Nenhuma wishlist encontrada. Crie uma nova.',
+                                    AppLocalizations.of(context)?.noWishlistFoundCreateNew ?? 'Nenhuma wishlist encontrada. Crie uma nova.',
                                   ),
                                 ),
                               ),

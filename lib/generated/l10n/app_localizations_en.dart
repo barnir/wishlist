@@ -401,4 +401,101 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveChanges => 'Save Changes';
+
+  @override
+  String get addedToFavorites => 'Added to favorites!';
+
+  @override
+  String get removedFromFavorites => 'Removed from favorites';
+
+  @override
+  String get contactSuggestionsTitle => 'Contact Suggestions';
+
+  @override
+  String get loadingSuggestions => 'Loading suggestions...';
+
+  @override
+  String get noSuggestionsTitle => 'No suggestions';
+
+  @override
+  String get noSuggestionsSubtitle =>
+      'No app users were found in your contacts.';
+
+  @override
+  String get contactsAccessTitle => 'Contacts Access';
+
+  @override
+  String get contactsAccessExplanation =>
+      'To find friends from your contacts who already use the app, we need access to your contacts list.';
+
+  @override
+  String get grantContactsAccess => 'Allow Contacts Access';
+
+  @override
+  String get viewProfile => 'View profile';
+
+  @override
+  String get profileNotFoundTitle => 'Profile not found';
+
+  @override
+  String get profileNotFoundSubtitle => 'This user may have been removed.';
+
+  @override
+  String get shareProfileTooltip => 'Share profile';
+
+  @override
+  String get profileInfoSectionTitle => 'Profile Information';
+
+  @override
+  String get memberSinceLabel => 'Member since';
+
+  @override
+  String get recentlyLabel => 'Recently';
+
+  @override
+  String get otpVerifyTitle => 'Verify Code';
+
+  @override
+  String otpInstructionPhone(Object phone) {
+    return 'Enter the 6-digit code sent to $phone.';
+  }
+
+  @override
+  String get otpAutoDetectNote => 'Firebase will automatically detect the SMS.';
+
+  @override
+  String get otpInvalidCode => 'Invalid code. Try again.';
+
+  @override
+  String get otpCodeExpired => 'Code expired. Resend the code.';
+
+  @override
+  String get otpPhoneInUse => 'Phone already linked to another account.';
+
+  @override
+  String get otpInternalError => 'Internal error. Try again.';
+
+  @override
+  String get otpCodeResent => 'Code resent.';
+
+  @override
+  String get otpResend => 'Resend Code';
+
+  @override
+  String otpResendIn(Object seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String get otpVerifyButton => 'Verify';
+
+  @override
+  String shareProfileMessage(Object link) {
+    return 'Check my profile on Wishlist App: $link';
+  }
+
+  @override
+  String errorLoadingProfile(Object error) {
+    return 'Error loading profile: $error';
+  }
 }

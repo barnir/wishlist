@@ -841,6 +841,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save Changes'**
   String get saveChanges;
+
+  /// No description provided for @addedToFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to favorites!'**
+  String get addedToFavorites;
+
+  /// No description provided for @removedFromFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from favorites'**
+  String get removedFromFavorites;
+
+  /// No description provided for @contactSuggestionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Suggestions'**
+  String get contactSuggestionsTitle;
+
+  /// No description provided for @loadingSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading suggestions...'**
+  String get loadingSuggestions;
+
+  /// No description provided for @noSuggestionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No suggestions'**
+  String get noSuggestionsTitle;
+
+  /// No description provided for @noSuggestionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No app users were found in your contacts.'**
+  String get noSuggestionsSubtitle;
+
+  /// No description provided for @contactsAccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts Access'**
+  String get contactsAccessTitle;
+
+  /// No description provided for @contactsAccessExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'To find friends from your contacts who already use the app, we need access to your contacts list.'**
+  String get contactsAccessExplanation;
+
+  /// No description provided for @grantContactsAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Contacts Access'**
+  String get grantContactsAccess;
+
+  /// No description provided for @viewProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'View profile'**
+  String get viewProfile;
+
+  /// No description provided for @profileNotFoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile not found'**
+  String get profileNotFoundTitle;
+
+  /// No description provided for @profileNotFoundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This user may have been removed.'**
+  String get profileNotFoundSubtitle;
+
+  /// No description provided for @shareProfileTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Share profile'**
+  String get shareProfileTooltip;
+
+  /// No description provided for @profileInfoSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Information'**
+  String get profileInfoSectionTitle;
+
+  /// No description provided for @memberSinceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Member since'**
+  String get memberSinceLabel;
+
+  /// No description provided for @recentlyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently'**
+  String get recentlyLabel;
+
+  /// No description provided for @otpVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Code'**
+  String get otpVerifyTitle;
+
+  /// No description provided for @otpInstructionPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code sent to {phone}.'**
+  String otpInstructionPhone(Object phone);
+
+  /// No description provided for @otpAutoDetectNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Firebase will automatically detect the SMS.'**
+  String get otpAutoDetectNote;
+
+  /// No description provided for @otpInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid code. Try again.'**
+  String get otpInvalidCode;
+
+  /// No description provided for @otpCodeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Code expired. Resend the code.'**
+  String get otpCodeExpired;
+
+  /// No description provided for @otpPhoneInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone already linked to another account.'**
+  String get otpPhoneInUse;
+
+  /// No description provided for @otpInternalError.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal error. Try again.'**
+  String get otpInternalError;
+
+  /// No description provided for @otpCodeResent.
+  ///
+  /// In en, this message translates to:
+  /// **'Code resent.'**
+  String get otpCodeResent;
+
+  /// No description provided for @otpResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Code'**
+  String get otpResend;
+
+  /// No description provided for @otpResendIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend in {seconds}s'**
+  String otpResendIn(Object seconds);
+
+  /// No description provided for @otpVerifyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get otpVerifyButton;
+
+  /// No description provided for @shareProfileMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Check my profile on Wishlist App: {link}'**
+  String shareProfileMessage(Object link);
+
+  /// No description provided for @errorLoadingProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading profile: {error}'**
+  String errorLoadingProfile(Object error);
 }
 
 class _AppLocalizationsDelegate

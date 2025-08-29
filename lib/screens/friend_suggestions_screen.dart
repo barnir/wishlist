@@ -3,6 +3,7 @@ import '../services/contacts_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
 class FriendSuggestionsScreen extends StatefulWidget {
   const FriendSuggestionsScreen({super.key});
@@ -99,7 +100,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
       await _favoritesService.addFavorite(userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Adicionado aos favoritos!')),
+          SnackBar(content: Text(AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!')),
         );
       }
     } catch (e) {
@@ -115,7 +116,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WishlistAppBar(
-        title: 'Sugestões dos Contactos',
+  title: AppLocalizations.of(context)?.contactSuggestionsTitle ?? 'Sugestões dos Contactos',
       ),
       body: _buildBody(),
     );
@@ -123,8 +124,8 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const WishlistLoadingIndicator(
-        message: 'A carregar sugestões...',
+      return WishlistLoadingIndicator(
+        message: AppLocalizations.of(context)?.loadingSuggestions ?? 'A carregar sugestões...',
       );
     }
 
@@ -133,10 +134,10 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
     }
 
     if (_suggestions.isEmpty) {
-      return const WishlistEmptyState(
+      return WishlistEmptyState(
         icon: Icons.contacts,
-        title: 'Nenhuma sugestão',
-        subtitle: 'Não foram encontrados utilizadores da app nos seus contactos.',
+        title: AppLocalizations.of(context)?.noSuggestionsTitle ?? 'Nenhuma sugestão',
+        subtitle: AppLocalizations.of(context)?.noSuggestionsSubtitle ?? 'Não foram encontrados utilizadores da app nos seus contactos.',
       );
     }
 
@@ -157,7 +158,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
             ),
             Spacing.l,
             Text(
-              'Acesso aos Contactos',
+              AppLocalizations.of(context)?.contactsAccessTitle ?? 'Acesso aos Contactos',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -165,7 +166,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
             ),
             Spacing.m,
             Text(
-              'Para encontrar amigos dos seus contactos que já usam a app, precisamos de acesso à sua lista de contactos.',
+              AppLocalizations.of(context)?.contactsAccessExplanation ?? 'Para encontrar amigos dos seus contactos que já usam a app, precisamos de acesso à sua lista de contactos.',
               style: Theme.of(context).textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
@@ -175,7 +176,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
               ),
-              child: const Text('Permitir Acesso aos Contactos'),
+              child: Text(AppLocalizations.of(context)?.grantContactsAccess ?? 'Permitir Acesso aos Contactos'),
             ),
           ],
         ),
@@ -249,23 +250,23 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
             }
           },
           itemBuilder: (context) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'favorite',
               child: Row(
                 children: [
-                  Icon(Icons.star),
-                  SizedBox(width: 8),
-                  Text('Adicionar aos favoritos'),
+                  const Icon(Icons.star),
+                  const SizedBox(width: 8),
+                  Text(AppLocalizations.of(context)?.addToFavorites ?? 'Adicionar aos favoritos'),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'profile',
               child: Row(
                 children: [
-                  Icon(Icons.person),
-                  SizedBox(width: 8),
-                  Text('Ver perfil'),
+                  const Icon(Icons.person),
+                  const SizedBox(width: 8),
+                  Text(AppLocalizations.of(context)?.viewProfile ?? 'Ver perfil'),
                 ],
               ),
             ),

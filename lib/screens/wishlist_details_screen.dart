@@ -76,7 +76,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       );
       if (mounted && wishlistData != null) {
         setState(() {
-          _wishlistName = wishlistData['name'] ?? 'Sem nome';
+          _wishlistName = wishlistData['name'] ?? (AppLocalizations.of(context)?.noName ?? 'Sem nome');
           _isPrivate = wishlistData['is_private'] ?? false;
         });
       }

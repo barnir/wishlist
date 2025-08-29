@@ -78,10 +78,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (_userProfile == null) {
       return Scaffold(
         appBar: WishlistAppBar(title: 'Perfil'),
-        body: const WishlistEmptyState(
+        body: WishlistEmptyState(
           icon: Icons.person_off,
-          title: 'Perfil não encontrado',
-          subtitle: 'Este utilizador pode ter sido removido.',
+          title: AppLocalizations.of(context)?.profileNotFoundTitle ?? 'Perfil não encontrado',
+          subtitle: AppLocalizations.of(context)?.profileNotFoundSubtitle ?? 'Este utilizador pode ter sido removido.',
         ),
       );
     }
@@ -95,7 +95,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _buildFavoriteActionButton(),
           IconButton(
             icon: const Icon(Icons.share),
-            tooltip: 'Partilhar perfil',
+            tooltip: AppLocalizations.of(context)?.shareProfileTooltip ?? 'Partilhar perfil',
             onPressed: _shareProfile,
           ),
         ],
@@ -193,7 +193,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           Icon(Icons.star, size: UIConstants.iconSizeS, color: Colors.amber),
           Spacing.horizontalXS,
           Text(
-            'Favorito',
+            (AppLocalizations.of(context)?.favoriteBadge ?? 'Favorito'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.amber,
               fontWeight: FontWeight.w600,
@@ -369,7 +369,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     Spacing.horizontalS,
                     Text(
-                      'Informações do Perfil',
+                      AppLocalizations.of(context)?.profileInfoSectionTitle ?? 'Informações do Perfil',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: Theme.of(context).colorScheme.primary,
@@ -383,7 +383,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   _buildInfoRow('Email', _userProfile!['email'] as String),
                 if (bio != null && bio.isNotEmpty)
                   _buildInfoRow('Bio', bio),
-                _buildInfoRow('Membro desde', 'Recentemente'),
+                _buildInfoRow(AppLocalizations.of(context)?.memberSinceLabel ?? 'Membro desde', AppLocalizations.of(context)?.recentlyLabel ?? 'Recentemente'),
               ],
             ),
           ),
@@ -425,7 +425,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         await _favoritesService.removeFavorite(widget.userId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Removido dos favoritos')),
+            SnackBar(content: Text(AppLocalizations.of(context)?.removedFromFavorites ?? 'Removido dos favoritos')),
           );
           setState(() => _isFavorite = false);
           MonitoringService().trackEvent('profile_unfavorite', properties: {'profile_id': widget.userId});
@@ -434,7 +434,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         await _favoritesService.addFavorite(widget.userId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Adicionado aos favoritos!')),
+            SnackBar(content: Text(AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!')),
           );
           setState(() => _isFavorite = true);
           MonitoringService().trackEvent('profile_favorite', properties: {'profile_id': widget.userId});
