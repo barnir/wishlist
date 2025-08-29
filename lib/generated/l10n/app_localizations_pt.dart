@@ -577,23 +577,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get registerNameTooShort => 'Nome demasiado curto';
 
   @override
-  String get registerPasswordMinChars =>
-      'Password deve ter pelo menos 8 caracteres';
-
-  @override
-  String get registerPasswordUppercase => 'Password deve conter uma maiúscula';
-
-  @override
-  String get registerPasswordLowercase => 'Password deve conter uma minúscula';
-
-  @override
-  String get registerPasswordNumber => 'Password deve conter um número';
-
-  @override
-  String get registerPasswordSpecial =>
-      'Password deve conter um símbolo especial';
-
-  @override
   String get registerPasswordsDoNotMatch => 'Passwords não coincidem';
 
   @override

@@ -1148,36 +1148,6 @@ abstract class AppLocalizations {
   /// **'Name too short'**
   String get registerNameTooShort;
 
-  /// Password rule: minimum length
-  ///
-  /// In en, this message translates to:
-  /// **'Password must have at least 8 characters'**
-  String get registerPasswordMinChars;
-
-  /// Password rule: at least one uppercase A-Z
-  ///
-  /// In en, this message translates to:
-  /// **'Password must contain an uppercase letter'**
-  String get registerPasswordUppercase;
-
-  /// Password rule: at least one lowercase a-z
-  ///
-  /// In en, this message translates to:
-  /// **'Password must contain a lowercase letter'**
-  String get registerPasswordLowercase;
-
-  /// Password rule: at least one digit 0-9
-  ///
-  /// In en, this message translates to:
-  /// **'Password must contain a number'**
-  String get registerPasswordNumber;
-
-  /// Password rule: at least one special character (symbol)
-  ///
-  /// In en, this message translates to:
-  /// **'Password must contain a special symbol'**
-  String get registerPasswordSpecial;
-
   /// Validation when password and confirmation differ
   ///
   /// In en, this message translates to:
