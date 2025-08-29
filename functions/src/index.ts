@@ -1,9 +1,49 @@
 import * as admin from "firebase-admin";
 import {onCall, CallableRequest} from "firebase-functions/v2/https";
 import {logger} from "firebase-functions";
+import {v2 as cloudinary} from "cloudinary";
+// NOTE: For runtime config values set via `firebase functions:config:set`,
+// we prefer accessing them through functions.config() (v1 style) which is still
+// supported in v2 for hydrated environment, then fall back to process.env.* if provided.
 
 // Initialize Firebase Admin
 admin.initializeApp();
+
+// Cloudinary admin configuration retrieval
+function configureCloudinary() {
+  try {
+    // Attempt functions.config() style (works when deployed or using emulator with config)
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const functions = require("firebase-functions");
+    const fnConfig = functions.config ? functions.config() : {};
+    const cSection = fnConfig.cloudinary || {};
+
+    const cloudNameCfg = cSection.cloud_name || process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKeyCfg = cSection.api_key || process.env.CLOUDINARY_API_KEY;
+    const apiSecretCfg = cSection.api_secret || process.env.CLOUDINARY_API_SECRET;
+
+    cloudinary.config({
+      cloud_name: cloudNameCfg,
+      api_key: apiKeyCfg,
+      api_secret: apiSecretCfg,
+      secure: true,
+    });
+
+    const conf = cloudinary.config() as any;
+    const available = !!(conf.cloud_name && conf.api_key && conf.api_secret);
+    if (available) {
+      logger.info("[Cloudinary] Admin API configured for cleanup (cloud_name=" + conf.cloud_name + ")");
+    } else {
+      logger.warn("[Cloudinary] Incomplete configuration - image cleanup will be skipped. Provide cloudinary.cloud_name/api_key/api_secret.");
+    }
+    return available;
+  } catch (e) {
+    logger.error("[Cloudinary] Failed to configure admin API", e);
+    return false;
+  }
+}
+
+const cloudinaryAvailable = configureCloudinary();
 
 // Simple rate limiting without persistent storage
 const rateLimiter = new Map<string, number>();
@@ -45,8 +85,8 @@ export const deleteUser = onCall(async (request: CallableRequest) => {
     const userId = auth.uid;
     logger.info(`Starting deletion process for user: ${userId}`);
 
-    const db = admin.firestore();
-    const batch = db.batch();
+  const db = admin.firestore();
+  const batch = db.batch();
 
     // Delete user data in cascading order to avoid foreign key constraint violations
     
@@ -98,14 +138,22 @@ export const deleteUser = onCall(async (request: CallableRequest) => {
       batch.delete(doc.ref);
     });
 
+    // Collect product & wishlist image public IDs for Cloudinary cleanup
+    const productImagePublicIds: string[] = [];
+    const wishlistImagePublicIds: string[] = [];
     if (wishlistIds.length > 0) {
-      // Delete wish items from user's wishlists
       for (const wishlistId of wishlistIds) {
+        // For each wishlist gather wish_items first (need their IDs before deletion)
         const wishItemsRef = db.collection("wish_items").where("wishlist_id", "==", wishlistId);
         const itemsSnapshot = await wishItemsRef.get();
         itemsSnapshot.forEach((doc) => {
+          const itemId = doc.id;
+            // Pattern used on client: product_<itemId>
+          productImagePublicIds.push(`product_${itemId}`);
           batch.delete(doc.ref);
         });
+        // Wishlist cover pattern: wishlist_<wishlistId>
+        wishlistImagePublicIds.push(`wishlist_${wishlistId}`);
       }
     }
 
@@ -113,15 +161,40 @@ export const deleteUser = onCall(async (request: CallableRequest) => {
     const userDocRef = db.collection("users").doc(userId);
     batch.delete(userDocRef);
 
-    // Execute all deletions
-    await batch.commit();
+  // Execute all Firestore deletions first
+  await batch.commit();
 
-    // 7. Finally, delete from Firebase Auth
+    // 7. Cloudinary cleanup (best effort, non-blocking failures)
+    const profileImageId = `profile_${userId}`;
+    const allPublicIds = [profileImageId, ...productImagePublicIds, ...wishlistImagePublicIds];
+    let cloudinaryDeleted: string[] = [];
+  if (cloudinaryAvailable && allPublicIds.length > 0) {
+      try {
+        // Bulk delete by public IDs
+        logger.info(`Attempting Cloudinary deletion for ${allPublicIds.length} images`);
+        const deleteResponse = await cloudinary.api.delete_resources(allPublicIds, {resource_type: 'image'});
+        // deleteResponse.deleted is an object mapping id-> 'deleted' | 'not_found'
+        cloudinaryDeleted = Object.entries(deleteResponse.deleted || {})
+          .filter(([, status]) => status === 'deleted')
+          .map(([id]) => id);
+        const notFound = Object.entries(deleteResponse.deleted || {})
+          .filter(([, status]) => status === 'not_found')
+          .map(([id]) => id);
+        logger.info(`Cloudinary deletion summary: deleted=${cloudinaryDeleted.length} not_found=${notFound.length}`);
+        if (notFound.length) {
+          logger.warn(`Cloudinary images not found (may already be removed): ${notFound.join(', ')}`);
+        }
+      } catch (cloudErr) {
+        logger.error("Cloudinary cleanup failed", cloudErr as any);
+      }
+    }
+
+    // 8. Finally, delete from Firebase Auth
     await admin.auth().deleteUser(userId);
 
-    logger.info(`Successfully deleted user: ${userId}`);
+  logger.info(`Successfully deleted user: ${userId}`);
 
-    return {message: "User deleted successfully"};
+  return {message: "User deleted successfully", cloudinaryDeleted};
   } catch (error) {
     logger.error("Error deleting user:", error);
     throw error;

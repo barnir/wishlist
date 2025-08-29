@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -39,27 +40,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _nomeController.text.trim(),
       );
 
+      if (!mounted) return; // Guard against context use after async gap
+
       // No need to navigate manually - StreamBuilder will handle it
       // User will be automatically taken to AddPhoneScreen since no profile exists yet
       debugPrint('✅ Email registration successful - StreamBuilder will handle navigation');
       
     } catch (e) {
+      if (!mounted) return; // If widget disposed during await
       debugPrint('Registration error: $e');
-      // Create a user-friendly error message
-      String errorMessage = 'Erro ao registar: ';
-      
-      if (e.toString().contains('List<Object?>')) {
-        errorMessage = 'Erro no sistema. Por favor tente novamente.';
-      } else if (e.toString().contains('email-already-in-use')) {
-        errorMessage = 'Este email já está em uso. Tente fazer login.';
-      } else if (e.toString().contains('weak-password')) {
-        errorMessage = 'A password é muito fraca. Escolha uma password mais forte.';
-      } else if (e.toString().contains('invalid-email')) {
-        errorMessage = 'Email inválido. Verifique o formato do email.';
+      final l10n = AppLocalizations.of(context);
+      String errorMessage = l10n?.registerErrorPrefix ?? 'Erro ao registar: ';
+      final errStr = e.toString();
+      if (errStr.contains('List<Object?>')) {
+        errorMessage = l10n?.registerSystemError ?? 'Erro no sistema. Por favor tente novamente.';
+      } else if (errStr.contains('email-already-in-use')) {
+        errorMessage = l10n?.registerEmailInUse ?? 'Este email já está em uso. Tente fazer login.';
+      } else if (errStr.contains('weak-password')) {
+        errorMessage = l10n?.registerWeakPassword ?? 'A password é muito fraca. Escolha uma password mais forte.';
+      } else if (errStr.contains('invalid-email')) {
+        errorMessage = l10n?.registerInvalidEmail ?? 'Email inválido. Verifique o formato do email.';
       } else {
-        errorMessage += e.toString();
+        errorMessage += errStr;
       }
-      
       setState(() => _erro = errorMessage);
     } finally {
       if (mounted) {
@@ -69,48 +72,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String? _validarEmail(String? value) {
+    final l10n = AppLocalizations.of(context);
     if (value == null || value.trim().isEmpty) {
-      return 'Email obrigatório';
+      return l10n?.registerEmailRequired ?? 'Email obrigatório';
     }
     // Regex mais robusto para validação de email
     if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value.trim())) {
-      return 'Formato de email inválido';
+      return l10n?.registerEmailInvalidFormat ?? 'Formato de email inválido';
     }
     return null;
   }
 
   String? _validarNome(String? value) {
+    final l10n = AppLocalizations.of(context);
     if (value == null || value.trim().isEmpty) {
-      return 'Nome obrigatório';
+      return l10n?.registerNameRequired ?? 'Nome obrigatório';
     }
     if (value.trim().length < 2) {
-      return 'Nome demasiado curto';
+      return l10n?.registerNameTooShort ?? 'Nome demasiado curto';
     }
     return null;
   }
 
   String? _validarPassword(String? value) {
+    final l10n = AppLocalizations.of(context);
     if (value == null || value.length < 8) {
-      return 'Password deve ter pelo menos 8 caracteres';
+      return l10n?.registerPasswordMinChars ?? 'Password deve ter pelo menos 8 caracteres';
     }
     if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return 'Password deve conter uma maiúscula';
+      return l10n?.registerPasswordUppercase ?? 'Password deve conter uma maiúscula';
     }
     if (!RegExp(r'[a-z]').hasMatch(value)) {
-      return 'Password deve conter uma minúscula';
+      return l10n?.registerPasswordLowercase ?? 'Password deve conter uma minúscula';
     }
     if (!RegExp(r'[0-9]').hasMatch(value)) {
-      return 'Password deve conter um número';
+      return l10n?.registerPasswordNumber ?? 'Password deve conter um número';
     }
     if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
-      return 'Password deve conter um símbolo especial';
+      return l10n?.registerPasswordSpecial ?? 'Password deve conter um símbolo especial';
     }
     return null;
   }
 
   String? _validarConfirmaPassword(String? value) {
+    final l10n = AppLocalizations.of(context);
     if (value != _passwordController.text) {
-      return 'Passwords não coincidem';
+      return l10n?.registerPasswordsDoNotMatch ?? 'Passwords não coincidem';
     }
     return null;
   }
@@ -154,8 +161,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text('Registar nova conta')),
+      appBar: AppBar(title: Text(l10n?.registerTitle ?? 'Registar nova conta')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -169,18 +177,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
                 TextFormField(
                   controller: _nomeController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n?.name ?? 'Nome',
+                    border: const OutlineInputBorder(),
                   ),
                   validator: _validarNome,
                 ),
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n?.email ?? 'Email',
+                    border: const OutlineInputBorder(),
                   ),
                   validator: _validarEmail,
                   keyboardType: TextInputType.emailAddress,
@@ -188,9 +196,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n?.passwordLabel ?? 'Password',
+                    border: const OutlineInputBorder(),
                   ),
                   validator: _validarPassword,
                   obscureText: true,
@@ -211,7 +219,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Requisitos da password:',
+                        l10n?.registerPasswordRequirementsTitle ?? 'Requisitos da password:',
                         style: TextStyle(
                           fontWeight: FontWeight.bold, 
                           fontSize: 12,
@@ -219,15 +227,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      _buildPasswordRequirement('Pelo menos 8 caracteres', 
+                      _buildPasswordRequirement(l10n?.registerPasswordMinChars ?? 'Pelo menos 8 caracteres', 
                           _passwordController.text.length >= 8),
-                      _buildPasswordRequirement('Uma maiúscula (A-Z)', 
+                      _buildPasswordRequirement(l10n?.registerPasswordUppercase ?? 'Uma maiúscula (A-Z)', 
                           RegExp(r'[A-Z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement('Uma minúscula (a-z)', 
+                      _buildPasswordRequirement(l10n?.registerPasswordLowercase ?? 'Uma minúscula (a-z)', 
                           RegExp(r'[a-z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement('Um número (0-9)', 
+                      _buildPasswordRequirement(l10n?.registerPasswordNumber ?? 'Um número (0-9)', 
                           RegExp(r'[0-9]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement('Um símbolo especial (!@#\$%^&*)', 
+                      _buildPasswordRequirement(l10n?.registerPasswordSpecial ?? 'Um símbolo especial (!@#\$%^&*)', 
                           RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(_passwordController.text)),
                     ],
                   ),
@@ -235,9 +243,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _confirmarPasswordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirmar Password',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n?.confirmPasswordLabel ?? 'Confirmar Password',
+                    border: const OutlineInputBorder(),
                   ),
                   validator: _validarConfirmaPassword,
                   obscureText: true,
@@ -252,12 +260,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Colors.white,
                           ),
                         )
-                      : const Text('Registar'),
+                      : Text(l10n?.registerAction ?? 'Registar'),
                 ),
                 const SizedBox(height: 24),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Já tens conta? Fazer login!'),
+                  child: Text(l10n?.registerExistingAccountCta ?? 'Já tens conta? Fazer login!'),
                 ),
               ],
             ),

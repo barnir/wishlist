@@ -466,7 +466,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   void _shareProfile() {
     final link = 'https://wishlist.app/user/${widget.userId}';
-    Share.share('Vê o meu perfil no Wishlist App: $link');
+  final message = AppLocalizations.of(context)?.shareProfileMessage(link) ?? 'Vê o meu perfil no Wishlist App: $link';
+  Share.share(message);
     MonitoringService().trackEvent('profile_share', properties: {'profile_id': widget.userId});
   }
 

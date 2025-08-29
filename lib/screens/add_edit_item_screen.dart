@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wishlist_app/services/web_scraper_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:wishlist_app/services/auth_service.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
 import '../models/category.dart';
 
@@ -86,15 +87,16 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _handleSharedLink() async {
     if (widget.link != null && widget.link!.isNotEmpty) {
       setState(() {
-        _isScraping = true;
-        _scrapingStatus = 'Extraindo informações do produto...';
+  _isScraping = true;
+  _scrapingStatus = AppLocalizations.of(context)?.scrapingExtractingInfo;
       });
       
       try {
-        final scrapedData = await _webScraperService.scrape(widget.link!);
+  final scrapedData = await _webScraperService.scrape(widget.link!);
+  if (!mounted) return; // Guard after async call
         
         setState(() {
-          _scrapingStatus = 'Preenchendo campos automaticamente...';
+          _scrapingStatus = AppLocalizations.of(context)?.scrapingFillingFields;
         });
         
         _nameController.text = scrapedData['title'] ?? '';
@@ -125,10 +127,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         final imageUrl = scrapedData['image'];
         if (imageUrl != null && imageUrl.isNotEmpty) {
           setState(() {
-            _scrapingStatus = 'Carregando imagem do produto...';
+            _scrapingStatus = AppLocalizations.of(context)?.scrapingLoadingImage;
           });
           
           final response = await http.get(Uri.parse(imageUrl));
+          if (!mounted) return; // Guard in case widget disposed
           if (response.statusCode == 200) {
             final tempDir = await getTemporaryDirectory();
             final tempFile = File(
@@ -144,28 +147,29 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         
         // Preparar mensagem de status com detalhes do que foi extraído
         final extractedFeatures = <String>[];
+        final l10n = AppLocalizations.of(context);
         if (scrapedData['title'] != null && scrapedData['title']!.isNotEmpty) {
-          extractedFeatures.add('título');
+          extractedFeatures.add(l10n?.scrapingFeatureTitle ?? 'title');
         }
         if (scrapedData['price'] != null && scrapedData['price'] != '0.00') {
-          extractedFeatures.add('preço');
+          extractedFeatures.add(l10n?.scrapingFeaturePrice ?? 'price');
         }
         if (scrapedData['description'] != null && scrapedData['description']!.isNotEmpty) {
-          extractedFeatures.add('descrição');
+          extractedFeatures.add(l10n?.scrapingFeatureDescription ?? 'description');
         }
         if (scrapedData['category'] != null && scrapedData['category']!.isNotEmpty) {
-          extractedFeatures.add('categoria');
+          extractedFeatures.add(l10n?.scrapingFeatureCategory ?? 'category');
         }
         if (scrapedData['rating'] != null && scrapedData['rating']!.isNotEmpty) {
-          extractedFeatures.add('avaliação');
+          extractedFeatures.add(l10n?.scrapingFeatureRating ?? 'rating');
         }
         if (scrapedData['image'] != null && scrapedData['image']!.isNotEmpty) {
-          extractedFeatures.add('imagem');
+          extractedFeatures.add(l10n?.scrapingFeatureImage ?? 'image');
         }
         
-        final statusMessage = extractedFeatures.isNotEmpty 
-            ? 'Extraído: ${extractedFeatures.join(', ')}. Verifique os dados!'
-            : 'Concluído! Verifique e ajuste os dados se necessário.';
+  final statusMessage = extractedFeatures.isNotEmpty 
+            ? (l10n?.scrapingExtractedPrefix(extractedFeatures.join(', ')) ?? 'Extracted: ${extractedFeatures.join(', ')}')
+            : (l10n?.scrapingCompletedAdjust ?? 'Done! Review and adjust if needed.');
         
         setState(() {
           _scrapingStatus = statusMessage;
@@ -182,7 +186,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         
       } catch (e) {
         setState(() {
-          _scrapingStatus = 'Erro ao extrair dados. Preencha manualmente.';
+          _scrapingStatus = AppLocalizations.of(context)?.scrapingError;
         });
         
         // Clear error status after 5 seconds
@@ -206,8 +210,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _isLoadingWishlists = true;
     });
     try {
-      final wishlists = await _databaseService
-          .getWishlistsForCurrentUser();
+    final wishlists = await _databaseService
+      .getWishlistsForCurrentUser();
+    if (!mounted) return; // Guard after async
       setState(() {
         _wishlists = wishlists;
         if (_wishlists.isNotEmpty) {
@@ -248,7 +253,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       });
     } catch (e) {
       setState(() {
-        _erro = 'Erro ao criar wishlist: $e';
+  _erro = AppLocalizations.of(context)?.errorCreatingWishlist(e.toString()) ?? 'Erro ao criar wishlist: $e';
       });
     } finally {
       setState(() {
@@ -260,7 +265,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-      final itemData = await _databaseService.getWishItem(widget.itemId!);
+  final itemData = await _databaseService.getWishItem(widget.itemId!);
+  if (!mounted) return; // Guard after async
 
       if (itemData != null) {
         _nameController.text = itemData['name'] ?? '';
@@ -274,7 +280,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         }
       }
     } catch (e) {
-      setState(() => _erro = 'Erro ao carregar item: $e');
+  setState(() => _erro = AppLocalizations.of(context)?.errorLoadingItem(e.toString()) ?? 'Erro ao carregar item: $e');
     } finally {
       setState(() => _isSaving = false);
     }
@@ -314,7 +320,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     final finalWishlistId = widget.wishlistId ?? _selectedWishlistId;
     if (finalWishlistId == null) {
       setState(() {
-        _erro = "Por favor, selecione ou crie uma wishlist.";
+        _erro = AppLocalizations.of(context)?.selectOrCreateWishlistPrompt ?? "Por favor, selecione ou crie uma wishlist.";
       });
       return;
     }
@@ -325,11 +331,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     if (_imageBytes != null) {
       setState(() => _isUploading = true);
       try {
-        final tempFileForUpload = await File(
+  final tempFileForUpload = await File(
           '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ).writeAsBytes(_imageBytes!);
+  if (!mounted) return; // Guard
         final targetId = widget.itemId ?? DateTime.now().millisecondsSinceEpoch.toString();
         uploadedUrl = await _cloudinaryService.uploadProductImage(tempFileForUpload, targetId);
+  if (!mounted) return; // Guard
         _existingImageUrl = uploadedUrl;
         if (uploadedUrl != null) {
           await ImageCacheService.putFile(uploadedUrl, _imageBytes!);
@@ -340,7 +348,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         }
       } catch (e) {
         MonitoringService.logImageUploadFail('item', e);
-        setState(() => _erro = 'Falha upload imagem: $e');
+  setState(() => _erro = AppLocalizations.of(context)?.imageUploadFailed(e.toString()) ?? 'Falha upload imagem: $e');
       } finally {
         setState(() => _isUploading = false);
       }
@@ -372,7 +380,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.itemId == null ? 'Adicionar Item' : 'Editar Item'),
+  title: Text(widget.itemId == null ? (AppLocalizations.of(context)?.addItemTitle ?? 'Adicionar Item') : (AppLocalizations.of(context)?.editItemTitle ?? 'Editar Item')),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Theme.of(context).colorScheme.primary,
@@ -470,7 +478,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                               DropdownButtonFormField<String>(
                                 initialValue: _selectedWishlistId,
                                 decoration: InputDecoration(
-                                  labelText: 'Escolha uma Wishlist',
+                                  labelText: AppLocalizations.of(context)?.chooseWishlistLabel,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -487,9 +495,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                     _selectedWishlistId = newValue;
                                   });
                                 },
-                                validator: (value) => value == null
-                                    ? 'Por favor, escolha uma wishlist'
-                                    : null,
+                validator: (value) => value == null
+                  ? (AppLocalizations.of(context)?.chooseWishlistValidation ?? 'Por favor, escolha uma wishlist')
+                  : null,
                               ),
                             if (_wishlists.isEmpty && !_showCreateWishlistForm)
                               Center(
@@ -497,7 +505,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                   onPressed: () => setState(
                                     () => _showCreateWishlistForm = true,
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     AppLocalizations.of(context)?.noWishlistFoundCreateNew ?? 'Nenhuma wishlist encontrada. Crie uma nova.',
                                   ),
                                 ),
@@ -510,7 +518,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                   TextFormField(
                                     controller: _newWishlistNameController,
                                     decoration: InputDecoration(
-                                      labelText: 'Nome da nova wishlist',
+                                      labelText: AppLocalizations.of(context)?.newWishlistNameLabel,
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
@@ -519,7 +527,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                     validator: (value) {
                                       if (_showCreateWishlistForm &&
                                           (value == null || value.isEmpty)) {
-                                        return 'Insira um nome para a wishlist';
+                                        return AppLocalizations.of(context)?.newWishlistNameRequired ?? 'Insira um nome para a wishlist';
                                       }
                                       return null;
                                     },
@@ -534,7 +542,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                         )
                                       : ElevatedButton(
                                           onPressed: _createWishlist,
-                                          child: const Text('Criar Wishlist'),
+                                          child: Text(AppLocalizations.of(context)?.createWishlistAction ?? 'Criar Wishlist'),
                                         ),
                                 ],
                               ),
@@ -575,7 +583,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     TextFormField(
                       controller: _nameController,
                       decoration: InputDecoration(
-                        labelText: 'Nome do Item',
+                        labelText: AppLocalizations.of(context)?.itemNameLabel,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -583,14 +591,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                       ),
                       validator: (value) =>
                           (value == null || value.trim().isEmpty)
-                          ? 'Insere o nome do item'
+                          ? (AppLocalizations.of(context)?.itemNameRequired ?? 'Insere o nome do item')
                           : null,
                     ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedCategory,
                       decoration: InputDecoration(
-                        labelText: 'Categoria',
+                        labelText: AppLocalizations.of(context)?.categoryLabel,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -618,7 +626,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     TextFormField(
                       controller: _descriptionController,
                       decoration: InputDecoration(
-                        labelText: 'Descrição',
+                        labelText: AppLocalizations.of(context)?.itemDescriptionLabel,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -630,7 +638,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     TextFormField(
                       controller: _linkController,
                       decoration: InputDecoration(
-                        labelText: 'Link',
+                        labelText: AppLocalizations.of(context)?.linkLabel,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -645,7 +653,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                           child: TextFormField(
                             controller: _quantityController,
                             decoration: InputDecoration(
-                              labelText: 'Quantidade',
+                              labelText: AppLocalizations.of(context)?.quantityLabel,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -654,11 +662,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                             keyboardType: TextInputType.number,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Insere a quantidade';
+                                return AppLocalizations.of(context)?.quantityRequired ?? 'Insere a quantidade';
                               }
                               final n = int.tryParse(value);
                               if (n == null || n < 1) {
-                                return 'Quantidade inválida';
+                                return AppLocalizations.of(context)?.quantityInvalid ?? 'Quantidade inválida';
                               }
                               return null;
                             },
@@ -669,7 +677,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                           child: TextFormField(
                             controller: _priceController,
                             decoration: InputDecoration(
-                              labelText: 'Preço',
+                              labelText: AppLocalizations.of(context)?.priceLabel,
                               prefixText: '€ ',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -684,7 +692,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                               final n = double.tryParse(
                                 value.replaceAll(',', '.'),
                               );
-                              if (n == null || n < 0) return 'Preço inválido';
+                              if (n == null || n < 0) return AppLocalizations.of(context)?.priceInvalid ?? 'Preço inválido';
                               return null;
                             },
                           ),
@@ -710,7 +718,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                               ),
                             )
                           : Text(
-                              widget.itemId == null ? 'Adicionar' : 'Guardar',
+                              widget.itemId == null ? (AppLocalizations.of(context)?.addItemAction ?? 'Adicionar') : (AppLocalizations.of(context)?.saveItemAction ?? 'Guardar'),
                               style: const TextStyle(fontSize: 16),
                             ),
                     ),

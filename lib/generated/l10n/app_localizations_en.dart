@@ -498,4 +498,200 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorLoadingProfile(Object error) {
     return 'Error loading profile: $error';
   }
+
+  @override
+  String get languageSettings => 'Language Settings';
+
+  @override
+  String get automatic => 'Automatic';
+
+  @override
+  String get systemLanguage => 'Follow system language';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get registerTitle => 'Register new account';
+
+  @override
+  String get registerErrorPrefix => 'Registration error: ';
+
+  @override
+  String get registerSystemError => 'System error. Please try again.';
+
+  @override
+  String get registerEmailInUse =>
+      'This email is already in use. Try logging in.';
+
+  @override
+  String get registerWeakPassword =>
+      'Password is too weak. Choose a stronger password.';
+
+  @override
+  String get registerInvalidEmail => 'Invalid email. Check the format.';
+
+  @override
+  String get registerEmailRequired => 'Email required';
+
+  @override
+  String get registerEmailInvalidFormat => 'Invalid email format';
+
+  @override
+  String get registerNameRequired => 'Name required';
+
+  @override
+  String get registerNameTooShort => 'Name too short';
+
+  @override
+  String get registerPasswordMinChars =>
+      'Password must have at least 8 characters';
+
+  @override
+  String get registerPasswordUppercase =>
+      'Password must contain an uppercase letter';
+
+  @override
+  String get registerPasswordLowercase =>
+      'Password must contain a lowercase letter';
+
+  @override
+  String get registerPasswordNumber => 'Password must contain a number';
+
+  @override
+  String get registerPasswordSpecial =>
+      'Password must contain a special symbol';
+
+  @override
+  String get registerPasswordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String get confirmPasswordLabel => 'Confirm Password';
+
+  @override
+  String get registerPasswordRequirementsTitle => 'Password requirements:';
+
+  @override
+  String get registerAction => 'Register';
+
+  @override
+  String get registerExistingAccountCta => 'Already have an account? Log in!';
+
+  @override
+  String get scrapingExtractingInfo => 'Extracting product information...';
+
+  @override
+  String get scrapingFillingFields => 'Filling fields automatically...';
+
+  @override
+  String get scrapingLoadingImage => 'Loading product image...';
+
+  @override
+  String scrapingExtractedPrefix(Object features) {
+    return 'Extracted: $features. Review the data!';
+  }
+
+  @override
+  String get scrapingCompletedAdjust =>
+      'Done! Review and adjust the data if needed.';
+
+  @override
+  String get scrapingError => 'Error extracting data. Fill manually.';
+
+  @override
+  String get scrapingFeatureTitle => 'title';
+
+  @override
+  String get scrapingFeaturePrice => 'price';
+
+  @override
+  String get scrapingFeatureDescription => 'description';
+
+  @override
+  String get scrapingFeatureCategory => 'category';
+
+  @override
+  String get scrapingFeatureRating => 'rating';
+
+  @override
+  String get scrapingFeatureImage => 'image';
+
+  @override
+  String get addItemTitle => 'Add Item';
+
+  @override
+  String get editItemTitle => 'Edit Item';
+
+  @override
+  String get chooseWishlistLabel => 'Choose a Wishlist';
+
+  @override
+  String get chooseWishlistValidation => 'Please choose a wishlist';
+
+  @override
+  String get newWishlistNameLabel => 'New wishlist name';
+
+  @override
+  String get newWishlistNameRequired => 'Enter a name for the wishlist';
+
+  @override
+  String get createWishlistAction => 'Create Wishlist';
+
+  @override
+  String get itemNameLabel => 'Item Name';
+
+  @override
+  String get itemNameRequired => 'Enter the item name';
+
+  @override
+  String get categoryLabel => 'Category';
+
+  @override
+  String get itemDescriptionLabel => 'Description';
+
+  @override
+  String get linkLabel => 'Link';
+
+  @override
+  String get quantityLabel => 'Quantity';
+
+  @override
+  String get quantityRequired => 'Enter the quantity';
+
+  @override
+  String get quantityInvalid => 'Invalid quantity';
+
+  @override
+  String get priceLabel => 'Price';
+
+  @override
+  String get priceInvalid => 'Invalid price';
+
+  @override
+  String get selectOrCreateWishlistPrompt =>
+      'Please select or create a wishlist.';
+
+  @override
+  String errorCreatingWishlist(Object error) {
+    return 'Error creating wishlist: $error';
+  }
+
+  @override
+  String errorLoadingItem(Object error) {
+    return 'Error loading item: $error';
+  }
+
+  @override
+  String imageUploadFailed(Object error) {
+    return 'Image upload failed: $error';
+  }
+
+  @override
+  String get addItemAction => 'Add';
+
+  @override
+  String get saveItemAction => 'Save';
 }

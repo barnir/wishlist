@@ -481,6 +481,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
+                          if (!mounted) return;
                           Navigator.pushNamed(
                             context,
                             '/add_edit_item',

@@ -1015,6 +1015,366 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error loading profile: {error}'**
   String errorLoadingProfile(Object error);
+
+  /// No description provided for @languageSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Language Settings'**
+  String get languageSettings;
+
+  /// No description provided for @automatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get automatic;
+
+  /// No description provided for @systemLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow system language'**
+  String get systemLanguage;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @registerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Register new account'**
+  String get registerTitle;
+
+  /// No description provided for @registerErrorPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration error: '**
+  String get registerErrorPrefix;
+
+  /// No description provided for @registerSystemError.
+  ///
+  /// In en, this message translates to:
+  /// **'System error. Please try again.'**
+  String get registerSystemError;
+
+  /// No description provided for @registerEmailInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This email is already in use. Try logging in.'**
+  String get registerEmailInUse;
+
+  /// No description provided for @registerWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password is too weak. Choose a stronger password.'**
+  String get registerWeakPassword;
+
+  /// No description provided for @registerInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email. Check the format.'**
+  String get registerInvalidEmail;
+
+  /// No description provided for @registerEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Email required'**
+  String get registerEmailRequired;
+
+  /// No description provided for @registerEmailInvalidFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email format'**
+  String get registerEmailInvalidFormat;
+
+  /// No description provided for @registerNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name required'**
+  String get registerNameRequired;
+
+  /// No description provided for @registerNameTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Name too short'**
+  String get registerNameTooShort;
+
+  /// No description provided for @registerPasswordMinChars.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must have at least 8 characters'**
+  String get registerPasswordMinChars;
+
+  /// No description provided for @registerPasswordUppercase.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain an uppercase letter'**
+  String get registerPasswordUppercase;
+
+  /// No description provided for @registerPasswordLowercase.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain a lowercase letter'**
+  String get registerPasswordLowercase;
+
+  /// No description provided for @registerPasswordNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain a number'**
+  String get registerPasswordNumber;
+
+  /// No description provided for @registerPasswordSpecial.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain a special symbol'**
+  String get registerPasswordSpecial;
+
+  /// No description provided for @registerPasswordsDoNotMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get registerPasswordsDoNotMatch;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPasswordLabel;
+
+  /// No description provided for @registerPasswordRequirementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password requirements:'**
+  String get registerPasswordRequirementsTitle;
+
+  /// No description provided for @registerAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get registerAction;
+
+  /// No description provided for @registerExistingAccountCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? Log in!'**
+  String get registerExistingAccountCta;
+
+  /// No description provided for @scrapingExtractingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracting product information...'**
+  String get scrapingExtractingInfo;
+
+  /// No description provided for @scrapingFillingFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Filling fields automatically...'**
+  String get scrapingFillingFields;
+
+  /// No description provided for @scrapingLoadingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading product image...'**
+  String get scrapingLoadingImage;
+
+  /// No description provided for @scrapingExtractedPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracted: {features}. Review the data!'**
+  String scrapingExtractedPrefix(Object features);
+
+  /// No description provided for @scrapingCompletedAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Done! Review and adjust the data if needed.'**
+  String get scrapingCompletedAdjust;
+
+  /// No description provided for @scrapingError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error extracting data. Fill manually.'**
+  String get scrapingError;
+
+  /// No description provided for @scrapingFeatureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'title'**
+  String get scrapingFeatureTitle;
+
+  /// No description provided for @scrapingFeaturePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'price'**
+  String get scrapingFeaturePrice;
+
+  /// No description provided for @scrapingFeatureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'description'**
+  String get scrapingFeatureDescription;
+
+  /// No description provided for @scrapingFeatureCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'category'**
+  String get scrapingFeatureCategory;
+
+  /// No description provided for @scrapingFeatureRating.
+  ///
+  /// In en, this message translates to:
+  /// **'rating'**
+  String get scrapingFeatureRating;
+
+  /// No description provided for @scrapingFeatureImage.
+  ///
+  /// In en, this message translates to:
+  /// **'image'**
+  String get scrapingFeatureImage;
+
+  /// No description provided for @addItemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Item'**
+  String get addItemTitle;
+
+  /// No description provided for @editItemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Item'**
+  String get editItemTitle;
+
+  /// No description provided for @chooseWishlistLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Wishlist'**
+  String get chooseWishlistLabel;
+
+  /// No description provided for @chooseWishlistValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a wishlist'**
+  String get chooseWishlistValidation;
+
+  /// No description provided for @newWishlistNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New wishlist name'**
+  String get newWishlistNameLabel;
+
+  /// No description provided for @newWishlistNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name for the wishlist'**
+  String get newWishlistNameRequired;
+
+  /// No description provided for @createWishlistAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Wishlist'**
+  String get createWishlistAction;
+
+  /// No description provided for @itemNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Item Name'**
+  String get itemNameLabel;
+
+  /// No description provided for @itemNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the item name'**
+  String get itemNameRequired;
+
+  /// No description provided for @categoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get categoryLabel;
+
+  /// No description provided for @itemDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get itemDescriptionLabel;
+
+  /// No description provided for @linkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get linkLabel;
+
+  /// No description provided for @quantityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get quantityLabel;
+
+  /// No description provided for @quantityRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the quantity'**
+  String get quantityRequired;
+
+  /// No description provided for @quantityInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid quantity'**
+  String get quantityInvalid;
+
+  /// No description provided for @priceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get priceLabel;
+
+  /// No description provided for @priceInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid price'**
+  String get priceInvalid;
+
+  /// No description provided for @selectOrCreateWishlistPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select or create a wishlist.'**
+  String get selectOrCreateWishlistPrompt;
+
+  /// No description provided for @errorCreatingWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating wishlist: {error}'**
+  String errorCreatingWishlist(Object error);
+
+  /// No description provided for @errorLoadingItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading item: {error}'**
+  String errorLoadingItem(Object error);
+
+  /// No description provided for @imageUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Image upload failed: {error}'**
+  String imageUploadFailed(Object error);
+
+  /// No description provided for @addItemAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addItemAction;
+
+  /// No description provided for @saveItemAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveItemAction;
 }
 
 class _AppLocalizationsDelegate
