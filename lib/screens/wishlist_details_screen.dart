@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -194,7 +195,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () => _showFilterBottomSheet(),
-            tooltip: 'Filtrar e Ordenar',
+            tooltip: AppLocalizations.of(context)?.filterAndSortTooltip ?? 'Filtrar e Ordenar',
           ),
           IconButton(
             icon: const Icon(Icons.edit),
@@ -224,7 +225,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             arguments: {'wishlistId': widget.wishlistId},
           ).then((_) => _loadInitialData()); // Refresh after adding item
         },
-        tooltip: 'Adicionar novo item',
+        tooltip: AppLocalizations.of(context)?.addNewItemTooltip ?? 'Adicionar novo item',
         child: const Icon(Icons.add),
       ),
     );
@@ -232,7 +233,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Widget _buildContent() {
     if (_isInitialLoading) {
-      return const WishlistLoadingIndicator(message: 'A carregar itens...');
+      return WishlistLoadingIndicator(
+        message: AppLocalizations.of(context)?.loadingItems ?? 'A carregar itens...',
+      );
     }
 
     if (_items.isEmpty && !_isLoading) {
@@ -266,7 +269,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           ),
           Spacing.horizontalS,
           Text(
-            _isPrivate ? 'Esta wishlist é privada' : 'Esta wishlist é pública',
+            _isPrivate
+                ? (AppLocalizations.of(context)?.wishlistIsPrivate ?? 'Esta wishlist é privada')
+                : (AppLocalizations.of(context)?.wishlistIsPublic ?? 'Esta wishlist é pública'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
@@ -277,8 +282,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   Widget _buildEmptyState() {
     return WishlistEmptyState(
       icon: Icons.add_shopping_cart_rounded,
-      title: 'A sua wishlist está vazia',
-      subtitle: 'Adicione o seu primeiro desejo!',
+      title: AppLocalizations.of(context)?.wishlistEmptyTitle ?? 'A sua wishlist está vazia',
+      subtitle: AppLocalizations.of(context)?.wishlistEmptySubtitle ?? 'Adicione o seu primeiro desejo!',
     );
   }
 
@@ -301,10 +306,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           ),
           Spacing.horizontalM,
           Text(
-            'A carregar mais itens...',
+            AppLocalizations.of(context)?.loadingMoreItems ?? 'A carregar mais itens...',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
         ],
       ),
@@ -315,8 +320,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     return SwipeActionWidget(
       onEdit: () => _editItem(item),
       onDelete: () => _showDeleteConfirmation(item),
-      editLabel: 'Editar',
-      deleteLabel: 'Eliminar',
+  editLabel: AppLocalizations.of(context)?.edit ?? 'Editar',
+  deleteLabel: AppLocalizations.of(context)?.delete ?? 'Eliminar',
       child: _buildItemCard(item),
     );
   }
@@ -459,11 +464,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                             if (uri != null && await canLaunchUrl(uri)) {
                               await launchUrl(uri);
                             } else {
-                              _showSnackBar('Não foi possível abrir o link', isError: true);
+                _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
                             }
                           },
                           icon: const Icon(Icons.launch, size: 16),
-                          label: const Text('Ver'),
+              label: Text(AppLocalizations.of(context)?.view ?? 'Ver'),
                           style: OutlinedButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                           ),
@@ -486,7 +491,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                           ).then((_) => _loadInitialData());
                         },
                         icon: const Icon(Icons.edit, size: 16),
-                        label: const Text('Editar'),
+                        label: Text(AppLocalizations.of(context)?.edit ?? 'Editar'),
                         style: OutlinedButton.styleFrom(
                           visualDensity: VisualDensity.compact,
                         ),
@@ -502,7 +507,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                         color: colorScheme.error,
                         size: 20,
                       ),
-                      tooltip: 'Eliminar item',
+                      tooltip: AppLocalizations.of(context)?.deleteItemTooltip ?? 'Eliminar item',
                       visualDensity: VisualDensity.compact,
                     ),
                   ],
@@ -536,12 +541,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar item'),
-        content: Text('Tens a certeza que queres eliminar "${item.name}"?'),
+        title: Text(AppLocalizations.of(context)?.deleteItemTitle ?? 'Eliminar item'),
+        content: Text(
+          (AppLocalizations.of(context)?.deleteItemConfirmation(item.name) ?? 'Tens a certeza que queres eliminar "${item.name}"?'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancelar'),
           ),
           TextButton(
             onPressed: () {
@@ -551,7 +558,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Eliminar'),
+            child: Text(AppLocalizations.of(context)?.delete ?? 'Eliminar'),
           ),
         ],
       ),

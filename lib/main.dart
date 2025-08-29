@@ -13,6 +13,7 @@ import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/theme_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
 import 'package:wishlist_app/services/notification_service.dart';
+import 'package:wishlist_app/services/image_prefetch_service.dart';
 import 'package:wishlist_app/firebase_background_handler.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
@@ -225,6 +226,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
   int _retryCount = 0;
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(milliseconds: 500);
+  static bool _prefetchDone = false; // garante execução única
 
   Future<Map<String, dynamic>?> _getProfileWithRetry() async {
     debugPrint('_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries');
@@ -393,6 +395,19 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
         debugPrint('   - Phone: "$phoneNumber"');
         debugPrint('   - Name: "$displayName"');
         debugPrint('   - Email: "${profile['email']}"');
+        if (!_prefetchDone) {
+          _prefetchDone = true;
+          // Prefetch assíncrono não bloqueante
+          Future.microtask(() async {
+            try {
+              debugPrint('🚀 Iniciando prefetch inicial de imagens');
+              await ImagePrefetchService().warmUp();
+              debugPrint('✅ Prefetch inicial concluído');
+            } catch (e) {
+              debugPrint('⚠️ Erro no prefetch inicial: $e');
+            }
+          });
+        }
         return const HomeScreen();
       },
     );
@@ -435,26 +450,26 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Scaffold(
         body: IndexedStack(index: _selectedIndex, children: _screens),
-        bottomNavigationBar: BottomNavigationBar(
+    bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onTabTapped,
           type: BottomNavigationBarType.fixed,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.list_alt),
-              label: 'Wishlists',
+              icon: const Icon(Icons.list_alt),
+      label: AppLocalizations.of(context)?.wishlists ?? 'Wishlists',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.public),
-              label: 'Explorar',
+              icon: const Icon(Icons.public),
+      label: AppLocalizations.of(context)?.explore ?? 'Explore',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.star),
-              label: 'Favoritos',
+              icon: const Icon(Icons.star),
+      label: AppLocalizations.of(context)?.favorites ?? 'Favorites',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person), 
-              label: 'Perfil'
+              icon: const Icon(Icons.person),
+      label: AppLocalizations.of(context)?.profile ?? 'Profile',
             ),
           ],
         ),

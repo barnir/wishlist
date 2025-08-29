@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:share_plus/share_plus.dart';
@@ -204,13 +205,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildFavoriteActionButton() {
+    final l10n = AppLocalizations.of(context)!;
     return IconButton(
       icon: Icon(
         _isFavorite ? Icons.star : Icons.star_border,
         color: _isFavorite ? Colors.amber : Theme.of(context).colorScheme.primary,
       ),
       onPressed: _toggleFavorite,
-      tooltip: _isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos',
+      tooltip: _isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
     );
   }
 
@@ -226,9 +228,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withAlpha(153),
                 indicatorColor: Theme.of(context).colorScheme.primary,
-                tabs: const [
-                  Tab(text: 'Wishlists Públicas', icon: Icon(Icons.list_alt)),
-                  Tab(text: 'Sobre', icon: Icon(Icons.info_outline)),
+                tabs: [
+                  Tab(text: AppLocalizations.of(context)!.publicWishlistsTab, icon: const Icon(Icons.list_alt)),
+                  Tab(text: AppLocalizations.of(context)!.aboutTab, icon: const Icon(Icons.info_outline)),
                 ],
               ),
             ),
@@ -255,14 +257,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Erro: ${snapshot.error}'));
+          final l10n = AppLocalizations.of(context)!;
+          return Center(child: Text(l10n.errorPrefix(snapshot.error.toString())));
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const WishlistEmptyState(
+          final l10n = AppLocalizations.of(context)!;
+          return WishlistEmptyState(
             icon: Icons.list_alt_outlined,
-            title: 'Nenhuma wishlist pública',
-            subtitle: 'Este utilizador ainda não tem wishlists públicas.',
+            title: l10n.noPublicWishlists,
+            subtitle: l10n.noPublicWishlistsSubtitle,
           );
         }
 
@@ -279,7 +283,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildWishlistCard(Map<String, dynamic> wishlist) {
-    final name = wishlist['name'] as String? ?? 'Sem nome';
+  final l10n = AppLocalizations.of(context)!;
+  final name = wishlist['name'] as String? ?? l10n.noName;
     final imageUrl = wishlist['image_url'] as String?;
 
     return WishlistCard(
@@ -318,7 +323,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             Spacing.horizontalXS,
             Text(
-              'Pública',
+                l10n.publicLabel,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w500,

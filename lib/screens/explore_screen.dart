@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
@@ -130,9 +131,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: WishlistAppBar(
-        title: 'Explorar',
+        title: l10n.exploreTitle,
         showBackButton: false,
       ),
       body: Column(
@@ -140,7 +142,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           Padding(
             padding: UIConstants.paddingM,
             child: WishlistTextField(
-              label: 'Pesquisar utilizadores...',
+              label: l10n.searchUsersPlaceholder,
               controller: _searchController,
               prefixIcon: const Icon(Icons.search),
             ),
@@ -155,22 +157,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildContent() {
     if (_searchQuery.isEmpty) {
-      return const WishlistEmptyState(
+      final l10n = AppLocalizations.of(context)!;
+      return WishlistEmptyState(
         icon: Icons.search,
-        title: 'Pesquisar utilizadores',
-        subtitle: 'Digite um nome ou email para encontrar utilizadores e as suas wishlists públicas.',
+        title: l10n.searchUsersTitle,
+        subtitle: l10n.searchUsersSubtitle,
       );
     }
 
     if (_isInitialLoading) {
-      return const WishlistLoadingIndicator(message: 'A pesquisar...');
+      final l10n = AppLocalizations.of(context)!;
+      return WishlistLoadingIndicator(message: l10n.searching);
     }
 
     if (_users.isEmpty && !_isLoading) {
-      return const WishlistEmptyState(
+      final l10n = AppLocalizations.of(context)!;
+      return WishlistEmptyState(
         icon: Icons.person_search,
-        title: 'Nenhum resultado',
-        subtitle: 'Não foram encontrados utilizadores com esse termo.',
+        title: l10n.noResults,
+        subtitle: l10n.noResultsSubtitle,
       );
     }
 
@@ -182,7 +187,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
         itemCount: _users.length + (_isLoading ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == _users.length) {
-            return _buildLoadingIndicator();
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(child: Text(AppLocalizations.of(context)!.loadingMoreResults)),
+            );
           }
           return _buildUserCard(_users[index]);
         },
@@ -325,32 +333,5 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildLoadingIndicator() {
-    return Container(
-      padding: UIConstants.paddingM,
-      alignment: Alignment.center,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-          Spacing.horizontalM,
-          Text(
-            'A carregar mais resultados...',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Loading indicator removido (substituído por padding simples no builder)
 }

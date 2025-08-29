@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/favorites_service.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 
@@ -100,25 +101,26 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: WishlistAppBar(
-        title: 'Favoritos',
+        title: l10n.favoritesTitle,
         showBackButton: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () => Navigator.pushNamed(context, '/explore'),
-            tooltip: 'Explorar perfis',
+            tooltip: l10n.searchProfilesTooltip,
           ),
         ],
       ),
       body: _isInitialLoading
-          ? const WishlistLoadingIndicator(message: 'A carregar favoritos...')
+          ? WishlistLoadingIndicator(message: l10n.loadingFavorites)
           : _favorites.isEmpty
-              ? const WishlistEmptyState(
+              ? WishlistEmptyState(
                   icon: Icons.star_border,
-                  title: 'Nenhum favorito ainda',
-                  subtitle: 'Explora perfis e marca os teus utilizadores favoritos para veres as suas wishlists públicas!',
+                  title: l10n.noFavoritesYet,
+                  subtitle: l10n.favoritesEmptySubtitle,
                 )
               : RefreshIndicator(
                   onRefresh: _onRefresh,
@@ -128,7 +130,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     itemCount: _favorites.length + (_isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == _favorites.length) {
-                        return _buildLoadingIndicator();
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Center(child: Text(l10n.loadingMoreFavorites)),
+                        );
                       }
                       return _buildFavoriteCard(_favorites[index]);
                     },
@@ -142,8 +147,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final email = favorite['email'] as String?;
     final userId = favorite['id'] as String;
     final bio = favorite['bio'] as String?;
-    final isPrivate = favorite['is_private'] as bool? ?? false;
-
+  // final isPrivate = favorite['is_private'] as bool? ?? false; // (não usado atualmente)
     return Card(
       margin: UIConstants.cardMargin,
       elevation: UIConstants.elevationM,
@@ -162,15 +166,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
         child: Container(
           padding: UIConstants.paddingM,
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar do favorito com estrela
+              // Avatar
               Stack(
+                clipBehavior: Clip.none,
                 children: [
                   Container(
-                    width: 64,
-                    height: 64,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                      borderRadius: BorderRadius.circular(16),
                       gradient: LinearGradient(
                         colors: [
                           Theme.of(context).colorScheme.primary,
@@ -183,14 +189,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     child: Center(
                       child: Text(
                         displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ),
                   ),
-                  // Estrela de favorito
                   Positioned(
                     top: -2,
                     right: -2,
@@ -213,10 +218,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   ),
                 ],
               ),
-              
               Spacing.horizontalM,
-              
-              // Informação do utilizador favorito
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,36 +278,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Status de privacidade
-                    Row(
-                      children: [
-                        Icon(
-                          isPrivate ? Icons.lock_outlined : Icons.public_outlined,
-                          size: 14,
-                          color: isPrivate 
-                            ? Theme.of(context).colorScheme.error
-                            : Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isPrivate ? 'Perfil privado' : 'Perfil público',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: isPrivate 
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Seta de navegação (fora das colunas de texto)
                   ],
                 ),
               ),
-              
-              // Seta de navegação
               Icon(
                 Icons.arrow_forward,
                 size: UIConstants.iconSizeS,
@@ -314,35 +290,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Container(
-      padding: UIConstants.paddingM,
-      alignment: Alignment.center,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-          Spacing.horizontalM,
-          Text(
-            'A carregar mais favoritos...',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
       ),
     );
   }

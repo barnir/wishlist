@@ -247,19 +247,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Unfocus any active text fields before showing the dialog
     FocusScope.of(context).unfocus();
 
+    final l10n = AppLocalizations.of(context)!;
+  // Fallback enquanto getter não gerado: usar DELETE para en / APAGAR para pt
+  final requiredWord = l10n.localeName.startsWith('pt') ? 'APAGAR' : 'DELETE';
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false, // Prevent dismissing while deleting
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text('Apagar Conta'),
+            title: Text(l10n.deleteAccountConfirmation),
             content: SingleChildScrollView(
               child: ListBody(
                 children: <Widget>[
-                  const Text(
-                    'Esta ação é irreversível. Todos os seus dados serão perdidos. Para confirmar, escreva "APAGAR" na caixa abaixo.',
-                  ),
+                  Text(l10n.deleteAccountWarning.replaceAll('"DELETE"', '"$requiredWord"')),
                   const SizedBox(height: 16),
                   if (isDeleting)
                     const Center(
@@ -271,9 +273,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   else
                     TextField(
                       controller: confirmationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Confirmar',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.confirm,
+                        border: const OutlineInputBorder(),
+                        hintText: requiredWord,
                       ),
                       onChanged: (_) => setDialogState(
                         () {},
@@ -287,11 +290,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: isDeleting
                     ? null
                     : () => Navigator.of(context).pop(),
-                child: const Text('Cancelar'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed:
-                    (confirmationController.text == 'APAGAR' && !isDeleting)
+                    (confirmationController.text.trim().toUpperCase() == requiredWord && !isDeleting)
                     ? () async {
                         setDialogState(() => isDeleting = true);
                         await _deleteAccount();
@@ -309,7 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     return Colors.red;
                   }),
                 ),
-                child: const Text('Apagar Permanentemente'),
+                child: Text(l10n.deletePermanently),
               ),
             ],
           );
@@ -333,9 +336,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).pop();
       }
 
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Conta apagada com sucesso.'),
+        SnackBar(
+          content: Text(l10n.accountDeletedSuccessfully),
           backgroundColor: Colors.green,
         ),
       );
@@ -359,9 +363,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Navigator.of(context).pop();
         }
         
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Conta apagada com sucesso.'),
+          SnackBar(
+            content: Text(l10n.accountDeletedSuccessfully),
             backgroundColor: Colors.green,
           ),
         );
@@ -378,9 +383,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Navigator.of(context).pop();
         }
         
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Erro ao apagar conta. Tente novamente.'),
+            content: Text(l10n.errorDeletingAccount('')), // placeholder sem detalhe técnico
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
