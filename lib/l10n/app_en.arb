@@ -592,4 +592,8 @@
   ,"@otpCodeLength": {"description": "Validation: OTP code length incorrect"}
   ,"otpCodeDigitsOnly": "Code must contain only numbers"
   ,"@otpCodeDigitsOnly": {"description": "Validation: OTP code non-digit chars present"}
+  ,"languageSubtitlePtPt": "European Portuguese"
+  ,"@languageSubtitlePtPt": {"description": "Subtitle describing the pt locale variant"}
+  ,"languageSubtitleInternational": "International"
+  ,"@languageSubtitleInternational": {"description": "Subtitle describing the generic international locale"}
 }

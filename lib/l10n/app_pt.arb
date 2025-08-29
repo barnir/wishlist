@@ -366,4 +366,8 @@
   ,"@otpCodeLength": {"description": "Validação: tamanho inválido"}
   ,"otpCodeDigitsOnly": "Código deve conter apenas números"
   ,"@otpCodeDigitsOnly": {"description": "Validação: código contém não dígitos"}
+  ,"languageSubtitlePtPt": "Português de Portugal"
+  ,"@languageSubtitlePtPt": {"description": "Subtítulo descrevendo a variante pt (Portugal)"}
+  ,"languageSubtitleInternational": "Internacional"
+  ,"@languageSubtitleInternational": {"description": "Subtítulo descrevendo o locale internacional genérico"}
 }
