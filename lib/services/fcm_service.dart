@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
@@ -15,10 +14,7 @@ class FCMService {
     try {
       debugPrint('=== FCMService: Initialize ===');
       
-      if (!Platform.isAndroid) {
-        debugPrint('FCMService: Not Android platform, skipping initialization');
-        return;
-      }
+      // Código otimizado apenas para Android - verificação de plataforma removida
 
       await _requestPermissions();
       await _configureMessageHandling();

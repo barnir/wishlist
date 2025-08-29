@@ -334,7 +334,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ],
         ),
         trailing: Icon(
-          Icons.arrow_forward_ios,
+          Icons.arrow_forward,
           size: UIConstants.iconSizeS,
           color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
         ),

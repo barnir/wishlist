@@ -87,6 +87,22 @@ class FavoritesService {
 
   /// Get public profiles from contacts that have accounts
   /// Used for the "Explore" screen
+  /// Identifica contatos que já possuem contas na aplicação
+  /// 
+  /// Este método é fundamental para a descoberta social, permitindo que 
+  /// utilizadores encontrem amigos que já usam a aplicação, a partir dos seus contactos.
+  /// 
+  /// Fluxo completo do Firebase:
+  /// 1. Limpa e formata os números de telefone para consistência
+  /// 2. Remove duplicados com toSet() para otimizar a consulta
+  /// 3. Consulta o Firebase para encontrar perfis públicos com estes números
+  /// 
+  /// Privacidade e segurança:
+  /// - Apenas perfis públicos são retornados
+  /// - Apenas informações básicas não sensíveis são fornecidas
+  /// 
+  /// @param phoneNumbers Lista bruta de números de telefone dos contactos
+  /// @returns Lista de perfis encontrados no Firebase com os números fornecidos
   Future<List<Map<String, dynamic>>> getContactsWithAccounts(List<String> phoneNumbers) async {
     try {
       // Clean and format phone numbers for matching
@@ -98,9 +114,9 @@ class FavoritesService {
 
       if (cleanedNumbers.isEmpty) return [];
 
-      // For now, return empty list as this requires direct Firestore access
-      // PENDING: Add method to FirebaseDatabaseService for phone number lookups when needed
-      return [];
+      // Usar o novo método do FirebaseDatabaseService para buscar utilizadores por números de telefone
+      final databaseService = FirebaseDatabaseService();
+      return databaseService.getUsersByPhoneNumbers(cleanedNumbers);
     } catch (e) {
       MonitoringService.logErrorStatic('get_contacts_with_accounts', e, stackTrace: StackTrace.current);
       return [];

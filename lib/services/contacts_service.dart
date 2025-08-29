@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 // Using flutter_contacts built-in permission system
 import 'package:wishlist_app/services/auth_service.dart';
@@ -213,16 +214,21 @@ class ContactsService {
         return [];
       }
 
-      // Procurar utilizadores com estes números de telefone
-      // Dividir em batches para evitar URL muito longa
+      // Procurar utilizadores com estes números de telefone usando FirebaseDatabaseService
       final registeredUsers = <Map<String, dynamic>>[];
       
-      const batchSize = 50; // Batch processing for phone number lookup  
-      for (int i = 0; i < phoneNumbers.length; i += batchSize) {
-        // PENDING: Implement phone number lookup with Firestore when contacts feature is needed
-        final batchResults = <Map<String, dynamic>>[];
-            
-        registeredUsers.addAll(batchResults);
+      try {
+        // Usar o serviço Firebase para buscar usuários por números de telefone
+        // Esta implementação completa substitui o código pendente anterior
+        // e aproveita a consulta eficiente ao Firestore com batching
+        final databaseService = FirebaseDatabaseService();
+        final results = await databaseService.getUsersByPhoneNumbers(phoneNumbers);
+        registeredUsers.addAll(results);
+        debugPrint('✅ Encontrados ${results.length} utilizadores para ${phoneNumbers.length} números');
+      } catch (e) {
+        debugPrint('❌ Error looking up users by phone numbers: $e');
+        // Continue with empty list if lookup fails
+        // O tratamento de erro aqui é importante para não bloquear todo o fluxo de contactos
       }
 
       // Criar mapa de contacto para facilitar a associação

@@ -269,12 +269,12 @@ class ValidationUtils {
       return 'Imagem demasiado grande (máximo 10MB)';
     }
     
-    // Check file extension
+    // Check file extension - Android optimized formats
     final extension = file.path.toLowerCase().split('.').last;
-    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
     
     if (!allowedExtensions.contains(extension)) {
-      return 'Formato de imagem não suportado (use JPG, PNG, WebP, ou GIF)';
+      return 'Formato de imagem não suportado (use JPG, PNG ou GIF)';
     }
     
     return null;

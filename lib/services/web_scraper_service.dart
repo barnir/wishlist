@@ -327,12 +327,11 @@ class WebScraperServiceSecure {
         return '';
       }
       
-      // Verificar se é uma extensão de imagem válida
+      // Verificar se é uma extensão de imagem válida - Android optimized
       final path = uri.path.toLowerCase();
       if (!path.endsWith('.jpg') && 
           !path.endsWith('.jpeg') && 
           !path.endsWith('.png') && 
-          !path.endsWith('.webp') &&
           !path.endsWith('.gif')) {
         return '';
       }

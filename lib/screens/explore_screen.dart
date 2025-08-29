@@ -314,7 +314,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               
               // Seta de navegação
               Icon(
-                Icons.arrow_forward_ios,
+                Icons.arrow_forward,
                 size: UIConstants.iconSizeS,
                 color: Theme.of(context).colorScheme.primary,
               ),

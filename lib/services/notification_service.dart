@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -56,10 +55,7 @@ class NotificationService {
     try {
       debugPrint('=== NotificationService: Initialize ===');
 
-      if (!Platform.isAndroid) {
-        debugPrint('NotificationService: Not Android platform, skipping initialization');
-        return;
-      }
+      // Código otimizado apenas para Android - verificação de plataforma removida
 
       await _initializeLocalNotifications();
       await _fcmService.initialize();

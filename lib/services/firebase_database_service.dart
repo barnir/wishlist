@@ -768,12 +768,14 @@ class FirebaseDatabaseService {
   }) async {
     try {
       // Note: Firestore doesn't have direct offset, using limit + offset workaround
-      final query = await _firestore
-          .collection('wishlists')
-          .where('user_id', isEqualTo: userId)
-          .orderBy('created_at', descending: true)
-          .limit(limit + offset)
-          .get();
+    // Corrigido: usar 'owner_id' para filtrar wishlists do utilizador
+    // Isto garante que o campo usado no fetch corresponde ao campo usado na criação
+    final query = await _firestore
+      .collection('wishlists')
+      .where('owner_id', isEqualTo: userId) // <--- CORREÇÃO: era 'user_id', agora 'owner_id'
+      .orderBy('created_at', descending: true)
+      .limit(limit + offset)
+      .get();
 
       final wishlists = query.docs
           .skip(offset)
@@ -844,6 +846,66 @@ class FirebaseDatabaseService {
     } catch (e) {
       debugPrint('❌ Error getting usage stats: $e');
       return null;
+    }
+  }
+  
+  /// Procura utilizadores registados na app usando números de telefone
+  /// 
+  /// Este método é essencial para a integração com contactos, permitindo identificar
+  /// quais contactos do utilizador já estão a usar a aplicação.
+  /// 
+  /// Limitações e considerações:
+  /// - Só retorna utilizadores com perfis públicos (profile_visibility: 'public')
+  /// - Retorna apenas dados essenciais e não sensíveis para proteger privacidade
+  /// - Implementa batching para lidar com a limitação do Firestore (max 10 itens em whereIn)
+  /// 
+  /// Campos retornados:
+  /// - id: ID do utilizador no Firebase
+  /// - display_name: Nome público do utilizador
+  /// - photo_url: URL da foto de perfil (já optimizada pelo Cloudinary)
+  /// - phone_number: Número de telefone (apenas o que foi consultado)
+  /// 
+  /// @param phoneNumbers Lista de números de telefone formatados para pesquisa
+  /// @return Lista de mapas com os dados básicos de cada utilizador encontrado
+  Future<List<Map<String, dynamic>>> getUsersByPhoneNumbers(List<String> phoneNumbers) async {
+    try {
+      if (phoneNumbers.isEmpty) {
+        return [];
+      }
+      
+      debugPrint('🔍 Looking up users by phone numbers (${phoneNumbers.length})');
+      
+      // Firestore não suporta consultas IN com mais de 10 valores
+      // Por isso, dividimos em batches de 10
+      final results = <Map<String, dynamic>>[];
+      const batchSize = 10;
+      
+      for (int i = 0; i < phoneNumbers.length; i += batchSize) {
+        final batch = phoneNumbers.skip(i).take(batchSize).toList();
+        
+        final query = await _firestore
+          .collection('users')
+          .where('phone_number', whereIn: batch)
+          .where('profile_visibility', isEqualTo: 'public')
+          .get();
+          
+        for (final doc in query.docs) {
+          final data = doc.data();
+          // Retornar apenas dados públicos essenciais
+          results.add({
+            'id': doc.id,
+            'display_name': data['display_name'],
+            'photo_url': data['photo_url'],
+            'phone_number': data['phone_number'],
+          });
+        }
+      }
+      
+      debugPrint('✅ Found ${results.length} users from phone numbers');
+      return results;
+    } catch (e) {
+      debugPrint('❌ Error looking up users by phone numbers: $e');
+      return [];
     }
   }
 }

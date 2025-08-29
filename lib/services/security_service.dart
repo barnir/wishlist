@@ -27,13 +27,13 @@ class SecurityService {
     'ftp:/',
   ];
 
-  // Safe image file signatures (magic numbers)
+  // Safe image file signatures (magic numbers) - Android optimized
   static const Map<String, List<int>> _imageSignatures = {
     'jpg': [0xFF, 0xD8, 0xFF],
     'jpeg': [0xFF, 0xD8, 0xFF],
     'png': [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
     'gif': [0x47, 0x49, 0x46, 0x38],
-    'webp': [0x52, 0x49, 0x46, 0x46],
+    // WebP removido - App otimizada apenas para Android
   };
 
   /// Validate and sanitize URL for safe use

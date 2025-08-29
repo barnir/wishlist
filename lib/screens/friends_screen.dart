@@ -307,7 +307,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
               
               // Seta de navegação
               Icon(
-                Icons.arrow_forward_ios,
+                Icons.arrow_forward,
                 size: UIConstants.iconSizeS,
                 color: Theme.of(context).colorScheme.primary,
               ),

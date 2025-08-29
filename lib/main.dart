@@ -286,7 +286,7 @@ class _MyAppState extends State<MyApp> {
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
+            // GlobalCupertinoLocalizations removido - Android-only app
           ],
           supportedLocales: const [
             Locale('en', ''), // Inglês

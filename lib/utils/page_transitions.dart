@@ -76,16 +76,10 @@ class CustomPageTransitions {
     );
   }
 
-  /// Custom theme-aware page transition
+  /// Transição de página para Android
   static Route<T> adaptiveTransition<T extends Object?>(Widget page, BuildContext context) {
-    final theme = Theme.of(context);
-    
-    // Use platform-appropriate transition
-    if (theme.platform == TargetPlatform.iOS) {
-      return slideFromRight<T>(page);
-    } else {
-      return fadeWithScale<T>(page);
-    }
+    // Usar transição otimizada para Android
+    return fadeWithScale<T>(page);
   }
 
   /// Modal bottom sheet transition
