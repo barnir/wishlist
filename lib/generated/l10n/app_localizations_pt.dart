@@ -815,4 +815,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get otpCodeDigitsOnly => 'Código deve conter apenas números';
+
+  @override
+  String get languageSubtitlePtPt => 'Português de Portugal';
+
+  @override
+  String get languageSubtitleInternational => 'Internacional';
 }

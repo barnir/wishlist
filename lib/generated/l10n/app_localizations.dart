@@ -1591,6 +1591,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Code must contain only numbers'**
   String get otpCodeDigitsOnly;
+
+  /// Subtitle describing the pt locale variant
+  ///
+  /// In en, this message translates to:
+  /// **'European Portuguese'**
+  String get languageSubtitlePtPt;
+
+  /// Subtitle describing the generic international locale
+  ///
+  /// In en, this message translates to:
+  /// **'International'**
+  String get languageSubtitleInternational;
 }
 
 class _AppLocalizationsDelegate

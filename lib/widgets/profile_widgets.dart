@@ -221,7 +221,9 @@ class ProfileHeaderCard extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    isPrivate ? 'Privado' : 'Público',
+                  isPrivate
+                    ? (AppLocalizations.of(context)?.privateLabel ?? 'Privada')
+                    : (AppLocalizations.of(context)?.publicLabel ?? 'Pública'),
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.white,
@@ -234,7 +236,9 @@ class ProfileHeaderCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          bio.isNotEmpty ? bio : 'Adicionar biografia...',
+              bio.isNotEmpty
+                ? bio
+                : (AppLocalizations.of(context)?.addBio ?? 'Adicionar biografia...'),
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.white.withValues(alpha: 0.9),

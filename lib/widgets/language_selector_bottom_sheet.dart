@@ -176,7 +176,9 @@ class _LanguageSelectorBottomSheetState extends State<LanguageSelectorBottomShee
                     return _buildLanguageOption(
                       context: context,
                       title: displayName,
-                      subtitle: locale.languageCode == 'pt' ? 'Português de Portugal' : 'International',
+            subtitle: locale.languageCode == 'pt'
+              ? (AppLocalizations.of(context)?.languageSubtitlePtPt ?? 'Português de Portugal')
+              : (AppLocalizations.of(context)?.languageSubtitleInternational ?? 'International'),
                       isSelected: isSelected,
                       icon: locale.languageCode == 'pt' 
                           ? Icons.flag_outlined 

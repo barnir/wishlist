@@ -803,4 +803,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get otpCodeDigitsOnly => 'Code must contain only numbers';
+
+  @override
+  String get languageSubtitlePtPt => 'European Portuguese';
+
+  @override
+  String get languageSubtitleInternational => 'International';
 }
