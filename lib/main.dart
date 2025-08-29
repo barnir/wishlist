@@ -67,7 +67,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late StreamSubscription _intentDataStreamSubscription;
-  List<SharedFile>? _pendingSharedData;
 
   @override
   void initState() {
@@ -88,10 +87,6 @@ class _MyAppState extends State<MyApp> {
       if (value.isNotEmpty) {
         if (AuthService.getCurrentUserId() != null) {
           _handleSharedMedia(value);
-        } else {
-          setState(() {
-            _pendingSharedData = value;
-          });
         }
       }
     });
@@ -118,145 +113,6 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  /// Build screen based on profile data and user authentication status
-  Widget _buildProfileBasedScreen(Map<String, dynamic>? profile, firebase_auth.User user) {
-    // Phone number is ALWAYS required, regardless of login method
-    if (profile == null ||
-        profile['phone_number'] == null ||
-        profile['phone_number'].toString().isEmpty) {
-      
-      // Check if user just logged in (no profile exists yet)
-      if (profile == null) {
-        debugPrint('No profile found - checking if user has both providers already');
-        
-        // Check if Firebase user already has both Google and Phone providers
-        final providerIds = user.providerData.map((p) => p.providerId).toList();
-        final hasGoogle = providerIds.contains('google.com');
-        final hasPhone = providerIds.contains('phone');
-        final hasEmailPassword = providerIds.contains('password');
-        
-        if ((hasGoogle || hasEmailPassword) && hasPhone && user.phoneNumber != null) {
-          debugPrint('User has both auth providers and phone number - syncing to Firebase');
-          return FutureBuilder<void>(
-            future: AuthService().syncExistingUserProfile(),
-            builder: (context, syncSnapshot) {
-              if (syncSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Syncing profile...'),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              
-              if (syncSnapshot.hasError) {
-                debugPrint('Error syncing profile: ${syncSnapshot.error}');
-                // If sync fails, clean up and return to login
-                return FutureBuilder<void>(
-                  future: _cleanupIncompleteAccount(user),
-                  builder: (context, cleanupSnapshot) {
-                    return const LoginScreen();
-                  },
-                );
-              }
-              
-              // Sync completed, refresh the profile check
-              return FutureBuilder<Map<String, dynamic>?>(
-                future: FirebaseDatabaseService().getUserProfile(user.uid),
-                builder: (context, profileSnapshot) {
-                  if (profileSnapshot.connectionState == ConnectionState.waiting) {
-                    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-                  }
-                  
-                  final syncedProfile = profileSnapshot.data;
-                  if (syncedProfile != null && 
-                      syncedProfile['display_name'] != null &&
-                      syncedProfile['display_name'].toString().isNotEmpty) {
-                    return const HomeScreen();
-                  } else if (syncedProfile != null) {
-                    return const SetupNameScreen();
-                  } else {
-                    return const LoginScreen();
-                  }
-                },
-              );
-            },
-          );
-        } else {
-          debugPrint('No profile found - redirecting to phone screen');
-          return const AddPhoneScreen();
-        }
-      }
-      
-      // Profile exists but no phone - account is incomplete, cleanup needed
-      debugPrint('Profile exists but missing phone - cleaning up');
-      return FutureBuilder<void>(
-        future: _cleanupIncompleteAccount(user),
-        builder: (context, cleanupSnapshot) {
-          if (cleanupSnapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Cleaning up incomplete account...'),
-                  ],
-                ),
-              ),
-            );
-          }
-          return const LoginScreen();
-        },
-      );
-    } else if (profile['display_name'] == null ||
-               profile['display_name'].toString().isEmpty) {
-      // Phone number exists but display name is missing, navigate to SetupNameScreen
-      return const SetupNameScreen();
-    } else {
-      // Both phone number and display name exist, proceed to home
-      if (_pendingSharedData != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _handleSharedMedia(_pendingSharedData!);
-          _pendingSharedData = null;
-        });
-      }
-      return const HomeScreen();
-    }
-  }
-
-  /// Cleanup incomplete accounts - force logout and delete orphaned profile
-  Future<void> _cleanupIncompleteAccount(firebase_auth.User user) async {
-    try {
-      debugPrint('=== Cleaning up incomplete account ===');
-      debugPrint('User ID: ${user.uid}');
-      debugPrint('Email: ${user.email}');
-      
-      // Try to delete orphaned profile from Firestore (may fail if doesn't exist)
-      try {
-        await FirebaseDatabaseService().deleteUserProfile(user.uid);
-        debugPrint('Orphaned profile deleted from Firestore');
-      } catch (e) {
-        debugPrint('Profile not found in Firestore (expected): $e');
-      }
-      
-      // Sign out from Firebase (this will also sign out from Google)
-      await AuthService().signOut();
-      
-      debugPrint('Incomplete account cleaned up successfully');
-    } catch (e) {
-      debugPrint('Error cleaning up incomplete account: $e');
-      // Force logout anyway
-      await AuthService().signOut();
-    }
-  }
 
   @override
   void dispose() {
@@ -330,64 +186,167 @@ class _MyAppState extends State<MyApp> {
           home: StreamBuilder<firebase_auth.User?>(
             stream: AuthService().authStateChanges,
             builder: (context, snapshot) {
+              debugPrint('=== StreamBuilder called, connectionState: ${snapshot.connectionState}, hasData: ${snapshot.hasData}');
+              
               if (snapshot.connectionState == ConnectionState.waiting) {
+                debugPrint('Auth state waiting - showing loading');
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
+              
               if (snapshot.hasData) {
-                // User is logged in, check for phone number
-                return FutureBuilder<Map<String, dynamic>?>(
-                  future: FirebaseDatabaseService().getUserProfile(snapshot.data!.uid),
-                  builder: (context, profileSnapshot) {
-                    if (profileSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    
-                    // Add error handling for failed profile fetch with retry
-                    if (profileSnapshot.hasError) {
-                      debugPrint('Error fetching profile: ${profileSnapshot.error}');
-                      // Small delay then retry by rebuilding the FutureBuilder
-                      return FutureBuilder<void>(
-                        future: Future.delayed(const Duration(milliseconds: 500)),
-                        builder: (context, delaySnapshot) {
-                          if (delaySnapshot.connectionState == ConnectionState.done) {
-                            // Force rebuild by returning a new FutureBuilder with fresh future
-                            return FutureBuilder<Map<String, dynamic>?>(
-                              future: FirebaseDatabaseService().getUserProfile(snapshot.data!.uid),
-                              builder: (context, retrySnapshot) {
-                                if (retrySnapshot.connectionState == ConnectionState.waiting) {
-                                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
-                                }
-                                if (retrySnapshot.hasError) {
-                                  // If still error, sign out
-                                  debugPrint('Profile fetch failed twice, signing out');
-                                  AuthService().signOut();
-                                  return const LoginScreen();
-                                }
-                                // Continue with normal profile processing
-                                return _buildProfileBasedScreen(retrySnapshot.data, snapshot.data!);
-                              },
-                            );
-                          }
-                          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-                        },
-                      );
-                    }
-                    
-                    // Normal successful profile fetch - use helper method
-                    return _buildProfileBasedScreen(profileSnapshot.data, snapshot.data!);
-                  },
-                );
+                debugPrint('User authenticated: ${snapshot.data!.email}');
+                // Simple direct approach - no complex FutureBuilder nesting
+                return _AuthenticatedUserScreen(user: snapshot.data!);
               } else {
+                debugPrint('No user authenticated - showing LoginScreen');
                 return const LoginScreen();
               }
             },
           ),
         );
+      },
+    );
+  }
+}
+
+// Simple authenticated user screen handler
+class _AuthenticatedUserScreen extends StatefulWidget {
+  final firebase_auth.User user;
+  
+  const _AuthenticatedUserScreen({required this.user});
+
+  @override
+  State<_AuthenticatedUserScreen> createState() => _AuthenticatedUserScreenState();
+}
+
+class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
+  static const Duration _retryDelay = Duration(milliseconds: 500);
+
+  Future<Map<String, dynamic>?> _getProfileWithRetry() async {
+    debugPrint('_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries');
+    
+    try {
+      final profile = await FirebaseDatabaseService().getUserProfile(widget.user.uid);
+      
+      if (profile != null) {
+        debugPrint('Profile found on attempt ${_retryCount + 1}: ${profile.keys.join(', ')}');
+        return profile;
+      }
+      
+      // If no profile found and we have retries left, wait and retry
+      if (_retryCount < _maxRetries - 1) {
+        _retryCount++;
+        debugPrint('Profile not found, retrying in ${_retryDelay.inMilliseconds}ms... (attempt ${_retryCount + 1}/$_maxRetries)');
+        await Future.delayed(_retryDelay);
+        return await _getProfileWithRetry();
+      }
+      
+      // After all retries failed, check if this is an orphaned account
+      debugPrint('Profile not found after $_maxRetries attempts - checking for orphaned account');
+      final authService = AuthService();
+      final isOrphaned = await authService.isOrphanedAccount();
+      
+      if (isOrphaned) {
+        debugPrint('🧹 Cleaning up orphaned Firebase Auth account...');
+        try {
+          await authService.cleanupOrphanedAccount();
+        } catch (e) {
+          debugPrint('Failed to cleanup orphaned account: $e');
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error getting profile on attempt ${_retryCount + 1}: $e');
+      
+      // If error occurred and we have retries left, wait and retry
+      if (_retryCount < _maxRetries - 1) {
+        _retryCount++;
+        debugPrint('Retrying after error in ${_retryDelay.inMilliseconds}ms... (attempt ${_retryCount + 1}/$_maxRetries)');
+        await Future.delayed(_retryDelay);
+        return await _getProfileWithRetry();
+      }
+      
+      rethrow;
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    debugPrint('_AuthenticatedUserScreen build called for user: ${widget.user.email}');
+    
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _getProfileWithRetry(),
+      builder: (context, snapshot) {
+        debugPrint('Profile FutureBuilder: connectionState=${snapshot.connectionState}, hasError=${snapshot.hasError}, hasData=${snapshot.hasData}');
+        
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          debugPrint('Profile loading...');
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading profile...'),
+                ],
+              ),
+            ),
+          );
+        }
+        
+        if (snapshot.hasError) {
+          debugPrint('Profile error: ${snapshot.error}');
+          debugPrint('Redirecting to AddPhoneScreen due to profile error');
+          return const AddPhoneScreen();
+        }
+        
+        final profile = snapshot.data;
+        debugPrint('Profile data: ${profile != null ? 'exists' : 'null'}');
+        
+        // Enhanced routing logic with detailed debugging
+        debugPrint('🔍 ROUTING DECISION POINT - Profile Analysis:');
+        debugPrint('   - Profile exists: ${profile != null}');
+        if (profile != null) {
+          debugPrint('   - Profile keys: ${profile.keys.toList()}');
+          debugPrint('   - Phone number: "${profile['phone_number']}" (${profile['phone_number']?.runtimeType})');
+          debugPrint('   - Display name: "${profile['display_name']}" (${profile['display_name']?.runtimeType})');
+          debugPrint('   - Email: "${profile['email']}" (${profile['email']?.runtimeType})');
+        }
+
+        if (profile == null) {
+          debugPrint('❌ ROUTING: No profile found → AddPhoneScreen');
+          return const AddPhoneScreen();
+        }
+        
+        final phoneNumber = profile['phone_number'];
+        if (phoneNumber == null || phoneNumber.toString().isEmpty) {
+          debugPrint('❌ ROUTING: Missing phone number → AddPhoneScreen');
+          debugPrint('   - Phone value: $phoneNumber');
+          debugPrint('   - Is null: ${phoneNumber == null}');
+          debugPrint('   - Is empty string: ${phoneNumber.toString().isEmpty}');
+          return const AddPhoneScreen();
+        }
+        
+        final displayName = profile['display_name'];
+        if (displayName == null || displayName.toString().isEmpty) {
+          debugPrint('❌ ROUTING: Missing display name → SetupNameScreen');
+          debugPrint('   - Display name value: $displayName');
+          debugPrint('   - Is null: ${displayName == null}');
+          debugPrint('   - Is empty string: ${displayName.toString().isEmpty}');
+          return const SetupNameScreen();
+        }
+        
+        debugPrint('✅ ROUTING: Complete profile found → HomeScreen');
+        debugPrint('   - Phone: "$phoneNumber"');
+        debugPrint('   - Name: "$displayName"');
+        debugPrint('   - Email: "${profile['email']}"');
+        return const HomeScreen();
       },
     );
   }

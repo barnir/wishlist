@@ -62,7 +62,7 @@ class AuthService {
   }
 
   bool _isValidEmail(String email) {
-    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$').hasMatch(email);
+    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
   }
 
   Future<firebase_auth.UserCredential> createUserWithEmailAndPassword(String email, String password, String displayName) async {
@@ -393,5 +393,47 @@ class AuthService {
     return profile != null && 
            profile['email'] != null && 
            profile['email'].toString().isNotEmpty;
+  }
+
+  /// Detects and handles orphaned Firebase Auth accounts (exist in Auth but not in Firestore)
+  Future<bool> isOrphanedAccount() async {
+    final user = currentUser;
+    if (user == null) return false;
+    
+    try {
+      final profile = await _databaseService.getUserProfile(user.uid);
+      final isOrphaned = profile == null;
+      
+      if (isOrphaned) {
+        debugPrint('🚨 Orphaned account detected: Auth user exists but no Firestore profile');
+        debugPrint('   - User ID: ${user.uid}');
+        debugPrint('   - Email: ${user.email}');
+        debugPrint('   - Phone: ${user.phoneNumber}');
+      }
+      
+      return isOrphaned;
+    } catch (e) {
+      debugPrint('Error checking orphaned account: $e');
+      return true; // Assume orphaned if we can't check
+    }
+  }
+
+  /// Cleans up orphaned Firebase Auth account by deleting it
+  Future<void> cleanupOrphanedAccount() async {
+    final user = currentUser;
+    if (user == null) return;
+    
+    try {
+      debugPrint('=== Cleaning up orphaned Firebase Auth account ===');
+      debugPrint('User ID: ${user.uid}');
+      debugPrint('Email: ${user.email}');
+      
+      await user.delete();
+      debugPrint('Orphaned Firebase Auth account deleted successfully');
+      
+    } catch (e) {
+      debugPrint('Error cleaning up orphaned account: $e');
+      rethrow;
+    }
   }
 }

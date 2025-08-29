@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
 import '../constants/ui_constants.dart';
+import '../main.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phoneNumber;
@@ -107,8 +108,11 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
       
       if (isSuccessful && mounted) {
         debugPrint('OTP verification successful${userCredential == null ? ' (via fallback)' : ''}');
-        debugPrint('🚀 Navigating to home route for automatic screen detection');
-        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        debugPrint('🚀 Navigating to HomeScreen directly (avoiding auth stream reset)');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
       }
     } catch (e) {
       debugPrint('OTP verification error: $e');
