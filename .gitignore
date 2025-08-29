@@ -177,3 +177,4 @@ functions/firebase-debug.*.log
 # Temporary files
 android/NDH6SA~M
 supabase/migrations/20250825000001_add_fcm_token_to_users.sql
+.flutter_input

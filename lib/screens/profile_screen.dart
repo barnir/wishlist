@@ -349,16 +349,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       debugPrint('Error deleting account: $e');
       if (!mounted) return;
-      // Close the dialog if it's still open on error
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
+      
+      // Only show user-friendly errors, not technical Firebase auth errors
+      if (e.toString().contains('[firebase_auth/user-not-found]')) {
+        // This is expected when Cloud Function already deleted the user - SUCCESS!
+        
+        // Close the dialog first
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Conta apagada com sucesso.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Navigate to login as the account was successfully deleted
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+      } else {
+        // Show actual errors to user
+        
+        // Close the dialog first
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Erro ao apagar conta. Tente novamente.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao apagar conta: ${e.toString()}'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
     }
   }
 

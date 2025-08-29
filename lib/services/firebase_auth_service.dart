@@ -35,6 +35,10 @@ class FirebaseAuthService {
       if (userCredential.user != null) {
         debugPrint('Google sign-in successful: ${userCredential.user!.email}');
         debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
+        
+        // Clear any old OTP verification data for fresh start
+        await _clearVerificationData();
+        debugPrint('🧹 Cleared old OTP verification data for fresh user');
       }
       
       return userCredential;
@@ -51,6 +55,10 @@ class FirebaseAuthService {
           debugPrint('✅ Fallback: User authenticated successfully');
           debugPrint('Fallback Google sign-in successful: ${user.email}');
           debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
+          
+          // Clear any old OTP verification data for fresh start
+          await _clearVerificationData();
+          debugPrint('🧹 Cleared old OTP verification data for fresh user (fallback)');
           
           // Return null to indicate successful login, auth_service.dart will handle this
           return null;
