@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:wishlist_app/utils/validation_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -35,9 +36,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await _authService.createUserWithEmailAndPassword(
-        _emailController.text.trim(),
-        _passwordController.text,
-        _nomeController.text.trim(),
+  _emailController.text.trim(),
+  _passwordController.text,
+  ValidationUtils.sanitizeTextInput(_nomeController.text),
       );
 
       if (!mounted) return; // Guard against context use after async gap
@@ -71,49 +72,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  String? _validarEmail(String? value) {
-    final l10n = AppLocalizations.of(context);
-    if (value == null || value.trim().isEmpty) {
-      return l10n?.registerEmailRequired ?? 'Email obrigatório';
-    }
-    // Regex mais robusto para validação de email
-    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value.trim())) {
-      return l10n?.registerEmailInvalidFormat ?? 'Formato de email inválido';
-    }
-    return null;
-  }
-
-  String? _validarNome(String? value) {
-    final l10n = AppLocalizations.of(context);
-    if (value == null || value.trim().isEmpty) {
-      return l10n?.registerNameRequired ?? 'Nome obrigatório';
-    }
-    if (value.trim().length < 2) {
-      return l10n?.registerNameTooShort ?? 'Nome demasiado curto';
-    }
-    return null;
-  }
-
-  String? _validarPassword(String? value) {
-    final l10n = AppLocalizations.of(context);
-    if (value == null || value.length < 8) {
-      return l10n?.registerPasswordMinChars ?? 'Password deve ter pelo menos 8 caracteres';
-    }
-    if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return l10n?.registerPasswordUppercase ?? 'Password deve conter uma maiúscula';
-    }
-    if (!RegExp(r'[a-z]').hasMatch(value)) {
-      return l10n?.registerPasswordLowercase ?? 'Password deve conter uma minúscula';
-    }
-    if (!RegExp(r'[0-9]').hasMatch(value)) {
-      return l10n?.registerPasswordNumber ?? 'Password deve conter um número';
-    }
-    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
-      return l10n?.registerPasswordSpecial ?? 'Password deve conter um símbolo especial';
-    }
-    return null;
-  }
-
+  // Use centralized localized validators
+  String? _validarEmail(String? value) => ValidationUtils.validateEmail(value, context);
+  String? _validarNome(String? value) => ValidationUtils.validateName(value, context);
+  String? _validarPassword(String? value) => ValidationUtils.validatePassword(value, context);
   String? _validarConfirmaPassword(String? value) {
     final l10n = AppLocalizations.of(context);
     if (value != _passwordController.text) {
@@ -227,15 +189,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      _buildPasswordRequirement(l10n?.registerPasswordMinChars ?? 'Pelo menos 8 caracteres', 
+                      _buildPasswordRequirement(l10n?.passwordTooShort ?? l10n?.registerPasswordMinChars ?? 'Pelo menos 8 caracteres', 
                           _passwordController.text.length >= 8),
-                      _buildPasswordRequirement(l10n?.registerPasswordUppercase ?? 'Uma maiúscula (A-Z)', 
+                      _buildPasswordRequirement(l10n?.passwordNeedUpper ?? l10n?.registerPasswordUppercase ?? 'Uma maiúscula (A-Z)', 
                           RegExp(r'[A-Z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement(l10n?.registerPasswordLowercase ?? 'Uma minúscula (a-z)', 
+                      _buildPasswordRequirement(l10n?.passwordNeedLower ?? l10n?.registerPasswordLowercase ?? 'Uma minúscula (a-z)', 
                           RegExp(r'[a-z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement(l10n?.registerPasswordNumber ?? 'Um número (0-9)', 
+                      _buildPasswordRequirement(l10n?.passwordNeedNumber ?? l10n?.registerPasswordNumber ?? 'Um número (0-9)', 
                           RegExp(r'[0-9]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement(l10n?.registerPasswordSpecial ?? 'Um símbolo especial (!@#\$%^&*)', 
+                      _buildPasswordRequirement(l10n?.passwordNeedSpecial ?? l10n?.registerPasswordSpecial ?? 'Um símbolo especial (!@#\$%^&*)', 
                           RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(_passwordController.text)),
                     ],
                   ),

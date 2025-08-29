@@ -388,7 +388,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wishlistNameHint => 'Enter your wishlist name';
 
   @override
-  String get wishlistNameRequired => 'Enter a name';
+  String get wishlistNameRequired => 'Wishlist name is required';
 
   @override
   String get privacySectionTitle => 'Privacy';
@@ -614,7 +614,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scrapingLoadingImage => 'Loading product image...';
 
   @override
-  String scrapingExtractedPrefix(Object features) {
+  String scrapingExtractedPrefix(String features) {
     return 'Extracted: $features. Review the data!';
   }
 
@@ -668,7 +668,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get itemNameLabel => 'Item Name';
 
   @override
-  String get itemNameRequired => 'Enter the item name';
+  String get itemNameRequired => 'Item name is required';
 
   @override
   String get categoryLabel => 'Category';
@@ -699,17 +699,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Please select or create a wishlist.';
 
   @override
-  String errorCreatingWishlist(Object error) {
+  String errorCreatingWishlist(String error) {
     return 'Error creating wishlist: $error';
   }
 
   @override
-  String errorLoadingItem(Object error) {
+  String errorLoadingItem(String error) {
     return 'Error loading item: $error';
   }
 
   @override
-  String imageUploadFailed(Object error) {
+  String imageUploadFailed(String error) {
     return 'Image upload failed: $error';
   }
 
@@ -718,4 +718,108 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveItemAction => 'Save';
+
+  @override
+  String get emailRequired => 'Email is required';
+
+  @override
+  String get emailInvalid => 'Invalid email';
+
+  @override
+  String get emailTooLong => 'Email too long';
+
+  @override
+  String get emailDomainInvalid => 'Invalid email domain';
+
+  @override
+  String get passwordRequired => 'Password is required';
+
+  @override
+  String get passwordTooShort => 'Password must be at least 8 characters';
+
+  @override
+  String get passwordTooLong => 'Password too long';
+
+  @override
+  String get passwordNeedUpper =>
+      'Password must contain at least one uppercase letter';
+
+  @override
+  String get passwordNeedLower =>
+      'Password must contain at least one lowercase letter';
+
+  @override
+  String get passwordNeedNumber => 'Password must contain at least one number';
+
+  @override
+  String get passwordNeedSpecial =>
+      'Password must contain at least one special character';
+
+  @override
+  String get nameRequired => 'Name is required';
+
+  @override
+  String get nameTooShort => 'Name must be at least 2 characters';
+
+  @override
+  String get nameTooLong => 'Name too long';
+
+  @override
+  String get nameInvalidChars => 'Name contains invalid characters';
+
+  @override
+  String get phoneRequired => 'Phone number is required';
+
+  @override
+  String get phoneInvalidFormat => 'Invalid phone number (format: 9XXXXXXXX)';
+
+  @override
+  String get urlMustBeHttp => 'URL must use HTTP or HTTPS';
+
+  @override
+  String get urlInvalid => 'Invalid URL';
+
+  @override
+  String get urlLocalNotAllowed => 'Local URLs are not allowed';
+
+  @override
+  String get urlTooLong => 'URL too long';
+
+  @override
+  String get priceNegative => 'Price cannot be negative';
+
+  @override
+  String get priceTooHigh => 'Price too high';
+
+  @override
+  String get descriptionTooLong => 'Description too long (max 500 characters)';
+
+  @override
+  String get wishlistNameTooShort =>
+      'Wishlist name must be at least 2 characters';
+
+  @override
+  String get wishlistNameTooLong => 'Wishlist name too long';
+
+  @override
+  String get itemNameTooShort => 'Item name must be at least 2 characters';
+
+  @override
+  String get itemNameTooLong => 'Item name too long';
+
+  @override
+  String get imageTooLarge => 'Image too large (max 10MB)';
+
+  @override
+  String get imageFormatUnsupported =>
+      'Unsupported image format (use JPG, PNG or GIF)';
+
+  @override
+  String get otpCodeRequired => 'Code is required';
+
+  @override
+  String get otpCodeLength => 'Code must be 6 digits';
+
+  @override
+  String get otpCodeDigitsOnly => 'Code must contain only numbers';
 }

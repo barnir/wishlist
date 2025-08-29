@@ -11,6 +11,7 @@ import 'package:wishlist_app/services/web_scraper_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:wishlist_app/utils/validation_utils.dart';
 
 import '../models/category.dart';
 
@@ -356,15 +357,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
     await _databaseService.saveWishItem({
       'wishlist_id': finalWishlistId,
-      'name': _nameController.text.trim(),
+      'name': ValidationUtils.sanitizeTextInput(_nameController.text),
       'description': _descriptionController.text.trim().isNotEmpty 
-          ? _descriptionController.text.trim() : null,
+          ? ValidationUtils.sanitizeTextInput(_descriptionController.text) : null,
       'price': double.tryParse(
             _priceController.text.trim().replaceAll(',', '.'),
           ) ?? 0.0,
       'category': _selectedCategory!,
       'rating': _rating,
-      'link': _linkController.text.trim(),
+  'link': _linkController.text.trim(), // kept raw (URL validated); could further normalize
       'image_url': uploadedUrl ?? _existingImageUrl,
       if (widget.itemId != null) 'id': widget.itemId,
     });
@@ -495,9 +496,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                     _selectedWishlistId = newValue;
                                   });
                                 },
-                validator: (value) => value == null
-                  ? (AppLocalizations.of(context)?.chooseWishlistValidation ?? 'Por favor, escolha uma wishlist')
-                  : null,
+                                validator: (value) => ValidationUtils.validateWishlistSelection(value, context),
                               ),
                             if (_wishlists.isEmpty && !_showCreateWishlistForm)
                               Center(
@@ -589,10 +588,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         ),
                         filled: true,
                       ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                          ? (AppLocalizations.of(context)?.itemNameRequired ?? 'Insere o nome do item')
-                          : null,
+                      validator: (value) => ValidationUtils.validateItemName(value, context),
                     ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<String>(
@@ -633,6 +629,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         filled: true,
                       ),
                       maxLines: 3,
+                      validator: (value) => ValidationUtils.validateDescription(value, context),
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
@@ -645,6 +642,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         filled: true,
                       ),
                       keyboardType: TextInputType.url,
+                      validator: (value) => ValidationUtils.validateAndSanitizeUrl(value, context),
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -660,16 +658,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                               filled: true,
                             ),
                             keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return AppLocalizations.of(context)?.quantityRequired ?? 'Insere a quantidade';
-                              }
-                              final n = int.tryParse(value);
-                              if (n == null || n < 1) {
-                                return AppLocalizations.of(context)?.quantityInvalid ?? 'Quantidade inválida';
-                              }
-                              return null;
-                            },
+                            validator: (value) => ValidationUtils.validateQuantity(value, context),
                           ),
                         ),
                         const SizedBox(width: 20),
@@ -687,14 +676,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) return null;
-                              final n = double.tryParse(
-                                value.replaceAll(',', '.'),
-                              );
-                              if (n == null || n < 0) return AppLocalizations.of(context)?.priceInvalid ?? 'Preço inválido';
-                              return null;
-                            },
+                            validator: (value) => ValidationUtils.validatePrice(value, context),
                           ),
                         ),
                       ],

@@ -400,70 +400,206 @@
   "systemLanguage": "Follow system language",
   "language": "Language",
   "themeSettings": "App Theme",
+  "@themeSettings": {"description": "Title of the bottom sheet / screen where user selects the app theme mode"},
   "themeLight": "Light Theme",
+  "@themeLight": {"description": "Label for choosing the permanent light theme"},
   "themeLightSubtitle": "Always use the light theme",
+  "@themeLightSubtitle": {"description": "Short explanatory subtitle under the Light Theme option"},
   "themeDark": "Dark Theme",
+  "@themeDark": {"description": "Label for choosing the permanent dark theme"},
   "themeDarkSubtitle": "Always use the dark theme",
+  "@themeDarkSubtitle": {"description": "Short explanatory subtitle under the Dark Theme option"},
   "themeSystem": "Automatic",
+  "@themeSystem": {"description": "Label for following the system (OS) theme setting"},
   "themeSystemSubtitle": "Follow system setting",
+  "@themeSystemSubtitle": {"description": "Subtitle explaining that the app appearance adapts to the device setting"},
   "close": "Close",
+  "@close": {"description": "Generic close button tooltip / label"},
   
   "registerTitle": "Register new account",
+  "@registerTitle": {"description": "Title displayed at the top of the register/create account screen"},
   "registerErrorPrefix": "Registration error: ",
+  "@registerErrorPrefix": {"description": "Prefix used before a specific registration error message concatenated afterwards"},
   "registerSystemError": "System error. Please try again.",
+  "@registerSystemError": {"description": "Generic catch-all system / unknown error during registration"},
   "registerEmailInUse": "This email is already in use. Try logging in.",
+  "@registerEmailInUse": {"description": "Error shown when Firebase returns email-already-in-use"},
   "registerWeakPassword": "Password is too weak. Choose a stronger password.",
+  "@registerWeakPassword": {"description": "Error shown when password strength does not meet backend rules"},
   "registerInvalidEmail": "Invalid email. Check the format.",
+  "@registerInvalidEmail": {"description": "Error shown when email format is invalid"},
   "registerEmailRequired": "Email required",
+  "@registerEmailRequired": {"description": "Validation message: email field empty"},
   "registerEmailInvalidFormat": "Invalid email format",
+  "@registerEmailInvalidFormat": {"description": "Validation message: email fails regex"},
   "registerNameRequired": "Name required",
+  "@registerNameRequired": {"description": "Validation message: name field empty"},
   "registerNameTooShort": "Name too short",
+  "@registerNameTooShort": {"description": "Validation message: minimum length for name not met"},
   "registerPasswordMinChars": "Password must have at least 8 characters",
+  "@registerPasswordMinChars": {"description": "Password rule: minimum length"},
   "registerPasswordUppercase": "Password must contain an uppercase letter",
+  "@registerPasswordUppercase": {"description": "Password rule: at least one uppercase A-Z"},
   "registerPasswordLowercase": "Password must contain a lowercase letter",
+  "@registerPasswordLowercase": {"description": "Password rule: at least one lowercase a-z"},
   "registerPasswordNumber": "Password must contain a number",
+  "@registerPasswordNumber": {"description": "Password rule: at least one digit 0-9"},
   "registerPasswordSpecial": "Password must contain a special symbol",
+  "@registerPasswordSpecial": {"description": "Password rule: at least one special character (symbol)"},
   "registerPasswordsDoNotMatch": "Passwords do not match",
+  "@registerPasswordsDoNotMatch": {"description": "Validation when password and confirmation differ"},
   "passwordLabel": "Password",
+  "@passwordLabel": {"description": "Label for password input field"},
   "confirmPasswordLabel": "Confirm Password",
+  "@confirmPasswordLabel": {"description": "Label for password confirmation field"},
   "registerPasswordRequirementsTitle": "Password requirements:",
+  "@registerPasswordRequirementsTitle": {"description": "Heading introducing password rules list"},
   "registerAction": "Register",
+  "@registerAction": {"description": "Primary action button text to submit registration"},
   "registerExistingAccountCta": "Already have an account? Log in!",
+  "@registerExistingAccountCta": {"description": "Call to action linking to login when user already has an account"},
   
   "scrapingExtractingInfo": "Extracting product information...",
+  "@scrapingExtractingInfo": {"description": "Status message while scraper parses initial HTML and metadata"},
   "scrapingFillingFields": "Filling fields automatically...",
+  "@scrapingFillingFields": {"description": "Status message while auto-filling form fields with scraped data"},
   "scrapingLoadingImage": "Loading product image...",
+  "@scrapingLoadingImage": {"description": "Status message while attempting to fetch the product image"},
   "scrapingExtractedPrefix": "Extracted: {features}. Review the data!",
+  "@scrapingExtractedPrefix": {"description": "Message listing which features were successfully extracted. {features} is a comma-separated list of localized feature names.", "placeholders": {"features": {"type": "String"}}},
   "scrapingCompletedAdjust": "Done! Review and adjust the data if needed.",
+  "@scrapingCompletedAdjust": {"description": "Status message after all scraping steps complete"},
   "scrapingError": "Error extracting data. Fill manually.",
+  "@scrapingError": {"description": "Shown when scraping fails and user must provide data manually"},
   "scrapingFeatureTitle": "title",
+  "@scrapingFeatureTitle": {"description": "Token name representing the product title feature"},
   "scrapingFeaturePrice": "price",
+  "@scrapingFeaturePrice": {"description": "Token name representing the product price feature"},
   "scrapingFeatureDescription": "description",
+  "@scrapingFeatureDescription": {"description": "Token name representing the product description feature"},
   "scrapingFeatureCategory": "category",
+  "@scrapingFeatureCategory": {"description": "Token name representing the product category feature"},
   "scrapingFeatureRating": "rating",
+  "@scrapingFeatureRating": {"description": "Token name representing the product rating feature"},
   "scrapingFeatureImage": "image",
+  "@scrapingFeatureImage": {"description": "Token name representing the product image feature"},
   
   "addItemTitle": "Add Item",
+  "@addItemTitle": {"description": "Title for screen to add a new item to a wishlist"},
   "editItemTitle": "Edit Item",
+  "@editItemTitle": {"description": "Title for screen to edit an existing item"},
   "chooseWishlistLabel": "Choose a Wishlist",
+  "@chooseWishlistLabel": {"description": "Field label prompting user to pick a wishlist in the add item form"},
   "chooseWishlistValidation": "Please choose a wishlist",
+  "@chooseWishlistValidation": {"description": "Validation error when no wishlist is selected"},
   "newWishlistNameLabel": "New wishlist name",
+  "@newWishlistNameLabel": {"description": "Label for the inline new wishlist name text field"},
   "newWishlistNameRequired": "Enter a name for the wishlist",
+  "@newWishlistNameRequired": {"description": "Validation error when the new wishlist name is empty"},
   "createWishlistAction": "Create Wishlist",
+  "@createWishlistAction": {"description": "Button label to create a wishlist from within add/edit item flow"},
   "itemNameLabel": "Item Name",
+  "@itemNameLabel": {"description": "Label for item name input"},
   "itemNameRequired": "Enter the item name",
+  "@itemNameRequired": {"description": "Validation error when item name is empty"},
   "categoryLabel": "Category",
+  "@categoryLabel": {"description": "Label for item category input or selector"},
   "itemDescriptionLabel": "Description",
+  "@itemDescriptionLabel": {"description": "Label for item description field"},
   "linkLabel": "Link",
+  "@linkLabel": {"description": "Label for item external URL field"},
   "quantityLabel": "Quantity",
+  "@quantityLabel": {"description": "Label for quantity input"},
   "quantityRequired": "Enter the quantity",
+  "@quantityRequired": {"description": "Validation error when quantity field is empty"},
   "quantityInvalid": "Invalid quantity",
+  "@quantityInvalid": {"description": "Validation error when quantity cannot be parsed or is negative"},
   "priceLabel": "Price",
+  "@priceLabel": {"description": "Label for price input field"},
   "priceInvalid": "Invalid price",
+  "@priceInvalid": {"description": "Validation error when price is not a valid positive number"},
   "selectOrCreateWishlistPrompt": "Please select or create a wishlist.",
+  "@selectOrCreateWishlistPrompt": {"description": "Prompt shown when user must either select an existing wishlist or create one"},
   "errorCreatingWishlist": "Error creating wishlist: {error}",
+  "@errorCreatingWishlist": {"description": "Error message when backend fails to create wishlist", "placeholders": {"error": {"type": "String"}}},
   "errorLoadingItem": "Error loading item: {error}",
+  "@errorLoadingItem": {"description": "Error message when fetching existing item for editing fails", "placeholders": {"error": {"type": "String"}}},
   "imageUploadFailed": "Image upload failed: {error}",
+  "@imageUploadFailed": {"description": "Error message when uploading image to Cloudinary fails", "placeholders": {"error": {"type": "String"}}},
   "addItemAction": "Add",
+  "@addItemAction": {"description": "Button label to submit the add item form"},
   "saveItemAction": "Save"
+  ,"@saveItemAction": {"description": "Button label to save changes when editing an item"}
+  ,"emailRequired": "Email is required"
+  ,"@emailRequired": {"description": "Validation error: email field empty"}
+  ,"emailInvalid": "Invalid email"
+  ,"@emailInvalid": {"description": "Validation error: email format invalid"}
+  ,"emailTooLong": "Email too long"
+  ,"@emailTooLong": {"description": "Validation error: email exceeds length limit"}
+  ,"emailDomainInvalid": "Invalid email domain"
+  ,"@emailDomainInvalid": {"description": "Validation error: email domain part invalid"}
+  ,"passwordRequired": "Password is required"
+  ,"@passwordRequired": {"description": "Validation error: password missing"}
+  ,"passwordTooShort": "Password must be at least 8 characters"
+  ,"@passwordTooShort": {"description": "Validation error: password shorter than minimum length"}
+  ,"passwordTooLong": "Password too long"
+  ,"@passwordTooLong": {"description": "Validation error: password longer than maximum allowed"}
+  ,"passwordNeedUpper": "Password must contain at least one uppercase letter"
+  ,"@passwordNeedUpper": {"description": "Password rule: need uppercase"}
+  ,"passwordNeedLower": "Password must contain at least one lowercase letter"
+  ,"@passwordNeedLower": {"description": "Password rule: need lowercase"}
+  ,"passwordNeedNumber": "Password must contain at least one number"
+  ,"@passwordNeedNumber": {"description": "Password rule: need digit"}
+  ,"passwordNeedSpecial": "Password must contain at least one special character"
+  ,"@passwordNeedSpecial": {"description": "Password rule: need special symbol"}
+  ,"nameRequired": "Name is required"
+  ,"@nameRequired": {"description": "Validation: name empty"}
+  ,"nameTooShort": "Name must be at least 2 characters"
+  ,"@nameTooShort": {"description": "Validation: name below min length"}
+  ,"nameTooLong": "Name too long"
+  ,"@nameTooLong": {"description": "Validation: name above max length"}
+  ,"nameInvalidChars": "Name contains invalid characters"
+  ,"@nameInvalidChars": {"description": "Validation: name has disallowed chars"}
+  ,"phoneRequired": "Phone number is required"
+  ,"@phoneRequired": {"description": "Validation: phone empty"}
+  ,"phoneInvalidFormat": "Invalid phone number (format: 9XXXXXXXX)"
+  ,"@phoneInvalidFormat": {"description": "Validation: phone does not match expected pattern"}
+  ,"urlMustBeHttp": "URL must use HTTP or HTTPS"
+  ,"@urlMustBeHttp": {"description": "Validation: URL scheme invalid"}
+  ,"urlInvalid": "Invalid URL"
+  ,"@urlInvalid": {"description": "Validation: URL malformed"}
+  ,"urlLocalNotAllowed": "Local URLs are not allowed"
+  ,"@urlLocalNotAllowed": {"description": "Validation: local/internal URL rejected"}
+  ,"urlTooLong": "URL too long"
+  ,"@urlTooLong": {"description": "Validation: URL exceeds length limit"}
+  ,"priceInvalid": "Invalid price"
+  ,"@priceInvalid": {"description": "Validation: price parse failed"}
+  ,"priceNegative": "Price cannot be negative"
+  ,"@priceNegative": {"description": "Validation: price < 0"}
+  ,"priceTooHigh": "Price too high"
+  ,"@priceTooHigh": {"description": "Validation: price exceeds business max"}
+  ,"descriptionTooLong": "Description too long (max 500 characters)"
+  ,"@descriptionTooLong": {"description": "Validation: description length > 500"}
+  ,"wishlistNameRequired": "Wishlist name is required"
+  ,"@wishlistNameRequired": {"description": "Validation: wishlist name empty (separate from generic name)"}
+  ,"wishlistNameTooShort": "Wishlist name must be at least 2 characters"
+  ,"@wishlistNameTooShort": {"description": "Validation: wishlist name too short"}
+  ,"wishlistNameTooLong": "Wishlist name too long"
+  ,"@wishlistNameTooLong": {"description": "Validation: wishlist name too long"}
+  ,"itemNameRequired": "Item name is required"
+  ,"@itemNameRequired": {"description": "Validation: item name empty"}
+  ,"itemNameTooShort": "Item name must be at least 2 characters"
+  ,"@itemNameTooShort": {"description": "Validation: item name too short"}
+  ,"itemNameTooLong": "Item name too long"
+  ,"@itemNameTooLong": {"description": "Validation: item name too long"}
+  ,"imageTooLarge": "Image too large (max 10MB)"
+  ,"@imageTooLarge": {"description": "Validation: image file size exceeds limit"}
+  ,"imageFormatUnsupported": "Unsupported image format (use JPG, PNG or GIF)"
+  ,"@imageFormatUnsupported": {"description": "Validation: image extension not allowed"}
+  ,"otpCodeRequired": "Code is required"
+  ,"@otpCodeRequired": {"description": "Validation: OTP code empty"}
+  ,"otpCodeLength": "Code must be 6 digits"
+  ,"@otpCodeLength": {"description": "Validation: OTP code length incorrect"}
+  ,"otpCodeDigitsOnly": "Code must contain only numbers"
+  ,"@otpCodeDigitsOnly": {"description": "Validation: OTP code non-digit chars present"}
 }

@@ -11,6 +11,7 @@ import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../widgets/ui_components.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:wishlist_app/utils/validation_utils.dart';
 import '../constants/ui_constants.dart';
 
 class AddEditWishlistScreen extends StatefulWidget {
@@ -106,7 +107,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         // CREATE FLOW
         // 1. Create wishlist without image (so we get Firestore ID)
         final created = await _databaseService.saveWishlist({
-          'name': _nameController.text.trim(),
+          'name': ValidationUtils.sanitizeTextInput(_nameController.text),
           'is_private': _isPrivate,
           'image_url': null, // placeholder, updated after upload
           'user_id': _authService.currentUser?.uid,
@@ -153,7 +154,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         }
 
         await _databaseService.updateWishlist(id, {
-          'name': _nameController.text.trim(),
+          'name': ValidationUtils.sanitizeTextInput(_nameController.text),
           'is_private': _isPrivate,
           'image_url': uploadedImageUrl ?? _existingImageUrl,
         });
@@ -335,10 +336,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                       hint: AppLocalizations.of(context)?.wishlistNameHint ?? 'Digite o nome da sua wishlist',
                       controller: _nameController,
                       prefixIcon: const Icon(Icons.card_giftcard),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                          ? (AppLocalizations.of(context)?.wishlistNameRequired ?? 'Insere um nome')
-                          : null,
+                      validator: (value) => ValidationUtils.validateWishlistName(value, context),
                     ),
                     
                     Spacing.l,

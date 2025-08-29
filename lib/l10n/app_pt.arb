@@ -174,70 +174,206 @@
   "systemLanguage": "Seguir idioma do sistema",
   "language": "Idioma",
   "themeSettings": "Tema da App",
+  "@themeSettings": {"description": "Título do painel / folha para escolher o modo de tema"},
   "themeLight": "Tema Claro",
+  "@themeLight": {"description": "Opção para forçar tema claro"},
   "themeLightSubtitle": "Usar sempre o tema claro",
+  "@themeLightSubtitle": {"description": "Subtítulo explicativo da opção de tema claro"},
   "themeDark": "Tema Escuro",
+  "@themeDark": {"description": "Opção para forçar tema escuro"},
   "themeDarkSubtitle": "Usar sempre o tema escuro",
+  "@themeDarkSubtitle": {"description": "Subtítulo explicativo da opção de tema escuro"},
   "themeSystem": "Automático",
+  "@themeSystem": {"description": "Opção para seguir definições do sistema"},
   "themeSystemSubtitle": "Seguir as definições do sistema",
+  "@themeSystemSubtitle": {"description": "Subtítulo explicando que a aparência segue o dispositivo"},
   "close": "Fechar",
+  "@close": {"description": "Rótulo / tooltip genérico para botão de fechar"},
   
   "registerTitle": "Registar nova conta",
+  "@registerTitle": {"description": "Título no ecrã de registo"},
   "registerErrorPrefix": "Erro ao registar: ",
+  "@registerErrorPrefix": {"description": "Prefixo antes de mensagem específica de erro de registo"},
   "registerSystemError": "Erro no sistema. Por favor tente novamente.",
+  "@registerSystemError": {"description": "Erro genérico / desconhecido durante registo"},
   "registerEmailInUse": "Este email já está em uso. Tente fazer login.",
+  "@registerEmailInUse": {"description": "Erro quando backend indica email já usado"},
   "registerWeakPassword": "A password é muito fraca. Escolha uma password mais forte.",
+  "@registerWeakPassword": {"description": "Erro de password fraca"},
   "registerInvalidEmail": "Email inválido. Verifique o formato.",
+  "@registerInvalidEmail": {"description": "Erro de formato de email inválido"},
   "registerEmailRequired": "Email obrigatório",
+  "@registerEmailRequired": {"description": "Validação campo email vazio"},
   "registerEmailInvalidFormat": "Formato de email inválido",
+  "@registerEmailInvalidFormat": {"description": "Validação regex falhou"},
   "registerNameRequired": "Nome obrigatório",
+  "@registerNameRequired": {"description": "Validação campo nome vazio"},
   "registerNameTooShort": "Nome demasiado curto",
+  "@registerNameTooShort": {"description": "Nome menos que comprimento mínimo"},
   "registerPasswordMinChars": "Password deve ter pelo menos 8 caracteres",
+  "@registerPasswordMinChars": {"description": "Regra password: mínimo de caracteres"},
   "registerPasswordUppercase": "Password deve conter uma maiúscula",
+  "@registerPasswordUppercase": {"description": "Regra password: pelo menos uma maiúscula"},
   "registerPasswordLowercase": "Password deve conter uma minúscula",
+  "@registerPasswordLowercase": {"description": "Regra password: pelo menos uma minúscula"},
   "registerPasswordNumber": "Password deve conter um número",
+  "@registerPasswordNumber": {"description": "Regra password: pelo menos um dígito"},
   "registerPasswordSpecial": "Password deve conter um símbolo especial",
+  "@registerPasswordSpecial": {"description": "Regra password: pelo menos um símbolo"},
   "registerPasswordsDoNotMatch": "Passwords não coincidem",
+  "@registerPasswordsDoNotMatch": {"description": "Erro quando password e confirmação diferem"},
   "passwordLabel": "Password",
+  "@passwordLabel": {"description": "Label campo password"},
   "confirmPasswordLabel": "Confirmar Password",
+  "@confirmPasswordLabel": {"description": "Label campo confirmação password"},
   "registerPasswordRequirementsTitle": "Requisitos da password:",
+  "@registerPasswordRequirementsTitle": {"description": "Título da lista de requisitos da password"},
   "registerAction": "Registar",
+  "@registerAction": {"description": "Botão principal para submeter registo"},
   "registerExistingAccountCta": "Já tens conta? Fazer login!",
+  "@registerExistingAccountCta": {"description": "Chamada para fazer login se já existir conta"},
   
   "scrapingExtractingInfo": "Extraindo informações do produto...",
+  "@scrapingExtractingInfo": {"description": "Estado enquanto parser analisa HTML inicial"},
   "scrapingFillingFields": "Preenchendo campos automaticamente...",
+  "@scrapingFillingFields": {"description": "Estado enquanto campos são preenchidos automaticamente"},
   "scrapingLoadingImage": "Carregando imagem do produto...",
+  "@scrapingLoadingImage": {"description": "Estado enquanto tentativa de obter imagem do produto"},
   "scrapingExtractedPrefix": "Extraído: {features}. Verifique os dados!",
+  "@scrapingExtractedPrefix": {"description": "Lista features extraídas. {features} lista separada por vírgulas.", "placeholders": {"features": {"type": "String"}}},
   "scrapingCompletedAdjust": "Concluído! Verifique e ajuste os dados se necessário.",
+  "@scrapingCompletedAdjust": {"description": "Mensagem após conclusão de scraping"},
   "scrapingError": "Erro ao extrair dados. Preencha manualmente.",
+  "@scrapingError": {"description": "Erro quando scraping falha"},
   "scrapingFeatureTitle": "título",
+  "@scrapingFeatureTitle": {"description": "Token para feature título"},
   "scrapingFeaturePrice": "preço",
+  "@scrapingFeaturePrice": {"description": "Token para feature preço"},
   "scrapingFeatureDescription": "descrição",
+  "@scrapingFeatureDescription": {"description": "Token para feature descrição"},
   "scrapingFeatureCategory": "categoria",
+  "@scrapingFeatureCategory": {"description": "Token para feature categoria"},
   "scrapingFeatureRating": "avaliação",
+  "@scrapingFeatureRating": {"description": "Token para feature avaliação"},
   "scrapingFeatureImage": "imagem",
+  "@scrapingFeatureImage": {"description": "Token para feature imagem"},
   
   "addItemTitle": "Adicionar Item",
+  "@addItemTitle": {"description": "Título para ecrã de adicionar item"},
   "editItemTitle": "Editar Item",
+  "@editItemTitle": {"description": "Título para ecrã de editar item"},
   "chooseWishlistLabel": "Escolha uma Wishlist",
+  "@chooseWishlistLabel": {"description": "Label do campo de seleção de wishlist"},
   "chooseWishlistValidation": "Por favor, escolha uma wishlist",
+  "@chooseWishlistValidation": {"description": "Validação quando nenhuma wishlist selecionada"},
   "newWishlistNameLabel": "Nome da nova wishlist",
+  "@newWishlistNameLabel": {"description": "Label para nome da nova wishlist inline"},
   "newWishlistNameRequired": "Insira um nome para a wishlist",
+  "@newWishlistNameRequired": {"description": "Validação nome de wishlist vazio"},
   "createWishlistAction": "Criar Wishlist",
+  "@createWishlistAction": {"description": "Botão para criar wishlist a partir do fluxo de item"},
   "itemNameLabel": "Nome do Item",
+  "@itemNameLabel": {"description": "Label campo nome do item"},
   "itemNameRequired": "Insere o nome do item",
+  "@itemNameRequired": {"description": "Validação item sem nome"},
   "categoryLabel": "Categoria",
+  "@categoryLabel": {"description": "Label campo categoria"},
   "itemDescriptionLabel": "Descrição",
+  "@itemDescriptionLabel": {"description": "Label campo descrição"},
   "linkLabel": "Link",
+  "@linkLabel": {"description": "Label campo link externo"},
   "quantityLabel": "Quantidade",
+  "@quantityLabel": {"description": "Label campo quantidade"},
   "quantityRequired": "Insere a quantidade",
+  "@quantityRequired": {"description": "Validação quantidade vazia"},
   "quantityInvalid": "Quantidade inválida",
+  "@quantityInvalid": {"description": "Validação quantidade inválida"},
   "priceLabel": "Preço",
+  "@priceLabel": {"description": "Label campo preço"},
   "priceInvalid": "Preço inválido",
+  "@priceInvalid": {"description": "Validação preço inválido"},
   "selectOrCreateWishlistPrompt": "Por favor, selecione ou crie uma wishlist.",
+  "@selectOrCreateWishlistPrompt": {"description": "Prompt para selecionar ou criar wishlist"},
   "errorCreatingWishlist": "Erro ao criar wishlist: {error}",
+  "@errorCreatingWishlist": {"description": "Erro ao criar wishlist", "placeholders": {"error": {"type": "String"}}},
   "errorLoadingItem": "Erro ao carregar item: {error}",
+  "@errorLoadingItem": {"description": "Erro ao carregar item existente", "placeholders": {"error": {"type": "String"}}},
   "imageUploadFailed": "Falha upload imagem: {error}",
+  "@imageUploadFailed": {"description": "Erro upload imagem Cloudinary", "placeholders": {"error": {"type": "String"}}},
   "addItemAction": "Adicionar",
+  "@addItemAction": {"description": "Botão para submeter formulário de adicionar item"},
   "saveItemAction": "Guardar"
+  ,"@saveItemAction": {"description": "Botão para guardar alterações ao editar item"}
+  ,"emailRequired": "Email é obrigatório"
+  ,"@emailRequired": {"description": "Validação: email vazio"}
+  ,"emailInvalid": "Email inválido"
+  ,"@emailInvalid": {"description": "Validação: formato de email inválido"}
+  ,"emailTooLong": "Email demasiado longo"
+  ,"@emailTooLong": {"description": "Validação: email excede limite"}
+  ,"emailDomainInvalid": "Domínio do email inválido"
+  ,"@emailDomainInvalid": {"description": "Validação: domínio inválido"}
+  ,"passwordRequired": "Password é obrigatória"
+  ,"@passwordRequired": {"description": "Validação: password vazia"}
+  ,"passwordTooShort": "Password deve ter pelo menos 8 caracteres"
+  ,"@passwordTooShort": {"description": "Validação: password curta"}
+  ,"passwordTooLong": "Password demasiado longa"
+  ,"@passwordTooLong": {"description": "Validação: password longa"}
+  ,"passwordNeedUpper": "Password deve conter pelo menos uma letra maiúscula"
+  ,"@passwordNeedUpper": {"description": "Regra: necessita maiúscula"}
+  ,"passwordNeedLower": "Password deve conter pelo menos uma letra minúscula"
+  ,"@passwordNeedLower": {"description": "Regra: necessita minúscula"}
+  ,"passwordNeedNumber": "Password deve conter pelo menos um número"
+  ,"@passwordNeedNumber": {"description": "Regra: necessita número"}
+  ,"passwordNeedSpecial": "Password deve conter pelo menos um caracter especial"
+  ,"@passwordNeedSpecial": {"description": "Regra: necessita símbolo"}
+  ,"nameRequired": "Nome é obrigatório"
+  ,"@nameRequired": {"description": "Validação: nome vazio"}
+  ,"nameTooShort": "Nome deve ter pelo menos 2 caracteres"
+  ,"@nameTooShort": {"description": "Validação: nome curto"}
+  ,"nameTooLong": "Nome demasiado longo"
+  ,"@nameTooLong": {"description": "Validação: nome longo"}
+  ,"nameInvalidChars": "Nome contém caracteres inválidos"
+  ,"@nameInvalidChars": {"description": "Validação: caracteres não permitidos"}
+  ,"phoneRequired": "Número de telefone é obrigatório"
+  ,"@phoneRequired": {"description": "Validação: telefone vazio"}
+  ,"phoneInvalidFormat": "Número de telefone inválido (formato: 9XXXXXXXX)"
+  ,"@phoneInvalidFormat": {"description": "Validação: formato telefone inválido"}
+  ,"urlMustBeHttp": "URL deve usar HTTP ou HTTPS"
+  ,"@urlMustBeHttp": {"description": "Validação: esquema inválido"}
+  ,"urlInvalid": "URL inválido"
+  ,"@urlInvalid": {"description": "Validação: URL inválido"}
+  ,"urlLocalNotAllowed": "URLs locais não são permitidos"
+  ,"@urlLocalNotAllowed": {"description": "Validação: URL local proibido"}
+  ,"urlTooLong": "URL demasiado longo"
+  ,"@urlTooLong": {"description": "Validação: URL longo"}
+  ,"priceInvalid": "Preço inválido"
+  ,"@priceInvalid": {"description": "Validação: preço inválido"}
+  ,"priceNegative": "Preço não pode ser negativo"
+  ,"@priceNegative": {"description": "Validação: preço negativo"}
+  ,"priceTooHigh": "Preço demasiado alto"
+  ,"@priceTooHigh": {"description": "Validação: preço alto"}
+  ,"descriptionTooLong": "Descrição demasiado longa (máximo 500 caracteres)"
+  ,"@descriptionTooLong": {"description": "Validação: descrição longa"}
+  ,"wishlistNameRequired": "Nome da wishlist é obrigatório"
+  ,"@wishlistNameRequired": {"description": "Validação: nome wishlist vazio"}
+  ,"wishlistNameTooShort": "Nome da wishlist deve ter pelo menos 2 caracteres"
+  ,"@wishlistNameTooShort": {"description": "Validação: nome wishlist curto"}
+  ,"wishlistNameTooLong": "Nome da wishlist demasiado longo"
+  ,"@wishlistNameTooLong": {"description": "Validação: nome wishlist longo"}
+  ,"itemNameRequired": "Nome do item é obrigatório"
+  ,"@itemNameRequired": {"description": "Validação: nome item vazio"}
+  ,"itemNameTooShort": "Nome do item deve ter pelo menos 2 caracteres"
+  ,"@itemNameTooShort": {"description": "Validação: nome item curto"}
+  ,"itemNameTooLong": "Nome do item demasiado longo"
+  ,"@itemNameTooLong": {"description": "Validação: nome item longo"}
+  ,"imageTooLarge": "Imagem demasiado grande (máximo 10MB)"
+  ,"@imageTooLarge": {"description": "Validação: imagem grande"}
+  ,"imageFormatUnsupported": "Formato de imagem não suportado (use JPG, PNG ou GIF)"
+  ,"@imageFormatUnsupported": {"description": "Validação: formato imagem não suportado"}
+  ,"otpCodeRequired": "Código é obrigatório"
+  ,"@otpCodeRequired": {"description": "Validação: código OTP vazio"}
+  ,"otpCodeLength": "Código deve ter 6 dígitos"
+  ,"@otpCodeLength": {"description": "Validação: tamanho inválido"}
+  ,"otpCodeDigitsOnly": "Código deve conter apenas números"
+  ,"@otpCodeDigitsOnly": {"description": "Validação: código contém não dígitos"}
 }

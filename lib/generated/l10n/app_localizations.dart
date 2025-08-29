@@ -812,10 +812,10 @@ abstract class AppLocalizations {
   /// **'Enter your wishlist name'**
   String get wishlistNameHint;
 
-  /// No description provided for @wishlistNameRequired.
+  /// Validation: wishlist name empty (separate from generic name)
   ///
   /// In en, this message translates to:
-  /// **'Enter a name'**
+  /// **'Wishlist name is required'**
   String get wishlistNameRequired;
 
   /// No description provided for @privacySectionTitle.
@@ -1040,389 +1040,587 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get language;
 
-  /// No description provided for @themeSettings.
+  /// Title of the bottom sheet / screen where user selects the app theme mode
   ///
   /// In en, this message translates to:
   /// **'App Theme'**
   String get themeSettings;
 
-  /// No description provided for @themeLight.
+  /// Label for choosing the permanent light theme
   ///
   /// In en, this message translates to:
   /// **'Light Theme'**
   String get themeLight;
 
-  /// No description provided for @themeLightSubtitle.
+  /// Short explanatory subtitle under the Light Theme option
   ///
   /// In en, this message translates to:
   /// **'Always use the light theme'**
   String get themeLightSubtitle;
 
-  /// No description provided for @themeDark.
+  /// Label for choosing the permanent dark theme
   ///
   /// In en, this message translates to:
   /// **'Dark Theme'**
   String get themeDark;
 
-  /// No description provided for @themeDarkSubtitle.
+  /// Short explanatory subtitle under the Dark Theme option
   ///
   /// In en, this message translates to:
   /// **'Always use the dark theme'**
   String get themeDarkSubtitle;
 
-  /// No description provided for @themeSystem.
+  /// Label for following the system (OS) theme setting
   ///
   /// In en, this message translates to:
   /// **'Automatic'**
   String get themeSystem;
 
-  /// No description provided for @themeSystemSubtitle.
+  /// Subtitle explaining that the app appearance adapts to the device setting
   ///
   /// In en, this message translates to:
   /// **'Follow system setting'**
   String get themeSystemSubtitle;
 
-  /// No description provided for @close.
+  /// Generic close button tooltip / label
   ///
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
 
-  /// No description provided for @registerTitle.
+  /// Title displayed at the top of the register/create account screen
   ///
   /// In en, this message translates to:
   /// **'Register new account'**
   String get registerTitle;
 
-  /// No description provided for @registerErrorPrefix.
+  /// Prefix used before a specific registration error message concatenated afterwards
   ///
   /// In en, this message translates to:
   /// **'Registration error: '**
   String get registerErrorPrefix;
 
-  /// No description provided for @registerSystemError.
+  /// Generic catch-all system / unknown error during registration
   ///
   /// In en, this message translates to:
   /// **'System error. Please try again.'**
   String get registerSystemError;
 
-  /// No description provided for @registerEmailInUse.
+  /// Error shown when Firebase returns email-already-in-use
   ///
   /// In en, this message translates to:
   /// **'This email is already in use. Try logging in.'**
   String get registerEmailInUse;
 
-  /// No description provided for @registerWeakPassword.
+  /// Error shown when password strength does not meet backend rules
   ///
   /// In en, this message translates to:
   /// **'Password is too weak. Choose a stronger password.'**
   String get registerWeakPassword;
 
-  /// No description provided for @registerInvalidEmail.
+  /// Error shown when email format is invalid
   ///
   /// In en, this message translates to:
   /// **'Invalid email. Check the format.'**
   String get registerInvalidEmail;
 
-  /// No description provided for @registerEmailRequired.
+  /// Validation message: email field empty
   ///
   /// In en, this message translates to:
   /// **'Email required'**
   String get registerEmailRequired;
 
-  /// No description provided for @registerEmailInvalidFormat.
+  /// Validation message: email fails regex
   ///
   /// In en, this message translates to:
   /// **'Invalid email format'**
   String get registerEmailInvalidFormat;
 
-  /// No description provided for @registerNameRequired.
+  /// Validation message: name field empty
   ///
   /// In en, this message translates to:
   /// **'Name required'**
   String get registerNameRequired;
 
-  /// No description provided for @registerNameTooShort.
+  /// Validation message: minimum length for name not met
   ///
   /// In en, this message translates to:
   /// **'Name too short'**
   String get registerNameTooShort;
 
-  /// No description provided for @registerPasswordMinChars.
+  /// Password rule: minimum length
   ///
   /// In en, this message translates to:
   /// **'Password must have at least 8 characters'**
   String get registerPasswordMinChars;
 
-  /// No description provided for @registerPasswordUppercase.
+  /// Password rule: at least one uppercase A-Z
   ///
   /// In en, this message translates to:
   /// **'Password must contain an uppercase letter'**
   String get registerPasswordUppercase;
 
-  /// No description provided for @registerPasswordLowercase.
+  /// Password rule: at least one lowercase a-z
   ///
   /// In en, this message translates to:
   /// **'Password must contain a lowercase letter'**
   String get registerPasswordLowercase;
 
-  /// No description provided for @registerPasswordNumber.
+  /// Password rule: at least one digit 0-9
   ///
   /// In en, this message translates to:
   /// **'Password must contain a number'**
   String get registerPasswordNumber;
 
-  /// No description provided for @registerPasswordSpecial.
+  /// Password rule: at least one special character (symbol)
   ///
   /// In en, this message translates to:
   /// **'Password must contain a special symbol'**
   String get registerPasswordSpecial;
 
-  /// No description provided for @registerPasswordsDoNotMatch.
+  /// Validation when password and confirmation differ
   ///
   /// In en, this message translates to:
   /// **'Passwords do not match'**
   String get registerPasswordsDoNotMatch;
 
-  /// No description provided for @passwordLabel.
+  /// Label for password input field
   ///
   /// In en, this message translates to:
   /// **'Password'**
   String get passwordLabel;
 
-  /// No description provided for @confirmPasswordLabel.
+  /// Label for password confirmation field
   ///
   /// In en, this message translates to:
   /// **'Confirm Password'**
   String get confirmPasswordLabel;
 
-  /// No description provided for @registerPasswordRequirementsTitle.
+  /// Heading introducing password rules list
   ///
   /// In en, this message translates to:
   /// **'Password requirements:'**
   String get registerPasswordRequirementsTitle;
 
-  /// No description provided for @registerAction.
+  /// Primary action button text to submit registration
   ///
   /// In en, this message translates to:
   /// **'Register'**
   String get registerAction;
 
-  /// No description provided for @registerExistingAccountCta.
+  /// Call to action linking to login when user already has an account
   ///
   /// In en, this message translates to:
   /// **'Already have an account? Log in!'**
   String get registerExistingAccountCta;
 
-  /// No description provided for @scrapingExtractingInfo.
+  /// Status message while scraper parses initial HTML and metadata
   ///
   /// In en, this message translates to:
   /// **'Extracting product information...'**
   String get scrapingExtractingInfo;
 
-  /// No description provided for @scrapingFillingFields.
+  /// Status message while auto-filling form fields with scraped data
   ///
   /// In en, this message translates to:
   /// **'Filling fields automatically...'**
   String get scrapingFillingFields;
 
-  /// No description provided for @scrapingLoadingImage.
+  /// Status message while attempting to fetch the product image
   ///
   /// In en, this message translates to:
   /// **'Loading product image...'**
   String get scrapingLoadingImage;
 
-  /// No description provided for @scrapingExtractedPrefix.
+  /// Message listing which features were successfully extracted. {features} is a comma-separated list of localized feature names.
   ///
   /// In en, this message translates to:
   /// **'Extracted: {features}. Review the data!'**
-  String scrapingExtractedPrefix(Object features);
+  String scrapingExtractedPrefix(String features);
 
-  /// No description provided for @scrapingCompletedAdjust.
+  /// Status message after all scraping steps complete
   ///
   /// In en, this message translates to:
   /// **'Done! Review and adjust the data if needed.'**
   String get scrapingCompletedAdjust;
 
-  /// No description provided for @scrapingError.
+  /// Shown when scraping fails and user must provide data manually
   ///
   /// In en, this message translates to:
   /// **'Error extracting data. Fill manually.'**
   String get scrapingError;
 
-  /// No description provided for @scrapingFeatureTitle.
+  /// Token name representing the product title feature
   ///
   /// In en, this message translates to:
   /// **'title'**
   String get scrapingFeatureTitle;
 
-  /// No description provided for @scrapingFeaturePrice.
+  /// Token name representing the product price feature
   ///
   /// In en, this message translates to:
   /// **'price'**
   String get scrapingFeaturePrice;
 
-  /// No description provided for @scrapingFeatureDescription.
+  /// Token name representing the product description feature
   ///
   /// In en, this message translates to:
   /// **'description'**
   String get scrapingFeatureDescription;
 
-  /// No description provided for @scrapingFeatureCategory.
+  /// Token name representing the product category feature
   ///
   /// In en, this message translates to:
   /// **'category'**
   String get scrapingFeatureCategory;
 
-  /// No description provided for @scrapingFeatureRating.
+  /// Token name representing the product rating feature
   ///
   /// In en, this message translates to:
   /// **'rating'**
   String get scrapingFeatureRating;
 
-  /// No description provided for @scrapingFeatureImage.
+  /// Token name representing the product image feature
   ///
   /// In en, this message translates to:
   /// **'image'**
   String get scrapingFeatureImage;
 
-  /// No description provided for @addItemTitle.
+  /// Title for screen to add a new item to a wishlist
   ///
   /// In en, this message translates to:
   /// **'Add Item'**
   String get addItemTitle;
 
-  /// No description provided for @editItemTitle.
+  /// Title for screen to edit an existing item
   ///
   /// In en, this message translates to:
   /// **'Edit Item'**
   String get editItemTitle;
 
-  /// No description provided for @chooseWishlistLabel.
+  /// Field label prompting user to pick a wishlist in the add item form
   ///
   /// In en, this message translates to:
   /// **'Choose a Wishlist'**
   String get chooseWishlistLabel;
 
-  /// No description provided for @chooseWishlistValidation.
+  /// Validation error when no wishlist is selected
   ///
   /// In en, this message translates to:
   /// **'Please choose a wishlist'**
   String get chooseWishlistValidation;
 
-  /// No description provided for @newWishlistNameLabel.
+  /// Label for the inline new wishlist name text field
   ///
   /// In en, this message translates to:
   /// **'New wishlist name'**
   String get newWishlistNameLabel;
 
-  /// No description provided for @newWishlistNameRequired.
+  /// Validation error when the new wishlist name is empty
   ///
   /// In en, this message translates to:
   /// **'Enter a name for the wishlist'**
   String get newWishlistNameRequired;
 
-  /// No description provided for @createWishlistAction.
+  /// Button label to create a wishlist from within add/edit item flow
   ///
   /// In en, this message translates to:
   /// **'Create Wishlist'**
   String get createWishlistAction;
 
-  /// No description provided for @itemNameLabel.
+  /// Label for item name input
   ///
   /// In en, this message translates to:
   /// **'Item Name'**
   String get itemNameLabel;
 
-  /// No description provided for @itemNameRequired.
+  /// Validation: item name empty
   ///
   /// In en, this message translates to:
-  /// **'Enter the item name'**
+  /// **'Item name is required'**
   String get itemNameRequired;
 
-  /// No description provided for @categoryLabel.
+  /// Label for item category input or selector
   ///
   /// In en, this message translates to:
   /// **'Category'**
   String get categoryLabel;
 
-  /// No description provided for @itemDescriptionLabel.
+  /// Label for item description field
   ///
   /// In en, this message translates to:
   /// **'Description'**
   String get itemDescriptionLabel;
 
-  /// No description provided for @linkLabel.
+  /// Label for item external URL field
   ///
   /// In en, this message translates to:
   /// **'Link'**
   String get linkLabel;
 
-  /// No description provided for @quantityLabel.
+  /// Label for quantity input
   ///
   /// In en, this message translates to:
   /// **'Quantity'**
   String get quantityLabel;
 
-  /// No description provided for @quantityRequired.
+  /// Validation error when quantity field is empty
   ///
   /// In en, this message translates to:
   /// **'Enter the quantity'**
   String get quantityRequired;
 
-  /// No description provided for @quantityInvalid.
+  /// Validation error when quantity cannot be parsed or is negative
   ///
   /// In en, this message translates to:
   /// **'Invalid quantity'**
   String get quantityInvalid;
 
-  /// No description provided for @priceLabel.
+  /// Label for price input field
   ///
   /// In en, this message translates to:
   /// **'Price'**
   String get priceLabel;
 
-  /// No description provided for @priceInvalid.
+  /// Validation: price parse failed
   ///
   /// In en, this message translates to:
   /// **'Invalid price'**
   String get priceInvalid;
 
-  /// No description provided for @selectOrCreateWishlistPrompt.
+  /// Prompt shown when user must either select an existing wishlist or create one
   ///
   /// In en, this message translates to:
   /// **'Please select or create a wishlist.'**
   String get selectOrCreateWishlistPrompt;
 
-  /// No description provided for @errorCreatingWishlist.
+  /// Error message when backend fails to create wishlist
   ///
   /// In en, this message translates to:
   /// **'Error creating wishlist: {error}'**
-  String errorCreatingWishlist(Object error);
+  String errorCreatingWishlist(String error);
 
-  /// No description provided for @errorLoadingItem.
+  /// Error message when fetching existing item for editing fails
   ///
   /// In en, this message translates to:
   /// **'Error loading item: {error}'**
-  String errorLoadingItem(Object error);
+  String errorLoadingItem(String error);
 
-  /// No description provided for @imageUploadFailed.
+  /// Error message when uploading image to Cloudinary fails
   ///
   /// In en, this message translates to:
   /// **'Image upload failed: {error}'**
-  String imageUploadFailed(Object error);
+  String imageUploadFailed(String error);
 
-  /// No description provided for @addItemAction.
+  /// Button label to submit the add item form
   ///
   /// In en, this message translates to:
   /// **'Add'**
   String get addItemAction;
 
-  /// No description provided for @saveItemAction.
+  /// Button label to save changes when editing an item
   ///
   /// In en, this message translates to:
   /// **'Save'**
   String get saveItemAction;
+
+  /// Validation error: email field empty
+  ///
+  /// In en, this message translates to:
+  /// **'Email is required'**
+  String get emailRequired;
+
+  /// Validation error: email format invalid
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email'**
+  String get emailInvalid;
+
+  /// Validation error: email exceeds length limit
+  ///
+  /// In en, this message translates to:
+  /// **'Email too long'**
+  String get emailTooLong;
+
+  /// Validation error: email domain part invalid
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email domain'**
+  String get emailDomainInvalid;
+
+  /// Validation error: password missing
+  ///
+  /// In en, this message translates to:
+  /// **'Password is required'**
+  String get passwordRequired;
+
+  /// Validation error: password shorter than minimum length
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 8 characters'**
+  String get passwordTooShort;
+
+  /// Validation error: password longer than maximum allowed
+  ///
+  /// In en, this message translates to:
+  /// **'Password too long'**
+  String get passwordTooLong;
+
+  /// Password rule: need uppercase
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one uppercase letter'**
+  String get passwordNeedUpper;
+
+  /// Password rule: need lowercase
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one lowercase letter'**
+  String get passwordNeedLower;
+
+  /// Password rule: need digit
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one number'**
+  String get passwordNeedNumber;
+
+  /// Password rule: need special symbol
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one special character'**
+  String get passwordNeedSpecial;
+
+  /// Validation: name empty
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get nameRequired;
+
+  /// Validation: name below min length
+  ///
+  /// In en, this message translates to:
+  /// **'Name must be at least 2 characters'**
+  String get nameTooShort;
+
+  /// Validation: name above max length
+  ///
+  /// In en, this message translates to:
+  /// **'Name too long'**
+  String get nameTooLong;
+
+  /// Validation: name has disallowed chars
+  ///
+  /// In en, this message translates to:
+  /// **'Name contains invalid characters'**
+  String get nameInvalidChars;
+
+  /// Validation: phone empty
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number is required'**
+  String get phoneRequired;
+
+  /// Validation: phone does not match expected pattern
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid phone number (format: 9XXXXXXXX)'**
+  String get phoneInvalidFormat;
+
+  /// Validation: URL scheme invalid
+  ///
+  /// In en, this message translates to:
+  /// **'URL must use HTTP or HTTPS'**
+  String get urlMustBeHttp;
+
+  /// Validation: URL malformed
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid URL'**
+  String get urlInvalid;
+
+  /// Validation: local/internal URL rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Local URLs are not allowed'**
+  String get urlLocalNotAllowed;
+
+  /// Validation: URL exceeds length limit
+  ///
+  /// In en, this message translates to:
+  /// **'URL too long'**
+  String get urlTooLong;
+
+  /// Validation: price < 0
+  ///
+  /// In en, this message translates to:
+  /// **'Price cannot be negative'**
+  String get priceNegative;
+
+  /// Validation: price exceeds business max
+  ///
+  /// In en, this message translates to:
+  /// **'Price too high'**
+  String get priceTooHigh;
+
+  /// Validation: description length > 500
+  ///
+  /// In en, this message translates to:
+  /// **'Description too long (max 500 characters)'**
+  String get descriptionTooLong;
+
+  /// Validation: wishlist name too short
+  ///
+  /// In en, this message translates to:
+  /// **'Wishlist name must be at least 2 characters'**
+  String get wishlistNameTooShort;
+
+  /// Validation: wishlist name too long
+  ///
+  /// In en, this message translates to:
+  /// **'Wishlist name too long'**
+  String get wishlistNameTooLong;
+
+  /// Validation: item name too short
+  ///
+  /// In en, this message translates to:
+  /// **'Item name must be at least 2 characters'**
+  String get itemNameTooShort;
+
+  /// Validation: item name too long
+  ///
+  /// In en, this message translates to:
+  /// **'Item name too long'**
+  String get itemNameTooLong;
+
+  /// Validation: image file size exceeds limit
+  ///
+  /// In en, this message translates to:
+  /// **'Image too large (max 10MB)'**
+  String get imageTooLarge;
+
+  /// Validation: image extension not allowed
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported image format (use JPG, PNG or GIF)'**
+  String get imageFormatUnsupported;
+
+  /// Validation: OTP code empty
+  ///
+  /// In en, this message translates to:
+  /// **'Code is required'**
+  String get otpCodeRequired;
+
+  /// Validation: OTP code length incorrect
+  ///
+  /// In en, this message translates to:
+  /// **'Code must be 6 digits'**
+  String get otpCodeLength;
+
+  /// Validation: OTP code non-digit chars present
+  ///
+  /// In en, this message translates to:
+  /// **'Code must contain only numbers'**
+  String get otpCodeDigitsOnly;
 }
 
 class _AppLocalizationsDelegate
