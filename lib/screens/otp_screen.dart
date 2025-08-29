@@ -107,8 +107,8 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
       
       if (isSuccessful && mounted) {
         debugPrint('OTP verification successful${userCredential == null ? ' (via fallback)' : ''}');
-        debugPrint('🚀 Navigating back to main auth flow to auto-detect home screen');
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        debugPrint('🚀 Navigating to home route for automatic screen detection');
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     } catch (e) {
       debugPrint('OTP verification error: $e');

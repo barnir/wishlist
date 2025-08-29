@@ -118,6 +118,120 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  /// Build screen based on profile data and user authentication status
+  Widget _buildProfileBasedScreen(Map<String, dynamic>? profile, firebase_auth.User user) {
+    // Phone number is ALWAYS required, regardless of login method
+    if (profile == null ||
+        profile['phone_number'] == null ||
+        profile['phone_number'].toString().isEmpty) {
+      
+      // Check if user just logged in (no profile exists yet)
+      if (profile == null) {
+        debugPrint('No profile found - checking if user has both providers already');
+        
+        // Check if Firebase user already has both Google and Phone providers
+        final providerIds = user.providerData.map((p) => p.providerId).toList();
+        final hasGoogle = providerIds.contains('google.com');
+        final hasPhone = providerIds.contains('phone');
+        final hasEmailPassword = providerIds.contains('password');
+        
+        if ((hasGoogle || hasEmailPassword) && hasPhone && user.phoneNumber != null) {
+          debugPrint('User has both auth providers and phone number - syncing to Firebase');
+          return FutureBuilder<void>(
+            future: AuthService().syncExistingUserProfile(),
+            builder: (context, syncSnapshot) {
+              if (syncSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Syncing profile...'),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              
+              if (syncSnapshot.hasError) {
+                debugPrint('Error syncing profile: ${syncSnapshot.error}');
+                // If sync fails, clean up and return to login
+                return FutureBuilder<void>(
+                  future: _cleanupIncompleteAccount(user),
+                  builder: (context, cleanupSnapshot) {
+                    return const LoginScreen();
+                  },
+                );
+              }
+              
+              // Sync completed, refresh the profile check
+              return FutureBuilder<Map<String, dynamic>?>(
+                future: FirebaseDatabaseService().getUserProfile(user.uid),
+                builder: (context, profileSnapshot) {
+                  if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                  }
+                  
+                  final syncedProfile = profileSnapshot.data;
+                  if (syncedProfile != null && 
+                      syncedProfile['display_name'] != null &&
+                      syncedProfile['display_name'].toString().isNotEmpty) {
+                    return const HomeScreen();
+                  } else if (syncedProfile != null) {
+                    return const SetupNameScreen();
+                  } else {
+                    return const LoginScreen();
+                  }
+                },
+              );
+            },
+          );
+        } else {
+          debugPrint('No profile found - redirecting to phone screen');
+          return const AddPhoneScreen();
+        }
+      }
+      
+      // Profile exists but no phone - account is incomplete, cleanup needed
+      debugPrint('Profile exists but missing phone - cleaning up');
+      return FutureBuilder<void>(
+        future: _cleanupIncompleteAccount(user),
+        builder: (context, cleanupSnapshot) {
+          if (cleanupSnapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Cleaning up incomplete account...'),
+                  ],
+                ),
+              ),
+            );
+          }
+          return const LoginScreen();
+        },
+      );
+    } else if (profile['display_name'] == null ||
+               profile['display_name'].toString().isEmpty) {
+      // Phone number exists but display name is missing, navigate to SetupNameScreen
+      return const SetupNameScreen();
+    } else {
+      // Both phone number and display name exist, proceed to home
+      if (_pendingSharedData != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleSharedMedia(_pendingSharedData!);
+          _pendingSharedData = null;
+        });
+      }
+      return const HomeScreen();
+    }
+  }
+
   /// Cleanup incomplete accounts - force logout and delete orphaned profile
   Future<void> _cleanupIncompleteAccount(firebase_auth.User user) async {
     try {
@@ -232,119 +346,40 @@ class _MyAppState extends State<MyApp> {
                         body: Center(child: CircularProgressIndicator()),
                       );
                     }
-                    final profile = profileSnapshot.data;
                     
-                    // Phone number is ALWAYS required, regardless of login method
-                    if (profile == null ||
-                        profile['phone_number'] == null ||
-                        profile['phone_number'].toString().isEmpty) {
-                      
-                      // Check if user just logged in (no profile exists yet)
-                      if (profile == null) {
-                        debugPrint('No profile found - checking if user has both providers already');
-                        
-                        // Check if Firebase user already has both Google and Phone providers
-                        final user = snapshot.data!;
-                        final providerIds = user.providerData.map((p) => p.providerId).toList();
-                        final hasGoogle = providerIds.contains('google.com');
-                        final hasPhone = providerIds.contains('phone');
-                        final hasEmailPassword = providerIds.contains('password');
-                        
-                        if ((hasGoogle || hasEmailPassword) && hasPhone && user.phoneNumber != null) {
-                          debugPrint('User has both auth providers and phone number - syncing to Firebase');
-                          return FutureBuilder<void>(
-                            future: AuthService().syncExistingUserProfile(),
-                            builder: (context, syncSnapshot) {
-                              if (syncSnapshot.connectionState == ConnectionState.waiting) {
-                                return const Scaffold(
-                                  body: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        CircularProgressIndicator(),
-                                        SizedBox(height: 16),
-                                        Text('Syncing profile...'),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-                              
-                              if (syncSnapshot.hasError) {
-                                debugPrint('Error syncing profile: ${syncSnapshot.error}');
-                                // If sync fails, clean up and return to login
-                                return FutureBuilder<void>(
-                                  future: _cleanupIncompleteAccount(user),
-                                  builder: (context, cleanupSnapshot) {
-                                    return const LoginScreen();
-                                  },
-                                );
-                              }
-                              
-                              // Sync completed, refresh the profile check
-                              return FutureBuilder<Map<String, dynamic>?>(
-                                future: FirebaseDatabaseService().getUserProfile(user.uid),
-                                builder: (context, profileSnapshot) {
-                                  if (profileSnapshot.connectionState == ConnectionState.waiting) {
-                                    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-                                  }
-                                  
-                                  final syncedProfile = profileSnapshot.data;
-                                  if (syncedProfile != null && 
-                                      syncedProfile['display_name'] != null &&
-                                      syncedProfile['display_name'].toString().isNotEmpty) {
-                                    return const HomeScreen();
-                                  } else if (syncedProfile != null) {
-                                    return const SetupNameScreen();
-                                  } else {
-                                    return const LoginScreen();
-                                  }
-                                },
-                              );
-                            },
-                          );
-                        } else {
-                          debugPrint('No profile found - redirecting to phone screen');
-                          return const AddPhoneScreen();
-                        }
-                      }
-                      
-                      // Profile exists but no phone - account is incomplete, cleanup needed
-                      debugPrint('Profile exists but missing phone - cleaning up');
+                    // Add error handling for failed profile fetch with retry
+                    if (profileSnapshot.hasError) {
+                      debugPrint('Error fetching profile: ${profileSnapshot.error}');
+                      // Small delay then retry by rebuilding the FutureBuilder
                       return FutureBuilder<void>(
-                        future: _cleanupIncompleteAccount(snapshot.data!),
-                        builder: (context, cleanupSnapshot) {
-                          if (cleanupSnapshot.connectionState == ConnectionState.waiting) {
-                            return const Scaffold(
-                              body: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CircularProgressIndicator(),
-                                    SizedBox(height: 16),
-                                    Text('Cleaning up incomplete account...'),
-                                  ],
-                                ),
-                              ),
+                        future: Future.delayed(const Duration(milliseconds: 500)),
+                        builder: (context, delaySnapshot) {
+                          if (delaySnapshot.connectionState == ConnectionState.done) {
+                            // Force rebuild by returning a new FutureBuilder with fresh future
+                            return FutureBuilder<Map<String, dynamic>?>(
+                              future: FirebaseDatabaseService().getUserProfile(snapshot.data!.uid),
+                              builder: (context, retrySnapshot) {
+                                if (retrySnapshot.connectionState == ConnectionState.waiting) {
+                                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                                }
+                                if (retrySnapshot.hasError) {
+                                  // If still error, sign out
+                                  debugPrint('Profile fetch failed twice, signing out');
+                                  AuthService().signOut();
+                                  return const LoginScreen();
+                                }
+                                // Continue with normal profile processing
+                                return _buildProfileBasedScreen(retrySnapshot.data, snapshot.data!);
+                              },
                             );
                           }
-                          return const LoginScreen();
+                          return const Scaffold(body: Center(child: CircularProgressIndicator()));
                         },
                       );
-                    } else if (profile['display_name'] == null ||
-                               profile['display_name'].toString().isEmpty) {
-                      // Phone number exists but display name is missing, navigate to SetupNameScreen
-                      return const SetupNameScreen();
-                    } else {
-                      // Both phone number and display name exist, proceed to home
-                      if (_pendingSharedData != null) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _handleSharedMedia(_pendingSharedData!);
-                          _pendingSharedData = null;
-                        });
-                      }
-                      return const HomeScreen();
                     }
+                    
+                    // Normal successful profile fetch - use helper method
+                    return _buildProfileBasedScreen(profileSnapshot.data, snapshot.data!);
                   },
                 );
               } else {
