@@ -203,6 +203,37 @@ class MonitoringService {
     }
   }
 
+  // --- Image specific helpers ---
+  static void logImageUploadSuccess(String type, {int? bytes, String? id}) {
+    logInfoStatic('ImageUpload', 'success', metadata: {
+      'type': type,
+      if (bytes != null) 'bytes': bytes,
+      if (id != null) 'id': id,
+    });
+    MonitoringService().trackEvent('image_upload_success', properties: {
+      'type': type,
+      if (bytes != null) 'bytes': bytes,
+    });
+  }
+
+  static void logImageUploadFail(String type, Object error, {String? id}) {
+    logErrorStatic('image_upload_fail', error, context: 'ImageUpload', operation: type);
+    MonitoringService().trackEvent('image_upload_fail', properties: {
+      'type': type,
+      'error': error.toString(),
+    });
+  }
+
+  static void logImageRenderError(String url, Object error) {
+    logWarningStatic('ImageRender', 'render_error', metadata: {
+      'url': url,
+      'error': error.toString(),
+    });
+    MonitoringService().trackEvent('image_render_error', properties: {
+      'url_hash': url.hashCode,
+    });
+  }
+
   // Get performance metrics
   List<PerformanceMetric> getPerformanceMetrics() {
     return List.from(_metrics);

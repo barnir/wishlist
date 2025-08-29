@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 import 'dart:math';
 
 /// Unified image widget applying Cloudinary transformation + shimmer + fallback to original URL on error.
@@ -91,7 +92,10 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
       fadeInDuration: widget.fadeIn,
       fadeOutDuration: widget.fadeOut,
       placeholder: (c, _) => _buildShimmer(context),
-      errorWidget: (c, _, __) {
+      errorWidget: (c, _, err) {
+        if (widget.originalUrl != null) {
+          MonitoringService.logImageRenderError(widget.originalUrl!, err);
+        }
         if (!_triedOriginal && url != widget.originalUrl && widget.originalUrl != null) {
           // Try original once
             WidgetsBinding.instance.addPostFrameCallback((_) {

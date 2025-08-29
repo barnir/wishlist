@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wishlist_app/services/web_scraper_service.dart';
@@ -335,8 +336,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           setState(() {
             _imageFuture = ImageCacheService.getFile(uploadedUrl!);
           });
+          MonitoringService.logImageUploadSuccess('item', id: targetId, bytes: _imageBytes?.length);
         }
       } catch (e) {
+        MonitoringService.logImageUploadFail('item', e);
         setState(() => _erro = 'Falha upload imagem: $e');
       } finally {
         setState(() => _isUploading = false);

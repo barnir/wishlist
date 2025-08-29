@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -125,8 +126,10 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
               setState(() {
                 _imageFuture = ImageCacheService.getFile(uploadedImageUrl!);
               });
+              MonitoringService.logImageUploadSuccess('wishlist', id: newId, bytes: _imageBytes?.length);
             }
           } catch (e) {
+            MonitoringService.logImageUploadFail('wishlist', e, id: newId);
             _showError('Imagem criada mas falhou upload: $e');
           }
         }
@@ -139,7 +142,11 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
             try {
               uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(tempFileForUpload, id);
               _existingImageUrl = uploadedImageUrl;
+              if (uploadedImageUrl != null) {
+                MonitoringService.logImageUploadSuccess('wishlist', id: id, bytes: _imageBytes?.length);
+              }
             } catch (e) {
+              MonitoringService.logImageUploadFail('wishlist', e, id: id);
               _showError('Falha upload imagem: $e');
             }
         }

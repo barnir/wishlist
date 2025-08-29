@@ -12,6 +12,14 @@ class FirebaseDatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// Generate a temporary client-side ID (not yet persisted) –
+  /// format: tmp_<epochMillis>_<random4>
+  String generateTempId() {
+    final ms = DateTime.now().millisecondsSinceEpoch;
+    final rand = (ms % 10000).toString().padLeft(4, '0');
+    return 'tmp_${ms}_$rand';
+  }
+
   /// Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
 
