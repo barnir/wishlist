@@ -116,8 +116,8 @@ class HelpScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.email_outlined),
                     title: const Text('Email de Suporte'),
-                    subtitle: const Text('support@wishlistapp.com'),
-                    onTap: () => _launchEmail('support@wishlistapp.com'),
+                    subtitle: const Text('barnirapps@gmail.com'),
+                    onTap: () => _launchEmail('barnirapps@gmail.com'),
                     trailing: const Icon(Icons.launch),
                   ),
                   const Divider(height: 1),
@@ -126,7 +126,7 @@ class HelpScreen extends StatelessWidget {
                     title: const Text('Reportar Bug'),
                     subtitle: const Text('Encontrou um problema? Conte-nos!'),
                     onTap: () => _launchEmail(
-                      'support@wishlistapp.com',
+                      'barnirapps@gmail.com',
                       subject: 'Bug Report - Wishlist App',
                     ),
                     trailing: const Icon(Icons.launch),
@@ -137,7 +137,7 @@ class HelpScreen extends StatelessWidget {
                     title: const Text('Sugestões'),
                     subtitle: const Text('Tem uma ideia? Partilhe connosco!'),
                     onTap: () => _launchEmail(
-                      'support@wishlistapp.com',
+                      'barnirapps@gmail.com',
                       subject: 'Feature Request - Wishlist App',
                     ),
                     trailing: const Icon(Icons.launch),
