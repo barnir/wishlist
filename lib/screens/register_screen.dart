@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,7 +15,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmarPasswordController = TextEditingController();
   final _authService = AuthService();
-  final _databaseService = FirebaseDatabaseService();
 
   bool _isLoading = false;
   String? _erro;
