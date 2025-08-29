@@ -855,7 +855,7 @@ class FirebaseDatabaseService {
   /// quais contactos do utilizador já estão a usar a aplicação.
   /// 
   /// Limitações e considerações:
-  /// - Só retorna utilizadores com perfis públicos (profile_visibility: 'public')
+  /// - Só retorna utilizadores com perfis públicos (is_private: false)
   /// - Retorna apenas dados essenciais e não sensíveis para proteger privacidade
   /// - Implementa batching para lidar com a limitação do Firestore (max 10 itens em whereIn)
   /// 
@@ -886,7 +886,7 @@ class FirebaseDatabaseService {
         final query = await _firestore
           .collection('users')
           .where('phone_number', whereIn: batch)
-          .where('profile_visibility', isEqualTo: 'public')
+          .where('is_private', isEqualTo: false)
           .get();
           
         for (final doc in query.docs) {

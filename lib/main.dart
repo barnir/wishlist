@@ -230,6 +230,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
     debugPrint('_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries');
     
     try {
+      // First, try to get user profile from Firestore
       final profile = await FirebaseDatabaseService().getUserProfile(widget.user.uid);
       
       if (profile != null) {
@@ -250,12 +251,35 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
       final authService = AuthService();
       final isOrphaned = await authService.isOrphanedAccount();
       
+      // If orphaned (and not in registration flow), clean it up
       if (isOrphaned) {
         debugPrint('🧹 Cleaning up orphaned Firebase Auth account...');
         try {
           await authService.cleanupOrphanedAccount();
         } catch (e) {
           debugPrint('Failed to cleanup orphaned account: $e');
+        }
+      } else {
+        debugPrint('👉 Account not considered orphaned - may be in registration process');
+        debugPrint('   - Returning null which will redirect user to appropriate flow');
+        
+        // If this is an email registration in progress (no profile yet), create a temporary profile now
+        if (widget.user.email != null && 
+            widget.user.metadata.creationTime != null && 
+            DateTime.now().difference(widget.user.metadata.creationTime!).inMinutes < 10) {
+          debugPrint('📝 Creating missing temporary profile for email registration in progress');
+          try {
+            await FirebaseDatabaseService().createUserProfile(widget.user.uid, {
+              'email': widget.user.email,
+              'display_name': widget.user.displayName ?? widget.user.email!.split('@')[0],
+              'registration_complete': false,
+              'is_private': false,  // Default to public profile
+              'created_at': DateTime.now().toIso8601String(),
+            });
+            debugPrint('✅ Temporary profile created successfully');
+          } catch (e) {
+            debugPrint('❌ Error creating temporary profile: $e');
+          }
         }
       }
       
@@ -283,6 +307,29 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
       future: _getProfileWithRetry(),
       builder: (context, snapshot) {
         debugPrint('Profile FutureBuilder: connectionState=${snapshot.connectionState}, hasError=${snapshot.hasError}, hasData=${snapshot.hasData}');
+        
+        // Check if the user has a profile but registration is not complete
+        if (snapshot.connectionState == ConnectionState.done &&
+            snapshot.hasData &&
+            snapshot.data!['registration_complete'] == false) {
+          debugPrint('📱 User profile exists but registration is incomplete - redirecting to phone verification');
+          // Allow a small delay for the UI to render before navigation
+          Future.microtask(() => Navigator.pushReplacementNamed(context, '/add_phone'));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        // If profile is completely missing but user exists, redirect to phone verification
+        if (snapshot.connectionState == ConnectionState.done && !snapshot.hasData) {
+          debugPrint('🔍 ROUTING DECISION POINT - Profile Analysis:');
+          debugPrint('   - Profile exists: false');
+          debugPrint('❌ ROUTING: No profile found → AddPhoneScreen');
+          Future.microtask(() => Navigator.pushReplacementNamed(context, '/add_phone'));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
         
         if (snapshot.connectionState == ConnectionState.waiting) {
           debugPrint('Profile loading...');

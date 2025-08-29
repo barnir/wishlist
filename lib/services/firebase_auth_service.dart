@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -238,7 +240,33 @@ class FirebaseAuthService {
       
       if (userCredential.user != null) {
         debugPrint('✅ Phone verification successful: ${userCredential.user!.uid}');
-        await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
+        
+        // Check if this is completing an email registration
+        final profile = await _databaseService.getUserProfile(userCredential.user!.uid);
+        if (profile != null && profile['registration_complete'] == false) {
+          debugPrint('📝 Completing email registration process by adding phone number');
+          await _databaseService.updateUserProfile(userCredential.user!.uid, {
+            'phone_number': phoneNumber,
+            'registration_complete': true,
+          });
+          debugPrint('✅ Email registration completed successfully with phone number');
+        } else if (profile == null) {
+          debugPrint('⚠️ No profile found after phone verification, creating complete profile');
+          // Create complete profile if missing entirely
+          final profileData = {
+            'email': userCredential.user!.email,
+            'display_name': userCredential.user!.displayName ?? _extractNameFromEmail(userCredential.user!.email),
+            'phone_number': phoneNumber,
+            'is_private': false,  // Default to public profile
+            'registration_complete': true,
+          };
+          await _databaseService.createUserProfile(userCredential.user!.uid, profileData);
+          debugPrint('✅ Created complete profile after phone verification');
+        } else {
+          // Normal phone verification flow
+          await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
+        }
+        
         await _clearVerificationData(); // Clear stored verification data after success
       } else {
         debugPrint('⚠️ WARNING: User credential is null after successful verification');
@@ -282,12 +310,35 @@ class FirebaseAuthService {
       if (userCredential.user != null) {
         await userCredential.user!.updateDisplayName(displayName);
         debugPrint('Email sign-up successful: ${userCredential.user!.email}');
-        debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
+        
+        // Create a temporary minimal user profile to prevent orphaned account detection
+        // This profile will be updated when phone verification is completed
+        await _databaseService.createUserProfile(userCredential.user!.uid, {
+          'email': email,
+            // Nome inicial já fornecido no ecrã de registo, pode ser ajustado depois
+          'display_name': displayName,
+          'phone_number': null, // Explicita ausência até verificação
+          'phone_verified': false,
+          'registration_complete': false,  // Fluxo ainda não terminado (aguarda telefone)
+          'is_private': false,  // Perfil público por default (padrão atual da app)
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+        
+        debugPrint('✅ Temporary user profile created - waiting for phone verification');
       }
 
       return userCredential;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Firebase email sign-up error: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      debugPrint('Stack trace: $stackTrace');
+      
+      if (e is FirebaseAuthException) {
+        debugPrint('Firebase Auth Error Code: ${e.code}');
+        debugPrint('Firebase Auth Error Message: ${e.message}');
+      }
+      
       rethrow;
     }
   }
@@ -351,6 +402,8 @@ class FirebaseAuthService {
         'email': user.email,
         'display_name': displayName ?? user.displayName ?? _extractNameFromEmail(user.email),
         'phone_number': phoneNumber ?? user.phoneNumber,
+        'is_private': false,  // Default to public profile
+        'registration_complete': true,  // Mark registration as complete
       };
       debugPrint('Profile data to sync: $profileData');
 
@@ -388,13 +441,14 @@ class FirebaseAuthService {
       
       debugPrint('🎉 Profile sync completed successfully!');
     } catch (e, stackTrace) {
-      debugPrint('❌ CRITICAL ERROR syncing user profile to database: $e');
+      debugPrint('❌ ERROR syncing user profile to database: $e');
       debugPrint('Error type: ${e.runtimeType}');
       debugPrint('Stack trace: $stackTrace');
-      
-      // FORCE RETHROW FOR DEBUGGING - this will cause OTP to fail and show exact error
-      debugPrint('🚨 FORCING RETHROW FOR DEBUGGING PURPOSES');
-      rethrow;
+      // Não voltamos a lançar a exceção para não quebrar o fluxo de OTP / login.
+      // Se for necessário reativar comportamento anterior em debug:
+      if (kDebugMode) {
+        debugPrint('ℹ️ (Debug mode) Erro ignorado para não interromper fluxo.');
+      }
     }
   }
 

@@ -45,7 +45,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
       
     } catch (e) {
       debugPrint('Registration error: $e');
-      setState(() => _erro = 'Erro ao registar: ${e.toString()}');
+      // Create a user-friendly error message
+      String errorMessage = 'Erro ao registar: ';
+      
+      if (e.toString().contains('List<Object?>')) {
+        errorMessage = 'Erro no sistema. Por favor tente novamente.';
+      } else if (e.toString().contains('email-already-in-use')) {
+        errorMessage = 'Este email já está em uso. Tente fazer login.';
+      } else if (e.toString().contains('weak-password')) {
+        errorMessage = 'A password é muito fraca. Escolha uma password mais forte.';
+      } else if (e.toString().contains('invalid-email')) {
+        errorMessage = 'Email inválido. Verifique o formato do email.';
+      } else {
+        errorMessage += e.toString();
+      }
+      
+      setState(() => _erro = errorMessage);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

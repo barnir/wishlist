@@ -395,23 +395,54 @@ class AuthService {
            profile['email'].toString().isNotEmpty;
   }
 
+  /// Check if a user's registration is complete based on the profile flag
+  Future<bool> isRegistrationComplete() async {
+    final user = currentUser;
+    if (user == null) return false;
+    
+    try {
+      final profile = await _databaseService.getUserProfile(user.uid);
+      return profile != null && profile['registration_complete'] == true;
+    } catch (e) {
+      debugPrint('Error checking registration status: $e');
+      return false;
+    }
+  }
+
   /// Detects and handles orphaned Firebase Auth accounts (exist in Auth but not in Firestore)
+  /// 
+  /// Improved to differentiate between accounts in registration process and truly orphaned accounts.
   Future<bool> isOrphanedAccount() async {
     final user = currentUser;
     if (user == null) return false;
     
     try {
       final profile = await _databaseService.getUserProfile(user.uid);
-      final isOrphaned = profile == null;
       
-      if (isOrphaned) {
-        debugPrint('🚨 Orphaned account detected: Auth user exists but no Firestore profile');
-        debugPrint('   - User ID: ${user.uid}');
-        debugPrint('   - Email: ${user.email}');
-        debugPrint('   - Phone: ${user.phoneNumber}');
+      // If profile exists, not orphaned
+      if (profile != null) return false;
+      
+      // Special case: Email registration in progress (< 10 minutes old)
+      if (user.email != null && user.metadata.creationTime != null) {
+        final accountAge = DateTime.now().difference(user.metadata.creationTime!);
+        // If account was created less than 10 minutes ago and has email, 
+        // it's likely in the registration flow (waiting for phone verification)
+        if (accountAge.inMinutes < 10) {
+          debugPrint('📝 New email registration in progress (${accountAge.inMinutes}m old), not orphaned');
+          debugPrint('   - User ID: ${user.uid}');
+          debugPrint('   - Email: ${user.email}');
+          debugPrint('   - Created: ${user.metadata.creationTime}');
+          return false;
+        }
       }
       
-      return isOrphaned;
+      // Otherwise, truly orphaned
+      debugPrint('🚨 Orphaned account detected: Auth user exists but no Firestore profile');
+      debugPrint('   - User ID: ${user.uid}');
+      debugPrint('   - Email: ${user.email}');
+      debugPrint('   - Phone: ${user.phoneNumber}');
+      
+      return true;
     } catch (e) {
       debugPrint('Error checking orphaned account: $e');
       return true; // Assume orphaned if we can't check
