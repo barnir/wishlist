@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:wishlist_app/services/monitoring_service.dart';
 import '../services/firebase_database_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
@@ -22,6 +25,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? _userProfile;
   bool _isFavorite = false;
   bool _isLoading = true;
+  bool _profileViewTracked = false;
 
   @override
   void initState() {
@@ -38,6 +42,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _userProfile = profile;
           _isLoading = false;
         });
+  _trackProfileView();
       }
     } catch (e) {
       if (mounted) {
@@ -65,7 +70,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: WishlistAppBar(title: 'Perfil'),
-        body: const WishlistLoadingIndicator(message: 'A carregar perfil...'),
+        body: _buildProfileSkeleton(),
       );
     }
 
@@ -87,6 +92,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: displayName,
         actions: [
           _buildFavoriteActionButton(),
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Partilhar perfil',
+            onPressed: _shareProfile,
+          ),
         ],
       ),
       body: Column(
@@ -100,6 +110,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildProfileHeader() {
     final displayName = _userProfile!['display_name'] as String? ?? 'Utilizador';
+  final bio = _sanitizeAndTrimBio(_userProfile!['bio']);
 
     return Container(
       width: double.infinity,
@@ -134,6 +145,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             textAlign: TextAlign.center,
           ),
+          if (bio != null && bio.isNotEmpty) ...[
+            Spacing.xs,
+            Text(
+              bio,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
           if ((_userProfile!['email'] as String?) != null && (_userProfile!['email'] as String).isNotEmpty) ...[
             Spacing.xs,
             Text(
@@ -228,7 +251,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       future: _databaseService.getPublicWishlistsForUser(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const WishlistLoadingIndicator(message: 'A carregar wishlists...');
+          return _buildWishlistSkeletonList();
         }
 
         if (snapshot.hasError) {
@@ -321,6 +344,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildAboutTab() {
     final displayName = _userProfile!['display_name'] as String? ?? 'Utilizador';
+  final bio = _sanitizeAndTrimBio(_userProfile!['bio']);
     
     return Padding(
       padding: UIConstants.paddingM,
@@ -352,6 +376,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 _buildInfoRow('Nome', displayName),
                 if (_userProfile!['email'] != null)
                   _buildInfoRow('Email', _userProfile!['email'] as String),
+                if (bio != null && bio.isNotEmpty)
+                  _buildInfoRow('Bio', bio),
                 _buildInfoRow('Membro desde', 'Recentemente'),
               ],
             ),
@@ -397,6 +423,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             const SnackBar(content: Text('Removido dos favoritos')),
           );
           setState(() => _isFavorite = false);
+          MonitoringService().trackEvent('profile_unfavorite', properties: {'profile_id': widget.userId});
         }
       } else {
         await _favoritesService.addFavorite(widget.userId);
@@ -405,6 +432,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             const SnackBar(content: Text('Adicionado aos favoritos!')),
           );
           setState(() => _isFavorite = true);
+          MonitoringService().trackEvent('profile_favorite', properties: {'profile_id': widget.userId});
         }
       }
     } catch (e) {
@@ -414,5 +442,101 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         );
       }
     }
+  }
+
+  // --- Quick Win Helpers ---
+  void _trackProfileView() {
+    if (_profileViewTracked) return;
+    _profileViewTracked = true;
+    MonitoringService().trackEvent('profile_view', properties: {'profile_id': widget.userId});
+  }
+
+  String? _sanitizeAndTrimBio(dynamic raw) {
+    if (raw is! String || raw.trim().isEmpty) return null;
+    var text = raw.replaceAll(RegExp(r'<[^>]*>'), ''); // remove HTML tags
+    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (text.length > 280) text = text.substring(0, 277) + '...';
+    return text;
+  }
+
+  void _shareProfile() {
+    final link = 'https://wishlist.app/user/${widget.userId}';
+    Share.share('Vê o meu perfil no Wishlist App: $link');
+    MonitoringService().trackEvent('profile_share', properties: {'profile_id': widget.userId});
+  }
+
+  Widget _buildProfileSkeleton() {
+    return SingleChildScrollView(
+      padding: UIConstants.paddingM,
+      child: Column(
+        children: [
+          _shimmerBox(height: 160, width: double.infinity, radius: UIConstants.radiusM),
+          Spacing.l,
+          _shimmerCircle(diameter: UIConstants.imageSizeXL),
+          Spacing.m,
+          _shimmerBox(height: 20, width: 180),
+          Spacing.s,
+          _shimmerBox(height: 14, width: 140),
+          Spacing.l,
+          _shimmerBox(height: 40, width: double.infinity, radius: UIConstants.radiusS),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWishlistSkeletonList() {
+    return ListView.builder(
+      padding: UIConstants.listPadding,
+      itemCount: 5,
+      itemBuilder: (context, i) => Padding(
+        padding: EdgeInsets.only(bottom: UIConstants.spacingM),
+        child: Row(
+          children: [
+            _shimmerBox(height: UIConstants.imageSizeM, width: UIConstants.imageSizeM, radius: UIConstants.radiusS),
+            Spacing.horizontalM,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _shimmerBox(height: 16, width: double.infinity),
+                  Spacing.xs,
+                  _shimmerBox(height: 12, width: 120),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shimmerBox({required double height, required double width, double radius = 8}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+    );
+  }
+
+  Widget _shimmerCircle({required double diameter}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: diameter,
+        width: diameter,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+        ),
+      ),
+    );
   }
 }
