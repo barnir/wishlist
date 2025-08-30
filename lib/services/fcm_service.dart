@@ -2,6 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 
+enum NotificationPermissionResult {
+  granted,
+  denied,
+  notDetermined,
+  provisional,
+  error,
+}
+
 class FCMService {
   static final FCMService _instance = FCMService._internal();
   factory FCMService() => _instance;
@@ -16,20 +24,25 @@ class FCMService {
       
       // Código otimizado apenas para Android - verificação de plataforma removida
 
-      await _requestPermissions();
-      await _configureMessageHandling();
-      await _getAndCacheToken();
+      final permissionResult = await _requestPermissions();
+      debugPrint('FCMService: Permission result: $permissionResult');
       
-      _setupTokenRefreshListener();
-
-      debugPrint('FCMService: Initialization completed successfully');
+      if (permissionResult == NotificationPermissionResult.granted || 
+          permissionResult == NotificationPermissionResult.provisional) {
+        await _configureMessageHandling();
+        await _getAndCacheToken();
+        _setupTokenRefreshListener();
+        debugPrint('FCMService: Initialization completed successfully');
+      } else {
+        debugPrint('FCMService: ⚠️ Notifications not permitted, limited functionality available');
+      }
     } catch (e) {
       debugPrint('FCMService initialization error: $e');
       MonitoringService.logErrorStatic('FCMService_initialize', e);
     }
   }
 
-  Future<void> _requestPermissions() async {
+  Future<NotificationPermissionResult> _requestPermissions() async {
     try {
       debugPrint('FCMService: Requesting permissions');
       
@@ -45,14 +58,27 @@ class FCMService {
 
       debugPrint('FCMService: Permission status: ${settings.authorizationStatus}');
       
-      if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        debugPrint('FCMService: Permissions denied by user');
-        debugPrint('FCMService: User denied notification permissions');
+      switch (settings.authorizationStatus) {
+        case AuthorizationStatus.authorized:
+          debugPrint('FCMService: ✅ Notifications permission granted');
+          return NotificationPermissionResult.granted;
+          
+        case AuthorizationStatus.denied:
+          debugPrint('FCMService: ❌ Notifications permission denied');
+          return NotificationPermissionResult.denied;
+          
+        case AuthorizationStatus.notDetermined:
+          debugPrint('FCMService: ⚠️ Notifications permission not determined');
+          return NotificationPermissionResult.notDetermined;
+          
+        case AuthorizationStatus.provisional:
+          debugPrint('FCMService: 🔔 Notifications permission provisional');
+          return NotificationPermissionResult.provisional;
       }
     } catch (e) {
       debugPrint('FCMService permission request error: $e');
       MonitoringService.logErrorStatic('FCMService_requestPermissions', e);
-      rethrow;
+      return NotificationPermissionResult.error;
     }
   }
 
@@ -137,11 +163,29 @@ class FCMService {
   Future<bool> isPermissionGranted() async {
     try {
       final settings = await _messaging.getNotificationSettings();
-      return settings.authorizationStatus == AuthorizationStatus.authorized;
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+             settings.authorizationStatus == AuthorizationStatus.provisional;
     } catch (e) {
       debugPrint('FCMService permission check error: $e');
       MonitoringService.logErrorStatic('FCMService_isPermissionGranted', e);
       return false;
+    }
+  }
+
+  /// Request notification permissions with detailed result
+  Future<NotificationPermissionResult> requestNotificationPermission() async {
+    return await _requestPermissions();
+  }
+
+  /// Get detailed permission status
+  Future<AuthorizationStatus> getPermissionStatus() async {
+    try {
+      final settings = await _messaging.getNotificationSettings();
+      return settings.authorizationStatus;
+    } catch (e) {
+      debugPrint('FCMService get permission status error: $e');
+      MonitoringService.logErrorStatic('FCMService_getPermissionStatus', e);
+      return AuthorizationStatus.notDetermined;
     }
   }
 

@@ -147,17 +147,24 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
 
   Future<void> _checkContactsPermission() async {
     try {
+      // Primeiro só verificamos se já temos permissão, sem solicitar
       final hasPermission = await FlutterContacts.requestPermission(readonly: true);
       if (mounted) {
         setState(() {
           _hasContactsPermission = hasPermission;
         });
+        // Se já temos permissão, carregamos os dados automaticamente
         if (hasPermission) {
           _loadContactsData();
         }
       }
     } catch (e) {
       debugPrint('Error checking contacts permission: $e');
+      if (mounted) {
+        setState(() {
+          _hasContactsPermission = false;
+        });
+      }
     }
   }
 
@@ -167,6 +174,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         _isLoadingContacts = true;
       });
 
+      // Solicita explicitamente a permissão ao utilizador
       final granted = await FlutterContacts.requestPermission();
       
       if (mounted) {
@@ -176,11 +184,25 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         });
 
         if (granted) {
+          // Permissão concedida - carregar dados
           _loadContactsData();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Permissão concedida! A descobrir contactos...'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
         } else {
+          // Permissão negada - mostrar explicação
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context)!.contactsPermissionRequired),
+              action: SnackBarAction(
+                label: 'Tentar novamente',
+                onPressed: _requestContactsPermission,
+              ),
+              duration: const Duration(seconds: 5),
             ),
           );
         }
@@ -189,26 +211,74 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       if (mounted) {
         setState(() {
           _isLoadingContacts = false;
+          _hasContactsPermission = false;
         });
+        
+        // Erro na solicitação - pode indicar permissão negada permanentemente
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorRequestingPermission(e.toString()))),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorRequestingPermission(e.toString())),
+            action: SnackBarAction(
+              label: 'Configurações',
+              onPressed: () {
+                // TODO: Abrir configurações da app se necessário
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente'),
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+              },
+            ),
+            duration: const Duration(seconds: 8),
+          ),
         );
       }
     }
   }
 
   Future<void> _loadContactsData() async {
-    if (!_hasContactsPermission) return;
+    // Verificação dupla de segurança
+    if (!_hasContactsPermission) {
+      debugPrint('Tentativa de carregar contactos sem permissão');
+      return;
+    }
 
     try {
       setState(() {
         _isLoadingContacts = true;
       });
 
-      // Simplified version - just get basic contacts for now
-      final contacts = await FlutterContacts.getContacts(withProperties: true);
+      debugPrint('=== Iniciando carregamento de contactos ===');
+      
+      // Verifica permissão novamente antes de prosseguir
+      final stillHasPermission = await FlutterContacts.requestPermission(readonly: true);
+      if (!stillHasPermission) {
+        if (mounted) {
+          setState(() {
+            _hasContactsPermission = false;
+            _isLoadingContacts = false;
+          });
+        }
+        return;
+      }
+
+      // Carrega contactos com propriedades completas
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withPhoto: false, // Não precisamos de fotos para descoberta
+      );
+      
+      debugPrint('Carregados ${contacts.length} contactos');
+      
+      // Filtra contactos que têm números de telefone
+      final contactsWithPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
+      debugPrint('${contactsWithPhones.length} contactos com números de telefone');
+      
+      // Por agora, todos os contactos vão para convites (implementação básica)
+      // TODO: Implementar descoberta real de utilizadores na app
       final friends = <Map<String, dynamic>>[];
-      final inviteContacts = contacts.where((c) => c.phones.isNotEmpty).toList();
+      final inviteContacts = contactsWithPhones;
 
       if (mounted) {
         setState(() {
@@ -216,14 +286,42 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           _contactsToInvite = inviteContacts;
           _isLoadingContacts = false;
         });
+        
+        debugPrint('Estado atualizado: ${friends.length} amigos, ${inviteContacts.length} para convidar');
       }
     } catch (e) {
+      debugPrint('Erro ao carregar contactos: $e');
       if (mounted) {
         setState(() {
           _isLoadingContacts = false;
         });
+        
+        // Trata diferentes tipos de erro
+        String errorMessage;
+        if (e.toString().contains('permission')) {
+          errorMessage = 'Permissão de contactos foi revogada. Tenta novamente.';
+          setState(() {
+            _hasContactsPermission = false;
+          });
+        } else {
+          errorMessage = AppLocalizations.of(context)!.errorLoadingContacts(e.toString());
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorLoadingContacts(e.toString()))),
+          SnackBar(
+            content: Text(errorMessage),
+            action: SnackBarAction(
+              label: 'Tentar novamente',
+              onPressed: () {
+                if (_hasContactsPermission) {
+                  _loadContactsData();
+                } else {
+                  _requestContactsPermission();
+                }
+              },
+            ),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }

@@ -1729,6 +1729,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error sending invite: {error}'**
   String errorSendingInvite(Object error);
+
+  /// Notifications title
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// Active notifications state
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications Active'**
+  String get notificationsActive;
+
+  /// Disabled notifications state
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications Disabled'**
+  String get notificationsDisabled;
+
+  /// Notifications enabled status
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications enabled'**
+  String get notificationsEnabled;
+
+  /// Disabled notifications status with guidance
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications disabled - enable in settings'**
+  String get notificationsDisabledGoSettings;
+
+  /// Not requested permission status
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission not requested'**
+  String get notificationsNotRequested;
+
+  /// Silent notifications status
+  ///
+  /// In en, this message translates to:
+  /// **'Silent notifications enabled'**
+  String get notificationsSilent;
+
+  /// Success message
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications activated successfully!'**
+  String get notificationsSuccess;
+
+  /// Silent success message
+  ///
+  /// In en, this message translates to:
+  /// **'Silent notifications activated!'**
+  String get notificationsSilentSuccess;
+
+  /// Permission denied message
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications denied. You can enable them in settings.'**
+  String get notificationsDenied;
+
+  /// Permission not determined message
+  ///
+  /// In en, this message translates to:
+  /// **'Permission not determined. Try again?'**
+  String get notificationsNotDetermined;
+
+  /// Error message
+  ///
+  /// In en, this message translates to:
+  /// **'Error requesting notification permissions'**
+  String get notificationsError;
+
+  /// Button to enable notifications
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications'**
+  String get notificationsActivate;
+
+  /// Loading state
+  ///
+  /// In en, this message translates to:
+  /// **'Requesting...'**
+  String get notificationsRequesting;
+
+  /// Button to go to settings
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Settings'**
+  String get notificationsGoSettings;
+
+  /// Button to try again
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get notificationsTryAgain;
+
+  /// Benefits introduction text
+  ///
+  /// In en, this message translates to:
+  /// **'Receive alerts about:'**
+  String get notificationsReceiveAlerts;
+
+  /// Benefit - price alerts
+  ///
+  /// In en, this message translates to:
+  /// **'Price drops on your items'**
+  String get notificationsBenefitPriceDrops;
+
+  /// Benefit - shares
+  ///
+  /// In en, this message translates to:
+  /// **'New list shares'**
+  String get notificationsBenefitShares;
+
+  /// Benefit - favorites
+  ///
+  /// In en, this message translates to:
+  /// **'New favorites'**
+  String get notificationsBenefitFavorites;
+
+  /// Benefit - hints
+  ///
+  /// In en, this message translates to:
+  /// **'Gift hints'**
+  String get notificationsBenefitGiftHints;
+
+  /// Instructions to enable in settings
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Settings > Apps > WishlistApp > Notifications to enable manually'**
+  String get notificationsSettingsInstructions;
 }
 
 class _AppLocalizationsDelegate

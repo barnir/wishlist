@@ -420,4 +420,49 @@
   ,"@errorLoadingContacts": {"description": "Erro ao carregar contactos"}
   ,"errorSendingInvite": "Erro ao enviar convite: {error}"
   ,"@errorSendingInvite": {"description": "Erro ao enviar convite"}
+  
+  ,"notificationsTitle": "Notificações"
+  ,"@notificationsTitle": {"description": "Título das notificações"}
+  ,"notificationsActive": "Notificações Ativas"
+  ,"@notificationsActive": {"description": "Estado das notificações ativas"}
+  ,"notificationsDisabled": "Notificações Desativadas"
+  ,"@notificationsDisabled": {"description": "Estado das notificações desativadas"}
+  ,"notificationsEnabled": "Notificações ativadas"
+  ,"@notificationsEnabled": {"description": "Status de notificações ativadas"}
+  ,"notificationsDisabledGoSettings": "Notificações desativadas - ativar nas configurações"
+  ,"@notificationsDisabledGoSettings": {"description": "Status de notificações desativadas com orientação"}
+  ,"notificationsNotRequested": "Permissão de notificações não solicitada"
+  ,"@notificationsNotRequested": {"description": "Status de permissão não solicitada"}
+  ,"notificationsSilent": "Notificações silenciosas ativadas"
+  ,"@notificationsSilent": {"description": "Status de notificações silenciosas"}
+  ,"notificationsSuccess": "Notificações ativadas com sucesso!"
+  ,"@notificationsSuccess": {"description": "Mensagem de sucesso"}
+  ,"notificationsSilentSuccess": "Notificações silenciosas ativadas!"
+  ,"@notificationsSilentSuccess": {"description": "Mensagem de sucesso silenciosa"}
+  ,"notificationsDenied": "Notificações negadas. Pode ativar nas configurações."
+  ,"@notificationsDenied": {"description": "Mensagem de permissão negada"}
+  ,"notificationsNotDetermined": "Permissão não determinada. Tentar novamente?"
+  ,"@notificationsNotDetermined": {"description": "Mensagem de permissão não determinada"}
+  ,"notificationsError": "Erro ao solicitar permissões de notificação"
+  ,"@notificationsError": {"description": "Mensagem de erro"}
+  ,"notificationsActivate": "Ativar Notificações"
+  ,"@notificationsActivate": {"description": "Botão para ativar notificações"}
+  ,"notificationsRequesting": "A solicitar..."
+  ,"@notificationsRequesting": {"description": "Estado de carregamento"}
+  ,"notificationsGoSettings": "Ir para Configurações"
+  ,"@notificationsGoSettings": {"description": "Botão para ir às configurações"}
+  ,"notificationsTryAgain": "Tentar novamente"
+  ,"@notificationsTryAgain": {"description": "Botão para tentar novamente"}
+  ,"notificationsReceiveAlerts": "Receba alertas sobre:"
+  ,"@notificationsReceiveAlerts": {"description": "Texto introdutório dos benefícios"}
+  ,"notificationsBenefitPriceDrops": "Baixas de preço nos seus itens"
+  ,"@notificationsBenefitPriceDrops": {"description": "Benefício - alertas de preço"}
+  ,"notificationsBenefitShares": "Novas partilhas de listas"
+  ,"@notificationsBenefitShares": {"description": "Benefício - partilhas"}
+  ,"notificationsBenefitFavorites": "Novos favoritos"
+  ,"@notificationsBenefitFavorites": {"description": "Benefício - favoritos"}
+  ,"notificationsBenefitGiftHints": "Dicas de presentes"
+  ,"@notificationsBenefitGiftHints": {"description": "Benefício - dicas"}
+  ,"notificationsSettingsInstructions": "Vai às Configurações > Apps > WishlistApp > Notificações para ativar manualmente"
+  ,"@notificationsSettingsInstructions": {"description": "Instruções para ativar nas configurações"}
 }

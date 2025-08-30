@@ -893,4 +893,76 @@ class AppLocalizationsPt extends AppLocalizations {
   String errorSendingInvite(Object error) {
     return 'Erro ao enviar convite: $error';
   }
+
+  @override
+  String get notificationsTitle => 'Notificações';
+
+  @override
+  String get notificationsActive => 'Notificações Ativas';
+
+  @override
+  String get notificationsDisabled => 'Notificações Desativadas';
+
+  @override
+  String get notificationsEnabled => 'Notificações ativadas';
+
+  @override
+  String get notificationsDisabledGoSettings =>
+      'Notificações desativadas - ativar nas configurações';
+
+  @override
+  String get notificationsNotRequested =>
+      'Permissão de notificações não solicitada';
+
+  @override
+  String get notificationsSilent => 'Notificações silenciosas ativadas';
+
+  @override
+  String get notificationsSuccess => 'Notificações ativadas com sucesso!';
+
+  @override
+  String get notificationsSilentSuccess => 'Notificações silenciosas ativadas!';
+
+  @override
+  String get notificationsDenied =>
+      'Notificações negadas. Pode ativar nas configurações.';
+
+  @override
+  String get notificationsNotDetermined =>
+      'Permissão não determinada. Tentar novamente?';
+
+  @override
+  String get notificationsError =>
+      'Erro ao solicitar permissões de notificação';
+
+  @override
+  String get notificationsActivate => 'Ativar Notificações';
+
+  @override
+  String get notificationsRequesting => 'A solicitar...';
+
+  @override
+  String get notificationsGoSettings => 'Ir para Configurações';
+
+  @override
+  String get notificationsTryAgain => 'Tentar novamente';
+
+  @override
+  String get notificationsReceiveAlerts => 'Receba alertas sobre:';
+
+  @override
+  String get notificationsBenefitPriceDrops => 'Baixas de preço nos seus itens';
+
+  @override
+  String get notificationsBenefitShares => 'Novas partilhas de listas';
+
+  @override
+  String get notificationsBenefitFavorites => 'Novos favoritos';
+
+  @override
+  String get notificationsBenefitGiftHints => 'Dicas de presentes';
+
+  @override
+  String get notificationsSettingsInstructions =>
+      'Vai às Configurações > Apps > WishlistApp > Notificações para ativar manualmente';
 }

@@ -646,4 +646,49 @@
   ,"@errorLoadingContacts": {"description": "Error loading contacts"}
   ,"errorSendingInvite": "Error sending invite: {error}"
   ,"@errorSendingInvite": {"description": "Error sending invite"}
+  
+  ,"notificationsTitle": "Notifications"
+  ,"@notificationsTitle": {"description": "Notifications title"}
+  ,"notificationsActive": "Notifications Active"
+  ,"@notificationsActive": {"description": "Active notifications state"}
+  ,"notificationsDisabled": "Notifications Disabled"
+  ,"@notificationsDisabled": {"description": "Disabled notifications state"}
+  ,"notificationsEnabled": "Notifications enabled"
+  ,"@notificationsEnabled": {"description": "Notifications enabled status"}
+  ,"notificationsDisabledGoSettings": "Notifications disabled - enable in settings"
+  ,"@notificationsDisabledGoSettings": {"description": "Disabled notifications status with guidance"}
+  ,"notificationsNotRequested": "Notification permission not requested"
+  ,"@notificationsNotRequested": {"description": "Not requested permission status"}
+  ,"notificationsSilent": "Silent notifications enabled"
+  ,"@notificationsSilent": {"description": "Silent notifications status"}
+  ,"notificationsSuccess": "Notifications activated successfully!"
+  ,"@notificationsSuccess": {"description": "Success message"}
+  ,"notificationsSilentSuccess": "Silent notifications activated!"
+  ,"@notificationsSilentSuccess": {"description": "Silent success message"}
+  ,"notificationsDenied": "Notifications denied. You can enable them in settings."
+  ,"@notificationsDenied": {"description": "Permission denied message"}
+  ,"notificationsNotDetermined": "Permission not determined. Try again?"
+  ,"@notificationsNotDetermined": {"description": "Permission not determined message"}
+  ,"notificationsError": "Error requesting notification permissions"
+  ,"@notificationsError": {"description": "Error message"}
+  ,"notificationsActivate": "Enable Notifications"
+  ,"@notificationsActivate": {"description": "Button to enable notifications"}
+  ,"notificationsRequesting": "Requesting..."
+  ,"@notificationsRequesting": {"description": "Loading state"}
+  ,"notificationsGoSettings": "Go to Settings"
+  ,"@notificationsGoSettings": {"description": "Button to go to settings"}
+  ,"notificationsTryAgain": "Try again"
+  ,"@notificationsTryAgain": {"description": "Button to try again"}
+  ,"notificationsReceiveAlerts": "Receive alerts about:"
+  ,"@notificationsReceiveAlerts": {"description": "Benefits introduction text"}
+  ,"notificationsBenefitPriceDrops": "Price drops on your items"
+  ,"@notificationsBenefitPriceDrops": {"description": "Benefit - price alerts"}
+  ,"notificationsBenefitShares": "New list shares"
+  ,"@notificationsBenefitShares": {"description": "Benefit - shares"}
+  ,"notificationsBenefitFavorites": "New favorites"
+  ,"@notificationsBenefitFavorites": {"description": "Benefit - favorites"}
+  ,"notificationsBenefitGiftHints": "Gift hints"
+  ,"@notificationsBenefitGiftHints": {"description": "Benefit - hints"}
+  ,"notificationsSettingsInstructions": "Go to Settings > Apps > WishlistApp > Notifications to enable manually"
+  ,"@notificationsSettingsInstructions": {"description": "Instructions to enable in settings"}
 }

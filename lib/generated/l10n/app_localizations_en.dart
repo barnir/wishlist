@@ -881,4 +881,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorSendingInvite(Object error) {
     return 'Error sending invite: $error';
   }
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsActive => 'Notifications Active';
+
+  @override
+  String get notificationsDisabled => 'Notifications Disabled';
+
+  @override
+  String get notificationsEnabled => 'Notifications enabled';
+
+  @override
+  String get notificationsDisabledGoSettings =>
+      'Notifications disabled - enable in settings';
+
+  @override
+  String get notificationsNotRequested =>
+      'Notification permission not requested';
+
+  @override
+  String get notificationsSilent => 'Silent notifications enabled';
+
+  @override
+  String get notificationsSuccess => 'Notifications activated successfully!';
+
+  @override
+  String get notificationsSilentSuccess => 'Silent notifications activated!';
+
+  @override
+  String get notificationsDenied =>
+      'Notifications denied. You can enable them in settings.';
+
+  @override
+  String get notificationsNotDetermined =>
+      'Permission not determined. Try again?';
+
+  @override
+  String get notificationsError => 'Error requesting notification permissions';
+
+  @override
+  String get notificationsActivate => 'Enable Notifications';
+
+  @override
+  String get notificationsRequesting => 'Requesting...';
+
+  @override
+  String get notificationsGoSettings => 'Go to Settings';
+
+  @override
+  String get notificationsTryAgain => 'Try again';
+
+  @override
+  String get notificationsReceiveAlerts => 'Receive alerts about:';
+
+  @override
+  String get notificationsBenefitPriceDrops => 'Price drops on your items';
+
+  @override
+  String get notificationsBenefitShares => 'New list shares';
+
+  @override
+  String get notificationsBenefitFavorites => 'New favorites';
+
+  @override
+  String get notificationsBenefitGiftHints => 'Gift hints';
+
+  @override
+  String get notificationsSettingsInstructions =>
+      'Go to Settings > Apps > WishlistApp > Notifications to enable manually';
 }
