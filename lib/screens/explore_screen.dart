@@ -4,7 +4,6 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
-import 'package:wishlist_app/services/contacts_discovery_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 
@@ -17,7 +16,6 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateMixin {
   final _databaseService = FirebaseDatabaseService();
-  late final ContactsDiscoveryService _contactsService;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   
@@ -45,7 +43,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _contactsService = ContactsDiscoveryService();
     _tabController = TabController(length: 3, vsync: this);
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
@@ -150,7 +147,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
 
   Future<void> _checkContactsPermission() async {
     try {
-      final hasPermission = await _contactsService.hasContactsPermission();
+      final hasPermission = await FlutterContacts.requestPermission(readonly: true);
       if (mounted) {
         setState(() {
           _hasContactsPermission = hasPermission;
@@ -170,7 +167,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         _isLoadingContacts = true;
       });
 
-      final granted = await _contactsService.requestContactsPermission();
+      final granted = await FlutterContacts.requestPermission();
       
       if (mounted) {
         setState(() {
@@ -208,8 +205,10 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         _isLoadingContacts = true;
       });
 
-      final friends = await _contactsService.findFriendsInApp();
-      final inviteContacts = await _contactsService.getContactsNotInApp();
+      // Simplified version - just get basic contacts for now
+      final contacts = await FlutterContacts.getContacts(withProperties: true);
+      final friends = <Map<String, dynamic>>[];
+      final inviteContacts = contacts.where((c) => c.phones.isNotEmpty).toList();
 
       if (mounted) {
         setState(() {
@@ -235,7 +234,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       final name = contact.displayName;
       final l10n = AppLocalizations.of(context)!;
       
-      final message = _contactsService.generateInvitationMessage(name, 'WishlistApp');
+      final message = 'Olá $name! Estou a usar o WishlistApp para gerir as minhas listas de desejos. Experimenta também! 🎁';
       final fullMessage = '$message\n\n${l10n.invitePlayStoreMessage}';
       
       await Share.share(
