@@ -462,18 +462,30 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  late final GlobalKey<ProfileScreenState> _profileScreenKey;
+  late final List<Widget> _screens;
 
-  final List<Widget> _screens = const [
-    WishlistsScreen(),
-    ExploreScreen(),
-    FriendsScreen(),
-    ProfileScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _profileScreenKey = GlobalKey<ProfileScreenState>();
+    _screens = [
+      const WishlistsScreen(),
+      const ExploreScreen(),
+      const FriendsScreen(),
+      ProfileScreen(key: _profileScreenKey),
+    ];
+  }
 
   void _onTabTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+    
+    // Se navegar para o perfil (índice 3), atualizar as estatísticas
+    if (index == 3 && _profileScreenKey.currentState != null) {
+      _profileScreenKey.currentState!.refreshStats();
+    }
   }
 
   @override

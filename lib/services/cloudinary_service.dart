@@ -40,11 +40,14 @@ class CloudinaryService {
         throw Exception('Image validation failed: ${validationResult.error}');
       }
 
+      // Use timestamp to ensure unique URLs and avoid cache issues
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      
       final result = await _cloudinary.uploadFile(
         CloudinaryFile.fromFile(
           imageFile.path,
           folder: 'wishlist/profiles',
-          publicId: 'profile_$userId',
+          publicId: 'profile_${userId}_$timestamp',
           resourceType: CloudinaryResourceType.Image,
         ),
       );

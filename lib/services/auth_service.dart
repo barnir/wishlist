@@ -234,8 +234,18 @@ class AuthService {
       
       final imageUrl = await _cloudinaryService.uploadProfileImage(image, user.uid);
       if (imageUrl != null) {
-        await user.updatePhotoURL(imageUrl);
+        try {
+          // Try to update Firebase Auth profile photo - catch any type cast errors
+          await user.updatePhotoURL(imageUrl);
+          debugPrint('✅ Firebase Auth photo URL updated successfully');
+        } catch (authError) {
+          debugPrint('⚠️ Firebase Auth photo update failed (continuing anyway): $authError');
+          // Continue execution even if Firebase Auth update fails
+        }
+        
+        // Always update Firestore profile regardless of Firebase Auth result
         await _databaseService.updateUserProfile(user.uid, {'photo_url': imageUrl});
+        debugPrint('✅ Profile photo URL saved to Firestore');
       }
     } catch (e) {
       debugPrint('AuthService update profile picture error: $e');

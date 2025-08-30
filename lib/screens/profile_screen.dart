@@ -14,7 +14,6 @@ import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/language_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/memoized_widgets.dart';
 import 'package:wishlist_app/widgets/ui_components.dart';
-import 'package:wishlist_app/widgets/safe_navigation_wrapper.dart';
 import 'package:wishlist_app/screens/help_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,10 +21,10 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ProfileScreenState createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
   final _databaseService = FirebaseDatabaseService();
   final _favoritesService = FavoritesService();
@@ -152,6 +151,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Método público para forçar atualização das estatísticas
+  /// Chamado quando navegar para o perfil
+  Future<void> refreshStats() async {
+    final userId = _authService.currentUser?.uid;
+    if (userId != null) {
+      // Limpar cache para forçar atualização
+      _statsLastUpdated = null;
+      await _loadUserStats(userId);
+      if (mounted) {
+        setState(() {}); // Atualizar UI
+      }
+    }
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
@@ -174,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Erro ao carregar imagem: \${e.toString()}'),
+              content: Text('Erro ao carregar imagem: ${e.toString()}'),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -401,10 +414,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = _authService.currentUser;
     final l10n = AppLocalizations.of(context)!;
 
-    return SafeNavigationWrapper(
-      onBackPressed: () {
-        // Da tela de perfil, voltar para wishlists
-        Navigator.pushNamedAndRemoveUntil(context, '/wishlists', (route) => false);
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          // Da tela de perfil, sair da aplicação
+          SystemNavigator.pop();
+        }
       },
       child: Scaffold(
         appBar: WishlistAppBar(
