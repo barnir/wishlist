@@ -5,6 +5,7 @@ import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/widgets/swipe_action_widget.dart';
+import 'package:wishlist_app/widgets/safe_navigation_wrapper.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import '../models/wish_item.dart';
 import '../widgets/ui_components.dart';
@@ -188,9 +189,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_wishlistName),
+    return SafeNavigationWrapper(
+      onBackPressed: () {
+        // Da tela de detalhes da wishlist, voltar para a lista de wishlists
+        Navigator.pushNamedAndRemoveUntil(context, '/wishlists', (route) => false);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_wishlistName),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -227,6 +233,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         },
         tooltip: AppLocalizations.of(context)?.addNewItemTooltip ?? 'Adicionar novo item',
         child: const Icon(Icons.add),
+      ),
       ),
     );
   }

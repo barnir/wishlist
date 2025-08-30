@@ -141,23 +141,35 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Completar Registo'),
-        automaticallyImplyLeading: false,
-        actions: [
-          TextButton(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          await _cancelRegistration();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Completar Registo'),
+          automaticallyImplyLeading: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
             onPressed: _cancelRegistration,
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.red),
-            ),
           ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: !_showPhoneForm ? _buildChoiceScreen() : _buildPhoneForm(),
+          actions: [
+            TextButton(
+              onPressed: _cancelRegistration,
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: !_showPhoneForm ? _buildChoiceScreen() : _buildPhoneForm(),
+        ),
       ),
     );
   }

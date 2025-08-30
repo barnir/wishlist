@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
@@ -13,6 +14,7 @@ import 'package:wishlist_app/widgets/theme_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/language_selector_bottom_sheet.dart';
 import 'package:wishlist_app/widgets/memoized_widgets.dart';
 import 'package:wishlist_app/widgets/ui_components.dart';
+import 'package:wishlist_app/widgets/safe_navigation_wrapper.dart';
 import 'package:wishlist_app/screens/help_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -399,11 +401,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = _authService.currentUser;
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: WishlistAppBar(
-        title: l10n.profile,
-        showBackButton: false,
-      ),
+    return SafeNavigationWrapper(
+      onBackPressed: () {
+        // Da tela de perfil, voltar para wishlists
+        Navigator.pushNamedAndRemoveUntil(context, '/wishlists', (route) => false);
+      },
+      child: Scaffold(
+        appBar: WishlistAppBar(
+          title: l10n.profile,
+          showBackButton: false,
+        ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : user == null
@@ -553,6 +560,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
+      ),
     );
   }
 

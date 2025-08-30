@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/widgets/safe_navigation_wrapper.dart';
 import '../widgets/wishlist_total.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
@@ -292,11 +294,22 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: WishlistAppBar(
-        title: AppLocalizations.of(context)?.myWishlists ?? 'Minhas Wishlists',
-        showBackButton: false,
-      ),
+    return SafeNavigationWrapper(
+      isMainScreen: true,
+      child: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) async {
+          if (!didPop) {
+            // Se estamos na tela principal (wishlists) e o usuário usa gesto back,
+            // sair da aplicação em vez de ir para login
+            SystemNavigator.pop();
+          }
+        },
+        child: Scaffold(
+          appBar: WishlistAppBar(
+            title: AppLocalizations.of(context)?.myWishlists ?? 'Minhas Wishlists',
+            showBackButton: false,
+          ),
       body: _isInitialLoading
           ? WishlistLoadingIndicator(message: AppLocalizations.of(context)?.loadingWishlists ?? 'A carregar wishlists...')
           : _wishlists.isEmpty
@@ -315,15 +328,17 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add_edit_wishlist').then((_) {
-            // Refresh data when returning from add/edit
-            _loadInitialData();
-          });
-        },
-  tooltip: AppLocalizations.of(context)?.addNewWishlistTooltip ?? 'Adicionar nova wishlist',
-        child: const Icon(Icons.add),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/add_edit_wishlist').then((_) {
+              // Refresh data when returning from add/edit
+              _loadInitialData();
+            });
+          },
+    tooltip: AppLocalizations.of(context)?.addNewWishlistTooltip ?? 'Adicionar nova wishlist',
+          child: const Icon(Icons.add),
+        ),
+        ),
       ),
     );
   }
