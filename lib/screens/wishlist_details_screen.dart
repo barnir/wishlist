@@ -460,11 +460,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () async {
+                            final l10n = AppLocalizations.of(context);
                             final uri = Uri.tryParse(item.link!);
                             if (uri != null && await canLaunchUrl(uri)) {
                               await launchUrl(uri);
                             } else {
-                _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+                              if (context.mounted) {
+                                _showSnackBar(l10n?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+                              }
                             }
                           },
                           icon: const Icon(Icons.launch, size: 16),

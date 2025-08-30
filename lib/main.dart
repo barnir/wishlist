@@ -317,7 +317,11 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
             snapshot.data!['registration_complete'] == false) {
           debugPrint('📱 User profile exists but registration is incomplete - redirecting to phone verification');
           // Allow a small delay for the UI to render before navigation
-          Future.microtask(() => Navigator.pushReplacementNamed(context, '/add_phone'));
+          Future.microtask(() {
+            if (context.mounted) {
+              Navigator.pushReplacementNamed(context, '/add_phone');
+            }
+          });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -328,7 +332,11 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
           debugPrint('🔍 ROUTING DECISION POINT - Profile Analysis:');
           debugPrint('   - Profile exists: false');
           debugPrint('❌ ROUTING: No profile found → AddPhoneScreen');
-          Future.microtask(() => Navigator.pushReplacementNamed(context, '/add_phone'));
+          Future.microtask(() {
+            if (context.mounted) {
+              Navigator.pushReplacementNamed(context, '/add_phone');
+            }
+          });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );

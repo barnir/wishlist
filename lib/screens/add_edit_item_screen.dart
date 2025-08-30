@@ -87,9 +87,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
   Future<void> _handleSharedLink() async {
     if (widget.link != null && widget.link!.isNotEmpty) {
+      final l10n = AppLocalizations.of(context); // Capture l10n at the start
       setState(() {
   _isScraping = true;
-  _scrapingStatus = AppLocalizations.of(context)?.scrapingExtractingInfo;
+  _scrapingStatus = l10n?.scrapingExtractingInfo;
       });
       
       try {
@@ -97,7 +98,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   if (!mounted) return; // Guard after async call
         
         setState(() {
-          _scrapingStatus = AppLocalizations.of(context)?.scrapingFillingFields;
+          _scrapingStatus = l10n?.scrapingFillingFields;
         });
         
         _nameController.text = scrapedData['title'] ?? '';
@@ -128,7 +129,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         final imageUrl = scrapedData['image'];
         if (imageUrl != null && imageUrl.isNotEmpty) {
           setState(() {
-            _scrapingStatus = AppLocalizations.of(context)?.scrapingLoadingImage;
+            _scrapingStatus = l10n?.scrapingLoadingImage;
           });
           
           final response = await http.get(Uri.parse(imageUrl));
@@ -148,7 +149,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         
         // Preparar mensagem de status com detalhes do que foi extraído
         final extractedFeatures = <String>[];
-        final l10n = AppLocalizations.of(context);
         if (scrapedData['title'] != null && scrapedData['title']!.isNotEmpty) {
           extractedFeatures.add(l10n?.scrapingFeatureTitle ?? 'title');
         }
@@ -187,7 +187,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         
       } catch (e) {
         setState(() {
-          _scrapingStatus = AppLocalizations.of(context)?.scrapingError;
+          _scrapingStatus = l10n?.scrapingError;
         });
         
         // Clear error status after 5 seconds

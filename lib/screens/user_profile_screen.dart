@@ -460,14 +460,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (raw is! String || raw.trim().isEmpty) return null;
     var text = raw.replaceAll(RegExp(r'<[^>]*>'), ''); // remove HTML tags
     text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (text.length > 280) text = text.substring(0, 277) + '...';
+    if (text.length > 280) text = '${text.substring(0, 277)}...';
     return text;
   }
 
   void _shareProfile() {
     final link = 'https://wishlist.app/user/${widget.userId}';
-  final message = AppLocalizations.of(context)?.shareProfileMessage(link) ?? 'Vê o meu perfil no Wishlist App: $link';
-  Share.share(message);
+    final localizedMessage = AppLocalizations.of(context)?.shareProfileMessage(link) ?? 'Vê o meu perfil no Wishlist App:';
+    final message = '$localizedMessage $link';
+    SharePlus.instance.share(ShareParams(text: message));
     MonitoringService().trackEvent('profile_share', properties: {'profile_id': widget.userId});
   }
 

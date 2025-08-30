@@ -14,7 +14,7 @@ ThemeData _buildTheme(Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: scheme.background,
+    scaffoldBackgroundColor: scheme.surface,
     appBarTheme: AppBarTheme(
       centerTitle: true,
       elevation: 0,
@@ -49,9 +49,9 @@ ThemeData _buildTheme(Brightness brightness) {
         borderSide: BorderSide(color: scheme.primary, width: 2),
       ),
       filled: true,
-      fillColor: scheme.surfaceVariant,
+      fillColor: scheme.surfaceContainerHighest,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7)),
+      hintStyle: TextStyle(color: scheme.onSurfaceVariant.withValues(alpha: 0.7)),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(

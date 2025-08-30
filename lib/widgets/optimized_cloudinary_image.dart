@@ -141,7 +141,7 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
       width: widget.width,
       height: widget.height,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: widget.circle ? null : (widget.borderRadius ?? BorderRadius.circular(8)),
         shape: widget.circle ? BoxShape.circle : BoxShape.rectangle,
       ),
