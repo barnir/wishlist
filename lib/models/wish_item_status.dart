@@ -126,6 +126,7 @@ enum ItemPurchaseStatus {
 }
 
 // Classe para agregar informações de status para um item
+@Deprecated('Currently unused. Remove if not required by future UI for combined item + status representation.')
 class WishItemWithStatus {
   final Map<String, dynamic> wishItem;
   final List<WishItemStatus> friendStatuses;
