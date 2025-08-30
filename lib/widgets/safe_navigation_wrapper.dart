@@ -29,7 +29,7 @@ class SafeNavigationWrapper extends StatelessWidget {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           if (onBackPressed != null) {
             // Se há callback personalizado, usar ele

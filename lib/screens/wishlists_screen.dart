@@ -270,7 +270,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
           ),
           Spacing.horizontalM,
           Text(
-            'A carregar mais wishlists...',
+            AppLocalizations.of(context)?.loadingMoreWishlists ?? 'A carregar mais wishlists...',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -295,7 +295,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           // Se estamos na tela principal (wishlists) e o usuário usa gesto back,
           // sair da aplicação em vez de ir para login

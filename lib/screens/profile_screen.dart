@@ -434,7 +434,7 @@ class ProfileScreenState extends State<ProfileScreen> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           // Da tela de perfil, sair da aplicação
           SystemNavigator.pop();

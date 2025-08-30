@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
@@ -368,16 +367,16 @@ class NotificationService {
 
   /// Check if notifications are enabled and provide user-friendly status
   Future<Map<String, dynamic>> getNotificationStatus(BuildContext? context) async {
+    final l10n = (context != null) ? AppLocalizations.of(context) : null; // resolve antes dos awaits
     try {
       final status = await getPermissionStatus();
       final isEnabled = await hasPermission();
-      
       return {
         'enabled': isEnabled,
         'status': status.name,
         'canRequest': status == AuthorizationStatus.notDetermined,
         'needsSettings': status == AuthorizationStatus.denied,
-        'message': _getStatusMessage(status, context),
+        'message': _getStatusMessage(status, l10n),
       };
     } catch (e) {
       debugPrint('Error getting notification status: $e');
@@ -386,15 +385,13 @@ class NotificationService {
         'status': 'error',
         'canRequest': false,
         'needsSettings': false,
-        'message': context != null 
-            ? _getLocalizedErrorMessage(context) 
-            : 'Erro ao verificar estado das notificações',
+        'message': l10n?.notificationsError ?? 'Erro ao verificar estado das notificações',
       };
     }
   }
 
-  String _getStatusMessage(AuthorizationStatus status, BuildContext? context) {
-    if (context == null) {
+  String _getStatusMessage(AuthorizationStatus status, AppLocalizations? l10n) {
+    if (l10n == null) {
       // Fallback para português se não tiver contexto
       switch (status) {
         case AuthorizationStatus.authorized:
@@ -407,50 +404,21 @@ class NotificationService {
           return 'Notificações silenciosas ativadas';
       }
     }
-
-    try {
-      // Use localized strings when context is available
-      final l10n = AppLocalizations.of(context);
-      if (l10n != null) {
-        switch (status) {
-          case AuthorizationStatus.authorized:
-            return l10n.notificationsActive;
-          case AuthorizationStatus.denied:
-            return l10n.notificationsDisabledGoSettings;
-          case AuthorizationStatus.notDetermined:
-            return l10n.notificationsNotRequested;
-          case AuthorizationStatus.provisional:
-            return l10n.notificationsSilent;
-        }
-      }
-    } catch (e) {
-      debugPrint('Error getting localized status message: $e');
-    }
-
-    // Fallback para português
+    // Localized
     switch (status) {
       case AuthorizationStatus.authorized:
-        return 'Notificações ativadas';
+        return l10n.notificationsActive;
       case AuthorizationStatus.denied:
-        return 'Notificações desativadas - ativar nas configurações';
+        return l10n.notificationsDisabledGoSettings;
       case AuthorizationStatus.notDetermined:
-        return 'Permissão de notificações não solicitada';
+        return l10n.notificationsNotRequested;
       case AuthorizationStatus.provisional:
-        return 'Notificações silenciosas ativadas';
+        return l10n.notificationsSilent;
     }
+
+  // (Unreachable fallback removed)
   }
 
-  String _getLocalizedErrorMessage(BuildContext context) {
-    try {
-      final l10n = AppLocalizations.of(context);
-      if (l10n != null) {
-        return l10n.notificationsError;
-      }
-    } catch (e) {
-      debugPrint('Error getting localized error message: $e');
-    }
-    return 'Erro ao verificar estado das notificações';
-  }
 
   Future<void> subscribeToUserTopic(String userId) async {
     try {

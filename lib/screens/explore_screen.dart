@@ -186,9 +186,10 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         if (granted) {
           // Permissão concedida - carregar dados
           _loadContactsData();
+          final grantedMsg = AppLocalizations.of(context)?.contactsPermissionDescription ?? 'Permissão concedida! A descobrir contactos...';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Permissão concedida! A descobrir contactos...'),
+              content: Text(grantedMsg),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 2),
             ),
@@ -335,6 +336,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       final message = 'Olá $name! Estou a usar o WishlistApp para gerir as minhas listas de desejos. Experimenta também! 🎁';
       final fullMessage = '$message\n\n${l10n.invitePlayStoreMessage}';
       
+  // ignore: deprecated_member_use
+      // ignore: deprecated_member_use
       await Share.share(
         fullMessage,
         subject: l10n.inviteSubject,
