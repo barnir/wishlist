@@ -998,6 +998,60 @@ abstract class AppLocalizations {
   /// **'Recently'**
   String get recentlyLabel;
 
+  /// No description provided for @helpWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to the Wishlist App!'**
+  String get helpWelcomeTitle;
+
+  /// No description provided for @helpWelcomeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create and share your wishlists in a simple, organized way.'**
+  String get helpWelcomeSubtitle;
+
+  /// No description provided for @helpHowToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'How to Use'**
+  String get helpHowToUse;
+
+  /// No description provided for @helpCreateWishlistsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Wishlists'**
+  String get helpCreateWishlistsTitle;
+
+  /// No description provided for @helpCreateWishlistsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the + button to create a new wishlist. You can make it public or private.'**
+  String get helpCreateWishlistsDesc;
+
+  /// No description provided for @helpAddItemsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Items'**
+  String get helpAddItemsTitle;
+
+  /// No description provided for @helpAddItemsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside a wishlist, tap + to add items. You can attach photos, prices and links.'**
+  String get helpAddItemsDesc;
+
+  /// No description provided for @helpFaqAddWithoutLinkQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I add items without a link?'**
+  String get helpFaqAddWithoutLinkQ;
+
+  /// No description provided for @helpFaqAddWithoutLinkA.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes! You can add items manually by filling name, price and other details.'**
+  String get helpFaqAddWithoutLinkA;
+
   /// No description provided for @otpVerifyTitle.
   ///
   /// In en, this message translates to:

@@ -37,7 +37,7 @@ class HelpScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Bem-vindo ao Wishlist App!',
+                          l10n.helpWelcomeTitle,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -46,7 +46,7 @@ class HelpScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Crie e partilhe as suas listas de desejos de forma simples e organizada.',
+                      l10n.helpWelcomeSubtitle,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -58,7 +58,7 @@ class HelpScreen extends StatelessWidget {
             
             // How to use section
             Text(
-              'Como Usar',
+              l10n.helpHowToUse,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -68,15 +68,15 @@ class HelpScreen extends StatelessWidget {
             _buildHelpItem(
               context,
               icon: Icons.add_circle_outline,
-              title: 'Criar Wishlists',
-              description: 'Toque no botão + para criar uma nova lista de desejos. Pode torná-la pública ou privada.',
+              title: l10n.helpCreateWishlistsTitle,
+              description: l10n.helpCreateWishlistsDesc,
             ),
             
             _buildHelpItem(
               context,
               icon: Icons.shopping_bag_outlined,
-              title: 'Adicionar Items',
-              description: 'Dentro de uma wishlist, toque no + para adicionar items. Pode adicionar fotos, preços e links.',
+              title: l10n.helpAddItemsTitle,
+              description: l10n.helpAddItemsDesc,
             ),
             
             _buildHelpItem(
@@ -166,8 +166,8 @@ class HelpScreen extends StatelessWidget {
             
             _buildFAQItem(
               context,
-              question: 'Posso adicionar items sem link?',
-              answer: 'Sim! Pode adicionar items manualmente preenchendo o nome, preço e outros detalhes.',
+              question: l10n.helpFaqAddWithoutLinkQ,
+              answer: l10n.helpFaqAddWithoutLinkA,
             ),
             
             _buildFAQItem(

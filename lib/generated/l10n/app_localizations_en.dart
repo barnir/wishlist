@@ -483,6 +483,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentlyLabel => 'Recently';
 
   @override
+  String get helpWelcomeTitle => 'Welcome to the Wishlist App!';
+
+  @override
+  String get helpWelcomeSubtitle =>
+      'Create and share your wishlists in a simple, organized way.';
+
+  @override
+  String get helpHowToUse => 'How to Use';
+
+  @override
+  String get helpCreateWishlistsTitle => 'Create Wishlists';
+
+  @override
+  String get helpCreateWishlistsDesc =>
+      'Tap the + button to create a new wishlist. You can make it public or private.';
+
+  @override
+  String get helpAddItemsTitle => 'Add Items';
+
+  @override
+  String get helpAddItemsDesc =>
+      'Inside a wishlist, tap + to add items. You can attach photos, prices and links.';
+
+  @override
+  String get helpFaqAddWithoutLinkQ => 'Can I add items without a link?';
+
+  @override
+  String get helpFaqAddWithoutLinkA =>
+      'Yes! You can add items manually by filling name, price and other details.';
+
+  @override
   String get otpVerifyTitle => 'Verify Code';
 
   @override
