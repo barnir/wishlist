@@ -337,7 +337,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         ).writeAsBytes(_imageBytes!);
   if (!mounted) return; // Guard
         final targetId = widget.itemId ?? DateTime.now().millisecondsSinceEpoch.toString();
-        uploadedUrl = await _cloudinaryService.uploadProductImage(tempFileForUpload, targetId);
+        
+        // Pass existing image URL for cleanup if editing an item
+        uploadedUrl = await _cloudinaryService.uploadProductImage(
+          tempFileForUpload, 
+          targetId,
+          oldImageUrl: widget.itemId != null ? _existingImageUrl : null,
+        );
+        
   if (!mounted) return; // Guard
         _existingImageUrl = uploadedUrl;
         if (uploadedUrl != null) {

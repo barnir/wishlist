@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
@@ -71,8 +72,20 @@ class ProfileScreenState extends State<ProfileScreen> {
         _phoneNumber = userData['phone_number'];
       }
       
-      // Carregar imagem de perfil
-      _profileImageUrl = user?.photoURL ?? userData?['photo_url'];
+      // Carregar imagem de perfil - priorizar Firestore que tem a URL mais recente
+      final firestorePhotoUrl = userData?['photo_url'];
+      final firebasePhotoUrl = user?.photoURL;
+      
+      // Se tem URL no Firestore, usar essa (mais recente)
+      if (firestorePhotoUrl != null && firestorePhotoUrl.toString().isNotEmpty) {
+        _profileImageUrl = firestorePhotoUrl.toString();
+      } else if (firebasePhotoUrl != null && firebasePhotoUrl.isNotEmpty) {
+        _profileImageUrl = firebasePhotoUrl;
+      } else {
+        _profileImageUrl = null;
+      }
+      
+      debugPrint('Profile image URL loaded: $_profileImageUrl');
       
       // Se não tem nome na base de dados, usar do Firebase
       if (_displayName.isEmpty && user?.displayName != null) {
@@ -180,8 +193,13 @@ class ProfileScreenState extends State<ProfileScreen> {
 
       try {
         await _authService.updateProfilePicture(tempFile);
-        // Reload user data to get updated photo URL
+        // Force reload user data to get updated photo URL
         await _loadProfileData();
+        
+        // Force clear cached image if exists
+        if (_profileImageUrl != null) {
+          await CachedNetworkImage.evictFromCache(_profileImageUrl!);
+        }
       } catch (e) {
         // Handle error
         if (mounted) {

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 
 /// Firebase Firestore Database Service
 /// Firebase Firestore database service - complete NoSQL integration
@@ -11,6 +12,7 @@ class FirebaseDatabaseService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   /// Generate a temporary client-side ID (not yet persisted) –
   /// format: tmp_epochMillis_random4
@@ -98,9 +100,13 @@ class FirebaseDatabaseService {
     try {
       debugPrint('🔥 Deleting user profile from Firestore: $userId');
       
+      // Before deleting profile, schedule cleanup of all user images
+      await _cloudinaryService.deleteUserImages(userId);
+      
       await _firestore.collection('users').doc(userId).delete();
       
       debugPrint('✅ User profile deleted successfully');
+      debugPrint('🗑️ Scheduled cleanup for all user images');
     } catch (e) {
       debugPrint('❌ Error deleting user profile: $e');
       rethrow;
@@ -186,15 +192,27 @@ class FirebaseDatabaseService {
     try {
       debugPrint('🔥 Deleting wishlist from Firestore: $wishlistId');
       
-      // First delete all wish items in this wishlist
+      // Get wishlist data for image cleanup
+      final wishlistDoc = await _firestore.collection('wishlists').doc(wishlistId).get();
+      final wishlistData = wishlistDoc.data();
+      final wishlistImageUrl = wishlistData?['image_url'] as String?;
+      
+      // Get all wish items in this wishlist for image cleanup
       final itemsSnapshot = await _firestore
           .collection('wish_items')
           .where('wishlist_id', isEqualTo: wishlistId)
           .get();
       
+      // Collect product image URLs for cleanup
+      final productImageUrls = <String>[];
       final batch = _firestore.batch();
       
       for (final doc in itemsSnapshot.docs) {
+        final itemData = doc.data();
+        final imageUrl = itemData['image_url'] as String?;
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          productImageUrls.add(imageUrl);
+        }
         batch.delete(doc.reference);
       }
       
@@ -203,7 +221,16 @@ class FirebaseDatabaseService {
       
       await batch.commit();
       
+      // Schedule cleanup of all images associated with this wishlist
+      await _cloudinaryService.scheduleWishlistCleanup(wishlistId, productImageUrls);
+      
+      // If wishlist had a cover image, schedule its cleanup too
+      if (wishlistImageUrl != null) {
+        await _cloudinaryService.scheduleProductCleanup(wishlistImageUrl);
+      }
+      
       debugPrint('✅ Wishlist and all items deleted successfully');
+      debugPrint('🗑️ Scheduled cleanup for ${productImageUrls.length} product images');
     } catch (e) {
       debugPrint('❌ Error deleting wishlist: $e');
       rethrow;
@@ -312,7 +339,24 @@ class FirebaseDatabaseService {
     try {
       debugPrint('🔥 Deleting wish item from Firestore: $itemId');
       
-      await _firestore.collection('wish_items').doc(itemId).delete();
+      // Get item data for image cleanup before deleting
+      final itemDoc = await _firestore.collection('wish_items').doc(itemId).get();
+      if (itemDoc.exists) {
+        final itemData = itemDoc.data()!;
+        final imageUrl = itemData['image_url'] as String?;
+        
+        // Delete from Firestore
+        await _firestore.collection('wish_items').doc(itemId).delete();
+        
+        // Schedule image cleanup if item had an image
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          await _cloudinaryService.scheduleProductCleanup(imageUrl);
+          debugPrint('🗑️ Scheduled cleanup for product image: $imageUrl');
+        }
+      } else {
+        // Item doesn't exist, just log
+        debugPrint('⚠️ Wish item not found: $itemId');
+      }
       
       debugPrint('✅ Wish item deleted successfully');
     } catch (e) {
@@ -622,6 +666,44 @@ class FirebaseDatabaseService {
       return filteredUsers;
     } catch (e) {
       debugPrint('❌ Error searching users: $e');
+      return [];
+    }
+  }
+
+  /// Find users by phone numbers (for contacts discovery)
+  Future<List<Map<String, dynamic>>> findUsersByPhoneNumbers(List<String> phoneNumbers) async {
+    try {
+      if (phoneNumbers.isEmpty || currentUserId == null) return [];
+
+      debugPrint('🔍 Searching for users with ${phoneNumbers.length} phone numbers');
+
+      // Firestore 'in' queries are limited to 10 items, so we need to batch
+      const batchSize = 10;
+      final results = <Map<String, dynamic>>[];
+
+      for (int i = 0; i < phoneNumbers.length; i += batchSize) {
+        final batch = phoneNumbers.skip(i).take(batchSize).toList();
+        
+        final query = await _firestore
+            .collection('users')
+            .where('phone', whereIn: batch)
+            .get();
+
+        final batchResults = query.docs
+            .where((doc) => doc.id != currentUserId) // Exclude current user
+            .map((doc) => {
+              'id': doc.id,
+              ...doc.data(),
+            })
+            .toList();
+
+        results.addAll(batchResults);
+      }
+
+      debugPrint('✅ Found ${results.length} users matching phone numbers');
+      return results;
+    } catch (e) {
+      debugPrint('❌ Error finding users by phone numbers: $e');
       return [];
     }
   }

@@ -821,4 +821,76 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get languageSubtitleInternational => 'Internacional';
+
+  @override
+  String get searchTab => 'Pesquisar';
+
+  @override
+  String get friendsTab => 'Amigos';
+
+  @override
+  String get inviteTab => 'Convidar';
+
+  @override
+  String get discoverFriends => 'Descobrir Amigos';
+
+  @override
+  String get allowContactsAccess => 'Permitir Acesso aos Contactos';
+
+  @override
+  String get contactsPermissionDescription =>
+      'Permite acesso aos contactos para descobrir quais dos teus amigos já usam a app';
+
+  @override
+  String get discoveringFriends => 'A descobrir amigos...';
+
+  @override
+  String get loadingContacts => 'A carregar contactos...';
+
+  @override
+  String get noFriendsFound => 'Nenhum amigo encontrado';
+
+  @override
+  String get noFriendsFoundDescription =>
+      'Os teus contactos que usam a app aparecerão aqui';
+
+  @override
+  String get allFriendsUseApp => 'Todos os teus contactos já usam a app!';
+
+  @override
+  String get noContactsToInvite => 'Ou não tens contactos para convidar';
+
+  @override
+  String get friendBadge => 'Amigo';
+
+  @override
+  String get contactLabel => 'Contacto';
+
+  @override
+  String get inviteButton => 'Convidar';
+
+  @override
+  String get inviteSubject => 'Convite para WishlistApp';
+
+  @override
+  String get invitePlayStoreMessage => '📱 Brevemente na Play Store!';
+
+  @override
+  String get contactsPermissionRequired =>
+      'Permissão de contactos necessária para descobrir amigos';
+
+  @override
+  String errorRequestingPermission(Object error) {
+    return 'Erro ao solicitar permissão: $error';
+  }
+
+  @override
+  String errorLoadingContacts(Object error) {
+    return 'Erro ao carregar contactos: $error';
+  }
+
+  @override
+  String errorSendingInvite(Object error) {
+    return 'Erro ao enviar convite: $error';
+  }
 }

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/contacts_discovery_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 
@@ -12,10 +15,14 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateMixin {
   final _databaseService = FirebaseDatabaseService();
+  late final ContactsDiscoveryService _contactsService;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
+  
+  // Tab controller
+  late TabController _tabController;
   
   // Search state
   String _searchQuery = '';
@@ -29,15 +36,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _hasMoreData = true;
   bool _isInitialLoading = false;
 
+  // Contacts state
+  List<Map<String, dynamic>> _friendsInApp = [];
+  List<Contact> _contactsToInvite = [];
+  bool _isLoadingContacts = false;
+  bool _hasContactsPermission = false;
+
   @override
   void initState() {
     super.initState();
+    _contactsService = ContactsDiscoveryService();
+    _tabController = TabController(length: 3, vsync: this);
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
+    _checkContactsPermission();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     _debounceTimer?.cancel();
@@ -129,33 +146,165 @@ class _ExploreScreenState extends State<ExploreScreen> {
     await _loadInitialData();
   }
 
+  // ============== CONTACTS METHODS ==============
+
+  Future<void> _checkContactsPermission() async {
+    try {
+      final hasPermission = await _contactsService.hasContactsPermission();
+      if (mounted) {
+        setState(() {
+          _hasContactsPermission = hasPermission;
+        });
+        if (hasPermission) {
+          _loadContactsData();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking contacts permission: $e');
+    }
+  }
+
+  Future<void> _requestContactsPermission() async {
+    try {
+      setState(() {
+        _isLoadingContacts = true;
+      });
+
+      final granted = await _contactsService.requestContactsPermission();
+      
+      if (mounted) {
+        setState(() {
+          _hasContactsPermission = granted;
+          _isLoadingContacts = false;
+        });
+
+        if (granted) {
+          _loadContactsData();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.contactsPermissionRequired),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingContacts = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorRequestingPermission(e.toString()))),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadContactsData() async {
+    if (!_hasContactsPermission) return;
+
+    try {
+      setState(() {
+        _isLoadingContacts = true;
+      });
+
+      final friends = await _contactsService.findFriendsInApp();
+      final inviteContacts = await _contactsService.getContactsNotInApp();
+
+      if (mounted) {
+        setState(() {
+          _friendsInApp = friends;
+          _contactsToInvite = inviteContacts;
+          _isLoadingContacts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingContacts = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorLoadingContacts(e.toString()))),
+        );
+      }
+    }
+  }
+
+  Future<void> _inviteContact(Contact contact) async {
+    try {
+      final name = contact.displayName;
+      final l10n = AppLocalizations.of(context)!;
+      
+      final message = _contactsService.generateInvitationMessage(name, 'WishlistApp');
+      final fullMessage = '$message\n\n${l10n.invitePlayStoreMessage}';
+      
+      await Share.share(
+        fullMessage,
+        subject: l10n.inviteSubject,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorSendingInvite(e.toString()))),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: WishlistAppBar(
-        title: l10n.exploreTitle,
-        showBackButton: false,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: UIConstants.paddingM,
-            child: WishlistTextField(
-              label: l10n.searchUsersPlaceholder,
-              controller: _searchController,
-              prefixIcon: const Icon(Icons.search),
+      appBar: AppBar(
+        title: Text(l10n.exploreTitle),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.search),
+              text: l10n.searchTab,
             ),
-          ),
-          Expanded(
-            child: _buildContent(),
-          ),
+            Tab(
+              icon: const Icon(Icons.people),
+              text: l10n.friendsTab,
+            ),
+            Tab(
+              icon: const Icon(Icons.person_add),
+              text: l10n.inviteTab,
+            ),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildSearchTab(),
+          _buildFriendsTab(),
+          _buildInviteTab(),
         ],
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildSearchTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: UIConstants.paddingM,
+          child: WishlistTextField(
+            label: AppLocalizations.of(context)!.searchUsersPlaceholder,
+            controller: _searchController,
+            prefixIcon: const Icon(Icons.search),
+          ),
+        ),
+        Expanded(
+          child: _buildSearchContent(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchContent() {
     if (_searchQuery.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
       return WishlistEmptyState(
@@ -330,6 +479,359 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFriendsTab() {
+    if (!_hasContactsPermission) {
+      return _buildPermissionRequest();
+    }
+
+    if (_isLoadingContacts) {
+      final l10n = AppLocalizations.of(context)!;
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(l10n.discoveringFriends),
+          ],
+        ),
+      );
+    }
+
+    if (_friendsInApp.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(l10n.noFriendsFound),
+            const SizedBox(height: 8),
+            Text(
+              l10n.noFriendsFoundDescription,
+              style: const TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadContactsData,
+      child: ListView.builder(
+        padding: UIConstants.listPadding,
+        itemCount: _friendsInApp.length,
+        itemBuilder: (context, index) {
+          return _buildFriendCard(_friendsInApp[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildInviteTab() {
+    if (!_hasContactsPermission) {
+      return _buildPermissionRequest();
+    }
+
+    if (_isLoadingContacts) {
+      final l10n = AppLocalizations.of(context)!;
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(l10n.loadingContacts),
+          ],
+        ),
+      );
+    }
+
+    if (_contactsToInvite.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(l10n.allFriendsUseApp),
+            const SizedBox(height: 8),
+            Text(
+              l10n.noContactsToInvite,
+              style: const TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadContactsData,
+      child: ListView.builder(
+        padding: UIConstants.listPadding,
+        itemCount: _contactsToInvite.length,
+        itemBuilder: (context, index) {
+          return _buildInviteCard(_contactsToInvite[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildPermissionRequest() {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Padding(
+        padding: UIConstants.paddingL,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.contacts,
+              size: 80,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.discoverFriends,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.contactsPermissionDescription,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _requestContactsPermission,
+              icon: const Icon(Icons.contacts),
+              label: Text(l10n.allowContactsAccess),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFriendCard(Map<String, dynamic> friendData) {
+    final user = friendData['user'] as Map<String, dynamic>;
+    final contact = friendData['contact'] as Map<String, dynamic>;
+    
+    final displayName = user['display_name'] as String? ?? contact['name'] as String? ?? 'Utilizador';
+    final email = user['email'] as String?;
+    final userId = user['id'] as String;
+    final contactName = contact['name'] as String? ?? displayName;
+
+    return Card(
+      margin: UIConstants.cardMargin,
+      elevation: UIConstants.elevationM,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/user_profile',
+            arguments: userId,
+          );
+        },
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        child: Container(
+          padding: UIConstants.paddingM,
+          child: Row(
+            children: [
+              // Avatar do utilizador
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withAlpha(204),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              // Informação do utilizador
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (contactName != displayName) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${AppLocalizations.of(context)!.contactLabel}: $contactName',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (email != null && email.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        email,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              
+              // Badge de amigo
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.people,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      AppLocalizations.of(context)!.friendBadge,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInviteCard(Contact contact) {
+    final displayName = contact.displayName;
+    final phone = contact.phones.isNotEmpty ? contact.phones.first.number : '';
+
+    return Card(
+      margin: UIConstants.cardMargin,
+      elevation: UIConstants.elevationM,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+      ),
+      child: Container(
+        padding: UIConstants.paddingM,
+        child: Row(
+          children: [
+            // Avatar do contacto
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                color: Colors.grey[300],
+              ),
+              child: Center(
+                child: Text(
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : 'C',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(width: 16),
+            
+            // Informação do contacto
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayName,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (phone.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      phone,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            
+            // Botão de convite
+            OutlinedButton.icon(
+              onPressed: () => _inviteContact(contact),
+              icon: const Icon(Icons.share, size: 16),
+              label: Text(AppLocalizations.of(context)!.inviteButton),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          ],
         ),
       ),
     );

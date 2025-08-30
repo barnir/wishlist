@@ -118,7 +118,11 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         // 2. If we have a new image, upload it then update wishlist
         if (tempFileForUpload != null) {
           try {
-            uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(tempFileForUpload, newId);
+            uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(
+              tempFileForUpload, 
+              newId,
+              oldImageUrl: null, // New wishlist, no old image
+            );
             if (uploadedImageUrl != null) {
               await _databaseService.updateWishlist(newId, {
                 'image_url': uploadedImageUrl,
@@ -142,7 +146,11 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         if (tempFileForUpload != null) {
           // New image selected -> upload first to get secure URL
             try {
-              uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(tempFileForUpload, id);
+              uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(
+                tempFileForUpload, 
+                id,
+                oldImageUrl: _existingImageUrl, // Pass existing image for cleanup
+              );
               _existingImageUrl = uploadedImageUrl;
               if (uploadedImageUrl != null) {
                 MonitoringService.logImageUploadSuccess('wishlist', id: id, bytes: _imageBytes?.length);

@@ -370,4 +370,54 @@
   ,"@languageSubtitlePtPt": {"description": "Subtítulo descrevendo a variante pt (Portugal)"}
   ,"languageSubtitleInternational": "Internacional"
   ,"@languageSubtitleInternational": {"description": "Subtítulo descrevendo o locale internacional genérico"}
+  
+  ,"searchTab": "Pesquisar"
+  ,"@searchTab": {"description": "Aba de pesquisa na tela explorar"}
+  ,"friendsTab": "Amigos"
+  ,"@friendsTab": {"description": "Aba de amigos na tela explorar"}
+  ,"inviteTab": "Convidar"
+  ,"@inviteTab": {"description": "Aba de convites na tela explorar"}
+  
+  ,"discoverFriends": "Descobrir Amigos"
+  ,"@discoverFriends": {"description": "Título para descoberta de amigos"}
+  ,"allowContactsAccess": "Permitir Acesso aos Contactos"
+  ,"@allowContactsAccess": {"description": "Botão para permitir acesso aos contactos"}
+  ,"contactsPermissionDescription": "Permite acesso aos contactos para descobrir quais dos teus amigos já usam a app"
+  ,"@contactsPermissionDescription": {"description": "Descrição da permissão de contactos"}
+  
+  ,"discoveringFriends": "A descobrir amigos..."
+  ,"@discoveringFriends": {"description": "Texto de carregamento da descoberta de amigos"}
+  ,"loadingContacts": "A carregar contactos..."
+  ,"@loadingContacts": {"description": "Texto de carregamento dos contactos"}
+  
+  ,"noFriendsFound": "Nenhum amigo encontrado"
+  ,"@noFriendsFound": {"description": "Título quando não há amigos encontrados"}
+  ,"noFriendsFoundDescription": "Os teus contactos que usam a app aparecerão aqui"
+  ,"@noFriendsFoundDescription": {"description": "Descrição quando não há amigos encontrados"}
+  
+  ,"allFriendsUseApp": "Todos os teus contactos já usam a app!"
+  ,"@allFriendsUseApp": {"description": "Título quando todos os contactos já usam a app"}
+  ,"noContactsToInvite": "Ou não tens contactos para convidar"
+  ,"@noContactsToInvite": {"description": "Subtítulo quando não há contactos para convidar"}
+  
+  ,"friendBadge": "Amigo"
+  ,"@friendBadge": {"description": "Badge indicando que é amigo"}
+  ,"contactLabel": "Contacto"
+  ,"@contactLabel": {"description": "Label para contacto"}
+  ,"inviteButton": "Convidar"
+  ,"@inviteButton": {"description": "Botão para convidar contacto"}
+  
+  ,"inviteSubject": "Convite para WishlistApp"
+  ,"@inviteSubject": {"description": "Assunto do convite"}
+  ,"invitePlayStoreMessage": "📱 Brevemente na Play Store!"
+  ,"@invitePlayStoreMessage": {"description": "Mensagem sobre Play Store no convite"}
+  
+  ,"contactsPermissionRequired": "Permissão de contactos necessária para descobrir amigos"
+  ,"@contactsPermissionRequired": {"description": "Mensagem quando permissão é negada"}
+  ,"errorRequestingPermission": "Erro ao solicitar permissão: {error}"
+  ,"@errorRequestingPermission": {"description": "Erro ao solicitar permissão"}
+  ,"errorLoadingContacts": "Erro ao carregar contactos: {error}"
+  ,"@errorLoadingContacts": {"description": "Erro ao carregar contactos"}
+  ,"errorSendingInvite": "Erro ao enviar convite: {error}"
+  ,"@errorSendingInvite": {"description": "Erro ao enviar convite"}
 }

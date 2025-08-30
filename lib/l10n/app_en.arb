@@ -596,4 +596,54 @@
   ,"@languageSubtitlePtPt": {"description": "Subtitle describing the pt locale variant"}
   ,"languageSubtitleInternational": "International"
   ,"@languageSubtitleInternational": {"description": "Subtitle describing the generic international locale"}
+  
+  ,"searchTab": "Search"
+  ,"@searchTab": {"description": "Search tab in explore screen"}
+  ,"friendsTab": "Friends"
+  ,"@friendsTab": {"description": "Friends tab in explore screen"}
+  ,"inviteTab": "Invite"
+  ,"@inviteTab": {"description": "Invite tab in explore screen"}
+  
+  ,"discoverFriends": "Discover Friends"
+  ,"@discoverFriends": {"description": "Title for friends discovery"}
+  ,"allowContactsAccess": "Allow Contacts Access"
+  ,"@allowContactsAccess": {"description": "Button to allow contacts access"}
+  ,"contactsPermissionDescription": "Allow access to contacts to discover which of your friends already use the app"
+  ,"@contactsPermissionDescription": {"description": "Description of contacts permission"}
+  
+  ,"discoveringFriends": "Discovering friends..."
+  ,"@discoveringFriends": {"description": "Loading text for friends discovery"}
+  ,"loadingContacts": "Loading contacts..."
+  ,"@loadingContacts": {"description": "Loading text for contacts"}
+  
+  ,"noFriendsFound": "No friends found"
+  ,"@noFriendsFound": {"description": "Title when no friends found"}
+  ,"noFriendsFoundDescription": "Your contacts who use the app will appear here"
+  ,"@noFriendsFoundDescription": {"description": "Description when no friends found"}
+  
+  ,"allFriendsUseApp": "All your contacts already use the app!"
+  ,"@allFriendsUseApp": {"description": "Title when all contacts already use the app"}
+  ,"noContactsToInvite": "Or you have no contacts to invite"
+  ,"@noContactsToInvite": {"description": "Subtitle when no contacts to invite"}
+  
+  ,"friendBadge": "Friend"
+  ,"@friendBadge": {"description": "Badge indicating friend"}
+  ,"contactLabel": "Contact"
+  ,"@contactLabel": {"description": "Label for contact"}
+  ,"inviteButton": "Invite"
+  ,"@inviteButton": {"description": "Button to invite contact"}
+  
+  ,"inviteSubject": "Invitation to WishlistApp"
+  ,"@inviteSubject": {"description": "Invite subject"}
+  ,"invitePlayStoreMessage": "📱 Coming soon to Play Store!"
+  ,"@invitePlayStoreMessage": {"description": "Play Store message in invite"}
+  
+  ,"contactsPermissionRequired": "Contacts permission required to discover friends"
+  ,"@contactsPermissionRequired": {"description": "Message when permission is denied"}
+  ,"errorRequestingPermission": "Error requesting permission: {error}"
+  ,"@errorRequestingPermission": {"description": "Error requesting permission"}
+  ,"errorLoadingContacts": "Error loading contacts: {error}"
+  ,"@errorLoadingContacts": {"description": "Error loading contacts"}
+  ,"errorSendingInvite": "Error sending invite: {error}"
+  ,"@errorSendingInvite": {"description": "Error sending invite"}
 }

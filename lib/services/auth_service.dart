@@ -232,7 +232,22 @@ class AuthService {
     try {
       debugPrint('=== AuthService: Update Profile Picture ===');
       
-      final imageUrl = await _cloudinaryService.uploadProfileImage(image, user.uid);
+      // Get current photo URL before uploading new one for cleanup
+      String? oldPhotoUrl;
+      try {
+        final userDoc = await _databaseService.getUserProfile(user.uid);
+        oldPhotoUrl = userDoc?['photo_url'] as String?;
+        debugPrint('Current photo URL for cleanup: $oldPhotoUrl');
+      } catch (e) {
+        debugPrint('Could not retrieve current photo URL: $e');
+      }
+      
+      final imageUrl = await _cloudinaryService.uploadProfileImage(
+        image, 
+        user.uid, 
+        oldImageUrl: oldPhotoUrl,
+      );
+      
       if (imageUrl != null) {
         try {
           // Try to update Firebase Auth profile photo - catch any type cast errors
@@ -246,6 +261,7 @@ class AuthService {
         // Always update Firestore profile regardless of Firebase Auth result
         await _databaseService.updateUserProfile(user.uid, {'photo_url': imageUrl});
         debugPrint('✅ Profile photo URL saved to Firestore');
+        debugPrint('🗑️ Old image scheduled for cleanup: $oldPhotoUrl');
       }
     } catch (e) {
       debugPrint('AuthService update profile picture error: $e');

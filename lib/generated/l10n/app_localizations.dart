@@ -1603,6 +1603,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'International'**
   String get languageSubtitleInternational;
+
+  /// Search tab in explore screen
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get searchTab;
+
+  /// Friends tab in explore screen
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get friendsTab;
+
+  /// Invite tab in explore screen
+  ///
+  /// In en, this message translates to:
+  /// **'Invite'**
+  String get inviteTab;
+
+  /// Title for friends discovery
+  ///
+  /// In en, this message translates to:
+  /// **'Discover Friends'**
+  String get discoverFriends;
+
+  /// Button to allow contacts access
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Contacts Access'**
+  String get allowContactsAccess;
+
+  /// Description of contacts permission
+  ///
+  /// In en, this message translates to:
+  /// **'Allow access to contacts to discover which of your friends already use the app'**
+  String get contactsPermissionDescription;
+
+  /// Loading text for friends discovery
+  ///
+  /// In en, this message translates to:
+  /// **'Discovering friends...'**
+  String get discoveringFriends;
+
+  /// Loading text for contacts
+  ///
+  /// In en, this message translates to:
+  /// **'Loading contacts...'**
+  String get loadingContacts;
+
+  /// Title when no friends found
+  ///
+  /// In en, this message translates to:
+  /// **'No friends found'**
+  String get noFriendsFound;
+
+  /// Description when no friends found
+  ///
+  /// In en, this message translates to:
+  /// **'Your contacts who use the app will appear here'**
+  String get noFriendsFoundDescription;
+
+  /// Title when all contacts already use the app
+  ///
+  /// In en, this message translates to:
+  /// **'All your contacts already use the app!'**
+  String get allFriendsUseApp;
+
+  /// Subtitle when no contacts to invite
+  ///
+  /// In en, this message translates to:
+  /// **'Or you have no contacts to invite'**
+  String get noContactsToInvite;
+
+  /// Badge indicating friend
+  ///
+  /// In en, this message translates to:
+  /// **'Friend'**
+  String get friendBadge;
+
+  /// Label for contact
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contactLabel;
+
+  /// Button to invite contact
+  ///
+  /// In en, this message translates to:
+  /// **'Invite'**
+  String get inviteButton;
+
+  /// Invite subject
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation to WishlistApp'**
+  String get inviteSubject;
+
+  /// Play Store message in invite
+  ///
+  /// In en, this message translates to:
+  /// **'📱 Coming soon to Play Store!'**
+  String get invitePlayStoreMessage;
+
+  /// Message when permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts permission required to discover friends'**
+  String get contactsPermissionRequired;
+
+  /// Error requesting permission
+  ///
+  /// In en, this message translates to:
+  /// **'Error requesting permission: {error}'**
+  String errorRequestingPermission(Object error);
+
+  /// Error loading contacts
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading contacts: {error}'**
+  String errorLoadingContacts(Object error);
+
+  /// Error sending invite
+  ///
+  /// In en, this message translates to:
+  /// **'Error sending invite: {error}'**
+  String errorSendingInvite(Object error);
 }
 
 class _AppLocalizationsDelegate

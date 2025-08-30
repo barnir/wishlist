@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
 
 class ProfileStatsCard extends StatelessWidget {
   final int wishlistsCount;
@@ -116,8 +115,6 @@ class ProfileHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cloudinaryService = CloudinaryService();
-    
     return Card(
       elevation: 4,
       child: Container(
@@ -138,52 +135,12 @@ class ProfileHeaderCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: isUploading ? null : onImageTap,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          backgroundImage: profileImageUrl != null
-                              ? CachedNetworkImageProvider(
-                                  cloudinaryService.optimizeExistingUrl(
-                                    profileImageUrl!, 
-                                    ImageType.profileLarge,
-                                  ),
-                                )
-                              : null,
-                          child: profileImageUrl == null && !isUploading
-                              ? const Icon(
-                                  Icons.person, 
-                                  size: 40, 
-                                  color: Colors.white,
-                                )
-                              : null,
-                        ),
-                        if (isUploading)
-                          const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  // Use the new AnimatedProfileImage widget with stable key
+                  AnimatedProfileImage(
+                    key: ValueKey('profile_image_${profileImageUrl ?? 'no_image'}'),
+                    profileImageUrl: profileImageUrl,
+                    isUploading: isUploading,
+                    onImageTap: onImageTap,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -348,6 +305,152 @@ class ProfileListTile extends StatelessWidget {
       trailing: trailing,
       onTap: onTap,
       contentPadding: EdgeInsets.zero,
+    );
+  }
+}
+
+/// Animated profile image widget that updates smoothly without page refresh
+class AnimatedProfileImage extends StatefulWidget {
+  final String? profileImageUrl;
+  final bool isUploading;
+  final VoidCallback onImageTap;
+
+  const AnimatedProfileImage({
+    super.key,
+    this.profileImageUrl,
+    required this.isUploading,
+    required this.onImageTap,
+  });
+
+  @override
+  State<AnimatedProfileImage> createState() => _AnimatedProfileImageState();
+}
+
+class _AnimatedProfileImageState extends State<AnimatedProfileImage>
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  String? _currentImageUrl;
+  String? _cachedImageUrlWithTimestamp;
+  String? _newImageUrl;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _currentImageUrl = widget.profileImageUrl;
+    _updateCachedUrl();
+    _animationController.value = 1.0;
+  }
+
+  void _updateCachedUrl() {
+    if (_currentImageUrl != null) {
+      // Only add timestamp if URL doesn't already have one
+      if (!_currentImageUrl!.contains('_t=')) {
+        _cachedImageUrlWithTimestamp = _currentImageUrl!.contains('?') 
+          ? '${_currentImageUrl!}&_t=${DateTime.now().millisecondsSinceEpoch}'
+          : '${_currentImageUrl!}?_t=${DateTime.now().millisecondsSinceEpoch}';
+      } else {
+        _cachedImageUrlWithTimestamp = _currentImageUrl;
+      }
+    } else {
+      _cachedImageUrlWithTimestamp = null;
+    }
+  }
+
+  @override
+  void didUpdateWidget(AnimatedProfileImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only trigger transition if URL actually changed and is different
+    if (oldWidget.profileImageUrl != widget.profileImageUrl && 
+        widget.profileImageUrl != null &&
+        _currentImageUrl != widget.profileImageUrl) {
+      _transitionToNewImage(widget.profileImageUrl!);
+    }
+  }
+
+  void _transitionToNewImage(String newUrl) {
+    setState(() {
+      _newImageUrl = newUrl;
+    });
+    
+    _animationController.reverse().then((_) {
+      setState(() {
+        _currentImageUrl = _newImageUrl;
+        _updateCachedUrl();
+      });
+      _animationController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    
+    return GestureDetector(
+      onTap: widget.isUploading ? null : widget.onImageTap,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: _fadeAnimation,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _fadeAnimation.value,
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  backgroundImage: _cachedImageUrlWithTimestamp != null
+                      ? CachedNetworkImageProvider(_cachedImageUrlWithTimestamp!)
+                      : null,
+                  child: _currentImageUrl == null && !widget.isUploading
+                      ? const Icon(
+                          Icons.person, 
+                          size: 40, 
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+          if (widget.isUploading)
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.camera_alt,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
