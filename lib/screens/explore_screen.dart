@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
@@ -190,7 +191,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(grantedMsg),
-              backgroundColor: Colors.green,
+              backgroundColor: Theme.of(context).extension<AppSemanticColors>()!.success,
               duration: const Duration(seconds: 2),
             ),
           );

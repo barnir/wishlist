@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -402,7 +403,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                 child: ListView(
                   children: [
                     if (_erro != null) ...[
-                      Text(_erro!, style: const TextStyle(color: Colors.red)),
+                      Text(_erro!, style: TextStyle(color: Theme.of(context).extension<AppSemanticColors>()!.danger)),
                       const SizedBox(height: 16),
                     ],
                     

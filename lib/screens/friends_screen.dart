@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import '../services/favorites_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../widgets/ui_components.dart';
@@ -202,7 +203,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.amber,
+                        color: Theme.of(context).extension<AppSemanticColors>()!.favorite,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: Theme.of(context).colorScheme.surface,
@@ -239,13 +240,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withAlpha(51),
+                            color: Theme.of(context).extension<AppSemanticColors>()!.favorite.withAlpha(51),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             AppLocalizations.of(context)?.favoriteBadge ?? 'FAVORITO',
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Colors.amber.shade700,
+                              color: Theme.of(context).extension<AppSemanticColors>()!.favorite,
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
                             ),

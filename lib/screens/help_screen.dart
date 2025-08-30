@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,9 +30,9 @@ class HelpScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.waving_hand,
-                          color: Colors.orange,
+                          color: Theme.of(context).extension<AppSemanticColors>()!.warning,
                           size: 24,
                         ),
                         const SizedBox(width: 8),
