@@ -269,7 +269,18 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           width: double.infinity,
           child: OutlinedButton(
             onPressed: () async {
-              await _authService.signOut();
+              try {
+                await _authService.signOut();
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao fazer logout: $e')),
+                  );
+                }
+              }
             },
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
