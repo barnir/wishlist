@@ -310,6 +310,26 @@ class CloudinaryService {
     }
   }
 
+  /// Generate a very low-res heavily blurred placeholder variant for progressive loading.
+  String optimizeLowResPlaceholderUrl(String cloudinaryUrl) {
+    try {
+      final uri = Uri.parse(cloudinaryUrl);
+      final pathSegments = uri.pathSegments;
+      final uploadIndex = pathSegments.indexOf('upload');
+      if (uploadIndex == -1 || uploadIndex >= pathSegments.length - 1) {
+        return cloudinaryUrl; // can't parse structure
+      }
+      final cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME'];
+      if (cloudName == null) return cloudinaryUrl;
+      final publicId = pathSegments.sublist(uploadIndex + 1).join('/');
+      return 'https://res.cloudinary.com/'
+          '$cloudName/image/upload/w_40,q_10,e_blur:200,f_auto/'
+          '$publicId';
+    } catch (_) {
+      return cloudinaryUrl;
+    }
+  }
+
   /// Delete image from Cloudinary
   /// Note: Image deletion requires the Admin API which is not available in the public SDK
   /// Images can be deleted from the Cloudinary dashboard or using server-side API calls

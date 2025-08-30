@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/theme.dart';
+import 'utils/app_logger.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/theme_service.dart';
@@ -43,10 +44,10 @@ void main() async {
 
   // Enable Firestore offline persistence (safe to call once; ignore if already enabled)
   try {
-    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
-    debugPrint('✅ Firestore offline persistence enabled');
+  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+  appLog('Firestore offline persistence enabled', tag: 'INIT');
   } catch (e) {
-    debugPrint('⚠️ Could not enable offline persistence: $e');
+  appLog('Could not enable offline persistence: $e', tag: 'INIT');
   }
 
   // Set up background message handler for FCM
@@ -54,7 +55,7 @@ void main() async {
 
   // Initialize Firestore (for database)
   // Note: Firestore is automatically initialized with Firebase.initializeApp()
-  debugPrint('🔥 Firebase Firestore initialized');
+  appLog('Firebase Firestore initialized', tag: 'INIT');
 
   // Initialize theme service
   await ThemeService().initialize();
@@ -197,21 +198,21 @@ class _MyAppState extends State<MyApp> {
           home: StreamBuilder<firebase_auth.User?>(
             stream: AuthService().authStateChanges,
             builder: (context, snapshot) {
-              debugPrint('=== StreamBuilder called, connectionState: ${snapshot.connectionState}, hasData: ${snapshot.hasData}');
+              appLog('StreamBuilder auth state connectionState=${snapshot.connectionState} hasData=${snapshot.hasData}', tag: 'AUTH');
               
               if (snapshot.connectionState == ConnectionState.waiting) {
-                debugPrint('Auth state waiting - showing loading');
+                appLog('Auth state waiting - loading', tag: 'AUTH');
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
               
               if (snapshot.hasData) {
-                debugPrint('User authenticated: ${snapshot.data!.email}');
+                appLog('User authenticated: ${snapshot.data!.email}', tag: 'AUTH');
                 // Simple direct approach - no complex FutureBuilder nesting
                 return _AuthenticatedUserScreen(user: snapshot.data!);
               } else {
-                debugPrint('No user authenticated - showing LoginScreen');
+                appLog('No user authenticated - showing LoginScreen', tag: 'AUTH');
                 return const LoginScreen();
               }
             },
@@ -239,47 +240,46 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
   static bool _prefetchDone = false; // garante execução única
 
   Future<Map<String, dynamic>?> _getProfileWithRetry() async {
-    debugPrint('_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries');
+  appLog('_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries', tag: 'ROUTING');
     
     try {
       // First, try to get user profile from Firestore
       final profile = await FirebaseDatabaseService().getUserProfile(widget.user.uid);
       
       if (profile != null) {
-        debugPrint('Profile found on attempt ${_retryCount + 1}: ${profile.keys.join(', ')}');
+  appLog('Profile found on attempt ${_retryCount + 1}: ${profile.keys.join(', ')}', tag: 'ROUTING');
         return profile;
       }
       
       // If no profile found and we have retries left, wait and retry
       if (_retryCount < _maxRetries - 1) {
         _retryCount++;
-        debugPrint('Profile not found, retrying in ${_retryDelay.inMilliseconds}ms... (attempt ${_retryCount + 1}/$_maxRetries)');
+  appLog('Profile not found, retry in ${_retryDelay.inMilliseconds}ms (attempt ${_retryCount + 1}/$_maxRetries)', tag: 'ROUTING');
         await Future.delayed(_retryDelay);
         return await _getProfileWithRetry();
       }
       
       // After all retries failed, check if this is an orphaned account
-      debugPrint('Profile not found after $_maxRetries attempts - checking for orphaned account');
+  appLog('Profile not found after $_maxRetries attempts - checking orphaned account', tag: 'ROUTING');
       final authService = AuthService();
       final isOrphaned = await authService.isOrphanedAccount();
       
       // If orphaned (and not in registration flow), clean it up
       if (isOrphaned) {
-        debugPrint('🧹 Cleaning up orphaned Firebase Auth account...');
+  appLog('Cleaning up orphaned Firebase Auth account...', tag: 'ROUTING');
         try {
           await authService.cleanupOrphanedAccount();
         } catch (e) {
-          debugPrint('Failed to cleanup orphaned account: $e');
+          appLog('Failed cleanup orphaned account: $e', tag: 'ROUTING');
         }
       } else {
-        debugPrint('👉 Account not considered orphaned - may be in registration process');
-        debugPrint('   - Returning null which will redirect user to appropriate flow');
+  appLog('Account not orphaned - registration in progress (return null)', tag: 'ROUTING');
         
         // If this is an email registration in progress (no profile yet), create a temporary profile now
         if (widget.user.email != null && 
             widget.user.metadata.creationTime != null && 
             DateTime.now().difference(widget.user.metadata.creationTime!).inMinutes < 10) {
-          debugPrint('📝 Creating missing temporary profile for email registration in progress');
+          appLog('Creating temporary profile (email registration in progress)', tag: 'ROUTING');
           try {
             await FirebaseDatabaseService().createUserProfile(widget.user.uid, {
               'email': widget.user.email,
@@ -288,21 +288,21 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
               'is_private': false,  // Default to public profile
               'created_at': DateTime.now().toIso8601String(),
             });
-            debugPrint('✅ Temporary profile created successfully');
+            appLog('Temporary profile created', tag: 'ROUTING');
           } catch (e) {
-            debugPrint('❌ Error creating temporary profile: $e');
+            appLog('Error creating temporary profile: $e', tag: 'ROUTING');
           }
         }
       }
       
       return null;
     } catch (e) {
-      debugPrint('Error getting profile on attempt ${_retryCount + 1}: $e');
+  appLog('Error getting profile attempt ${_retryCount + 1}: $e', tag: 'ROUTING');
       
       // If error occurred and we have retries left, wait and retry
       if (_retryCount < _maxRetries - 1) {
         _retryCount++;
-        debugPrint('Retrying after error in ${_retryDelay.inMilliseconds}ms... (attempt ${_retryCount + 1}/$_maxRetries)');
+  appLog('Retry after error in ${_retryDelay.inMilliseconds}ms (attempt ${_retryCount + 1}/$_maxRetries)', tag: 'ROUTING');
         await Future.delayed(_retryDelay);
         return await _getProfileWithRetry();
       }
@@ -313,12 +313,12 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
   
   @override
   Widget build(BuildContext context) {
-    debugPrint('_AuthenticatedUserScreen build called for user: ${widget.user.email}');
+  appLog('AuthenticatedUserScreen build user=${widget.user.email}', tag: 'ROUTING');
     
     return FutureBuilder<Map<String, dynamic>?>(
       future: _getProfileWithRetry(),
       builder: (context, snapshot) {
-        debugPrint('Profile FutureBuilder: connectionState=${snapshot.connectionState}, hasError=${snapshot.hasError}, hasData=${snapshot.hasData}');
+  appLog('Profile FB connectionState=${snapshot.connectionState} hasError=${snapshot.hasError} hasData=${snapshot.hasData}', tag: 'ROUTING');
         
         // Check if the user has a profile but registration is not complete
         if (snapshot.connectionState == ConnectionState.done &&
@@ -332,13 +332,13 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
           
           if (hasValidPhone) {
             // User already has verified phone - fix registration_complete flag
-            debugPrint('🔧 User has verified phone but registration_complete=false. Auto-fixing...');
+            appLog('Verified phone but registration incomplete -> auto-fix', tag: 'ROUTING');
             FirebaseDatabaseService().updateUserProfile(widget.user.uid, {
               'registration_complete': true,
             }).then((_) {
-              debugPrint('✅ Registration completion flag fixed');
+              appLog('Registration completion flag fixed', tag: 'ROUTING');
             }).catchError((error) {
-              debugPrint('❌ Error fixing registration flag: $error');
+              appLog('Error fixing registration flag: $error', tag: 'ROUTING');
             });
             
             // Continue to main app instead of phone verification
@@ -346,14 +346,14 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
               future: Future.value(profile..['registration_complete'] = true),
               builder: (context, fixedSnapshot) {
                 if (fixedSnapshot.hasData) {
-                  debugPrint('🎯 ROUTING: Fixed profile → WishlistsScreen');
+                  appLog('Routing fixed profile -> WishlistsScreen', tag: 'ROUTING');
                   return const WishlistsScreen();
                 }
                 return const Scaffold(body: Center(child: CircularProgressIndicator()));
               },
             );
           } else {
-            debugPrint('📱 User profile exists but registration is incomplete - redirecting to phone verification');
+            appLog('Profile incomplete -> phone verification', tag: 'ROUTING');
             // Allow a small delay for the UI to render before navigation
             Future.microtask(() {
               if (context.mounted) {
@@ -368,9 +368,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
         
         // If profile is completely missing but user exists, redirect to phone verification
         if (snapshot.connectionState == ConnectionState.done && !snapshot.hasData) {
-          debugPrint('🔍 ROUTING DECISION POINT - Profile Analysis:');
-          debugPrint('   - Profile exists: false');
-          debugPrint('❌ ROUTING: No profile found → AddPhoneScreen');
+          appLog('Routing: no profile found -> AddPhoneScreen', tag: 'ROUTING');
           Future.microtask(() {
             if (context.mounted) {
               Navigator.pushReplacementNamed(context, '/add_phone');
@@ -382,7 +380,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
         }
         
         if (snapshot.connectionState == ConnectionState.waiting) {
-          debugPrint('Profile loading...');
+          appLog('Profile loading...', tag: 'ROUTING');
           return const Scaffold(
             body: Center(
               child: Column(
@@ -398,61 +396,47 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
         }
         
         if (snapshot.hasError) {
-          debugPrint('Profile error: ${snapshot.error}');
-          debugPrint('Redirecting to AddPhoneScreen due to profile error');
+          appLog('Profile error=${snapshot.error} -> AddPhoneScreen', tag: 'ROUTING');
           return const AddPhoneScreen();
         }
         
         final profile = snapshot.data;
-        debugPrint('Profile data: ${profile != null ? 'exists' : 'null'}');
+  appLog('Profile data exists=${profile != null}', tag: 'ROUTING');
         
         // Enhanced routing logic with detailed debugging
-        debugPrint('🔍 ROUTING DECISION POINT - Profile Analysis:');
-        debugPrint('   - Profile exists: ${profile != null}');
+  appLog('Routing analysis profileExists=${profile != null}', tag: 'ROUTING');
         if (profile != null) {
-          debugPrint('   - Profile keys: ${profile.keys.toList()}');
-          debugPrint('   - Phone number: "${profile['phone_number']}" (${profile['phone_number']?.runtimeType})');
-          debugPrint('   - Display name: "${profile['display_name']}" (${profile['display_name']?.runtimeType})');
-          debugPrint('   - Email: "${profile['email']}" (${profile['email']?.runtimeType})');
+          appLog('Profile keys=${profile.keys.toList()}', tag: 'ROUTING');
         }
 
         if (profile == null) {
-          debugPrint('❌ ROUTING: No profile found → AddPhoneScreen');
+          appLog('Routing: no profile -> AddPhoneScreen', tag: 'ROUTING');
           return const AddPhoneScreen();
         }
         
         final phoneNumber = profile['phone_number'];
         if (phoneNumber == null || phoneNumber.toString().isEmpty) {
-          debugPrint('❌ ROUTING: Missing phone number → AddPhoneScreen');
-          debugPrint('   - Phone value: $phoneNumber');
-          debugPrint('   - Is null: ${phoneNumber == null}');
-          debugPrint('   - Is empty string: ${phoneNumber.toString().isEmpty}');
+          appLog('Routing: missing phone number', tag: 'ROUTING');
           return const AddPhoneScreen();
         }
         
         final displayName = profile['display_name'];
         if (displayName == null || displayName.toString().isEmpty) {
-          debugPrint('❌ ROUTING: Missing display name → SetupNameScreen');
-          debugPrint('   - Display name value: $displayName');
-          debugPrint('   - Is null: ${displayName == null}');
-          debugPrint('   - Is empty string: ${displayName.toString().isEmpty}');
+          appLog('Routing: missing display name', tag: 'ROUTING');
           return const SetupNameScreen();
         }
         
-        debugPrint('✅ ROUTING: Complete profile found → HomeScreen');
-        debugPrint('   - Phone: "$phoneNumber"');
-        debugPrint('   - Name: "$displayName"');
-        debugPrint('   - Email: "${profile['email']}"');
+  appLog('Routing: complete profile -> HomeScreen', tag: 'ROUTING');
         if (!_prefetchDone) {
           _prefetchDone = true;
           // Prefetch assíncrono não bloqueante
           Future.microtask(() async {
             try {
-              debugPrint('🚀 Iniciando prefetch inicial de imagens');
+              appLog('Image prefetch start', tag: 'PREFETCH');
               await ImagePrefetchService().warmUp();
-              debugPrint('✅ Prefetch inicial concluído');
+              appLog('Image prefetch done', tag: 'PREFETCH');
             } catch (e) {
-              debugPrint('⚠️ Erro no prefetch inicial: $e');
+              appLog('Image prefetch error: $e', tag: 'PREFETCH');
             }
           });
         }

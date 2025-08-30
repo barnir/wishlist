@@ -20,6 +20,7 @@ class OptimizedCloudinaryImage extends StatefulWidget {
   final Duration fadeOut;
   final Color? shimmerBase;
   final Color? shimmerHighlight;
+  final bool blurPlaceholder;
 
   const OptimizedCloudinaryImage({
     super.key,
@@ -34,7 +35,8 @@ class OptimizedCloudinaryImage extends StatefulWidget {
     this.fadeIn = const Duration(milliseconds: 280),
     this.fadeOut = const Duration(milliseconds: 280),
     this.shimmerBase,
-    this.shimmerHighlight,
+  this.shimmerHighlight,
+  this.blurPlaceholder = false,
   });
 
   @override
@@ -45,6 +47,7 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
   late String? _currentUrl; // can switch to original on failure
   bool _triedOriginal = false;
   CloudinaryService? _cloudinary;
+  String? _lowResUrl;
 
   @override
   void initState() {
@@ -61,9 +64,15 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
     try {
       _cloudinary = CloudinaryService();
       _currentUrl = _cloudinary!.optimizeExistingUrl(original, widget.transformationType);
+      if (widget.blurPlaceholder) {
+        _lowResUrl = _cloudinary!.optimizeLowResPlaceholderUrl(original);
+      } else {
+        _lowResUrl = null;
+      }
     } catch (_) {
       // Cloudinary config missing -> fallback to original
-      _currentUrl = original;
+  _currentUrl = original;
+  _lowResUrl = null;
     }
   }
 
@@ -122,19 +131,40 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
   }
 
   Widget _buildShimmer(BuildContext context) {
-    return Shimmer.fromColors(
-  baseColor: widget.shimmerBase ?? context.semanticColors.skeletonBase,
-  highlightColor: widget.shimmerHighlight ?? context.semanticColors.skeletonHighlight,
+    final shimmer = Shimmer.fromColors(
+      baseColor: widget.shimmerBase ?? context.semanticColors.skeletonBase,
+      highlightColor: widget.shimmerHighlight ?? context.semanticColors.skeletonHighlight,
       child: Container(
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(
-          color: (widget.shimmerBase ?? context.semanticColors.skeletonBase).withAlpha(180),
+          color: (widget.shimmerBase ?? context.semanticColors.skeletonBase).withAlpha(160),
           borderRadius: widget.circle ? null : (widget.borderRadius ?? BorderRadius.circular(8)),
           shape: widget.circle ? BoxShape.circle : BoxShape.rectangle,
         ),
       ),
     );
+
+    if (widget.blurPlaceholder && _lowResUrl != null) {
+      final lowRes = Image.network(
+        _lowResUrl!,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        filterQuality: FilterQuality.low,
+      );
+      return Stack(
+        fit: StackFit.passthrough,
+        children: [
+          if (widget.circle)
+            ClipOval(child: lowRes)
+          else
+            ClipRRect(borderRadius: widget.borderRadius ?? BorderRadius.circular(8), child: lowRes),
+          Positioned.fill(child: shimmer),
+        ],
+      );
+    }
+    return shimmer;
   }
 
   Widget _buildFallback(BuildContext context) {
