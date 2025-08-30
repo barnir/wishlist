@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Model for user favorites system.
 /// 
 /// Represents a simple unidirectional relationship where one user
@@ -16,11 +18,22 @@ class UserFavorite {
   });
 
   factory UserFavorite.fromMap(Map<String, dynamic> map) {
+    // Handle Firestore Timestamp conversion
+    DateTime createdAt;
+    final createdAtField = map['created_at'];
+    if (createdAtField is Timestamp) {
+      createdAt = createdAtField.toDate();
+    } else if (createdAtField is String) {
+      createdAt = DateTime.parse(createdAtField);
+    } else {
+      createdAt = DateTime.now(); // Fallback
+    }
+
     return UserFavorite(
       id: map['id'] as String,
       userId: map['user_id'] as String,
       favoriteUserId: map['favorite_user_id'] as String,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      createdAt: createdAt,
     );
   }
 
@@ -65,11 +78,22 @@ class UserFavoriteWithProfile extends UserFavorite {
   });
 
   factory UserFavoriteWithProfile.fromMap(Map<String, dynamic> map) {
+    // Handle Firestore Timestamp conversion
+    DateTime createdAt;
+    final createdAtField = map['created_at'];
+    if (createdAtField is Timestamp) {
+      createdAt = createdAtField.toDate();
+    } else if (createdAtField is String) {
+      createdAt = DateTime.parse(createdAtField);
+    } else {
+      createdAt = DateTime.now(); // Fallback
+    }
+
     return UserFavoriteWithProfile(
       id: map['id'] as String,
       userId: map['user_id'] as String,
       favoriteUserId: map['favorite_user_id'] as String,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      createdAt: createdAt,
       displayName: map['display_name'] as String?,
       phoneNumber: map['phone_number'] as String?,
       isPrivate: map['is_private'] as bool? ?? false,

@@ -172,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erro ao carregar imagem: \${e.toString()}'),
+              content: const Text('Erro ao carregar imagem: \${e.toString()}'),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class WishItemStatus {
   final String id;
   final String wishItemId;
@@ -20,6 +22,28 @@ class WishItemStatus {
   });
 
   factory WishItemStatus.fromMap(Map<String, dynamic> map) {
+    // Handle Firestore Timestamp conversion for created_at
+    DateTime createdAt;
+    final createdAtField = map['created_at'];
+    if (createdAtField is Timestamp) {
+      createdAt = createdAtField.toDate();
+    } else if (createdAtField is String) {
+      createdAt = DateTime.parse(createdAtField);
+    } else {
+      createdAt = DateTime.now(); // Fallback
+    }
+
+    // Handle Firestore Timestamp conversion for updated_at
+    DateTime? updatedAt;
+    final updatedAtField = map['updated_at'];
+    if (updatedAtField != null) {
+      if (updatedAtField is Timestamp) {
+        updatedAt = updatedAtField.toDate();
+      } else if (updatedAtField is String) {
+        updatedAt = DateTime.parse(updatedAtField);
+      }
+    }
+
     return WishItemStatus(
       id: map['id'] as String,
       wishItemId: map['wish_item_id'] as String,
@@ -27,10 +51,8 @@ class WishItemStatus {
       status: ItemPurchaseStatus.fromString(map['status'] as String),
       visibleToOwner: map['visible_to_owner'] as bool? ?? false,
       notes: map['notes'] as String?,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: map['updated_at'] != null 
-          ? DateTime.parse(map['updated_at'] as String) 
-          : null,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 

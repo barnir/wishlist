@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Wishlist {
   final String id;
   final String name;
@@ -16,12 +18,23 @@ class Wishlist {
   });
 
   factory Wishlist.fromMap(Map<String, dynamic> data) {
+    // Handle Firestore Timestamp conversion
+    DateTime createdAt;
+    final createdAtField = data['created_at'];
+    if (createdAtField is Timestamp) {
+      createdAt = createdAtField.toDate();
+    } else if (createdAtField is String) {
+      createdAt = DateTime.parse(createdAtField);
+    } else {
+      createdAt = DateTime.now(); // Fallback
+    }
+
     return Wishlist(
       id: data['id'] as String,
       name: data['name'] as String,
       ownerId: data['owner_id'] as String,
       isPrivate: data['is_private'] as bool,
-      createdAt: DateTime.parse(data['created_at'] as String),
+      createdAt: createdAt,
       imageUrl: data['image_url'] as String?,
     );
   }

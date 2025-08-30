@@ -134,8 +134,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               children: [
                 if (_erro != null) ...[
-                  Text(_erro!, style: TextStyle(color: Colors.red)),
-                  SizedBox(height: 12),
+                  Text(_erro!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 12),
                 ],
                 TextFormField(
                   controller: _nomeController,
@@ -145,7 +145,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator: _validarNome,
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
@@ -155,7 +155,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   validator: _validarEmail,
                   keyboardType: TextInputType.emailAddress,
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
                   decoration: InputDecoration(

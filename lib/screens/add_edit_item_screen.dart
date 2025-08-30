@@ -321,7 +321,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     final finalWishlistId = widget.wishlistId ?? _selectedWishlistId;
     if (finalWishlistId == null) {
       setState(() {
-        _erro = AppLocalizations.of(context)?.selectOrCreateWishlistPrompt ?? "Por favor, selecione ou crie uma wishlist.";
+        _erro = AppLocalizations.of(context)?.selectOrCreateWishlistPrompt ?? 'Por favor, selecione ou crie uma wishlist.';
       });
       return;
     }

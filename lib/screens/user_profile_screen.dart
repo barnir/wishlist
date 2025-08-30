@@ -70,14 +70,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: WishlistAppBar(title: 'Perfil'),
+        appBar: const WishlistAppBar(title: 'Perfil'),
         body: _buildProfileSkeleton(),
       );
     }
 
     if (_userProfile == null) {
       return Scaffold(
-        appBar: WishlistAppBar(title: 'Perfil'),
+        appBar: const WishlistAppBar(title: 'Perfil'),
         body: WishlistEmptyState(
           icon: Icons.person_off,
           title: AppLocalizations.of(context)?.profileNotFoundTitle ?? 'Perfil não encontrado',
@@ -190,7 +190,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.star, size: UIConstants.iconSizeS, color: Colors.amber),
+          const Icon(Icons.star, size: UIConstants.iconSizeS, color: Colors.amber),
           Spacing.horizontalXS,
           Text(
             (AppLocalizations.of(context)?.favoriteBadge ?? 'Favorito'),
@@ -394,7 +394,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: UIConstants.spacingS),
+      padding: const EdgeInsets.only(bottom: UIConstants.spacingS),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -496,7 +496,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       padding: UIConstants.listPadding,
       itemCount: 5,
       itemBuilder: (context, i) => Padding(
-        padding: EdgeInsets.only(bottom: UIConstants.spacingM),
+        padding: const EdgeInsets.only(bottom: UIConstants.spacingM),
         child: Row(
           children: [
             _shimmerBox(height: UIConstants.imageSizeM, width: UIConstants.imageSizeM, radius: UIConstants.radiusS),

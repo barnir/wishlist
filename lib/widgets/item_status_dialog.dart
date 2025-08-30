@@ -163,7 +163,7 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
                     ),
                     Spacing.xs,
                     CheckboxListTile(
-                      title: Text('Mostrar ao dono da lista'),
+                      title: const Text('Mostrar ao dono da lista'),
                       subtitle: Text(
                         'O dono saberá que o item foi comprado, mas não por quem.',
                         style: Theme.of(context).textTheme.bodySmall,
@@ -196,7 +196,7 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
         if (widget.currentStatus != null)
           TextButton(
             onPressed: _isLoading ? null : _removeStatus,
-            child: Text(
+            child: const Text(
               'Remover',
               style: TextStyle(color: Colors.red),
             ),
@@ -226,7 +226,7 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
             size: UIConstants.iconSizeM,
           ),
           Spacing.horizontalS,
-          Text('Esta é a tua wishlist'),
+          const Text('Esta é a tua wishlist'),
         ],
       ),
       content: Column(

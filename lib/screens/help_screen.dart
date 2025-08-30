@@ -29,7 +29,7 @@ class HelpScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.waving_hand,
                           color: Colors.orange,
                           size: 24,
