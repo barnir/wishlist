@@ -39,11 +39,11 @@ class SafeNavigationWrapper extends StatelessWidget {
             SystemNavigator.pop();
           } else {
             // Se é tela secundária, voltar para wishlists
-            Navigator.pushNamedAndRemoveUntil(
-              context, 
-              '/wishlists', 
-              (route) => false,
-            );
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              Navigator.of(context).pushReplacementNamed('/wishlists');
+            }
           }
         }
       },

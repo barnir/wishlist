@@ -81,6 +81,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signOut => 'Sign Out';
 
   @override
+  String get filtersAndSortingTitle => 'Filters & Sorting';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get applyFilters => 'Apply Filters';
+
+  @override
+  String get sortBy => 'Sort by';
+
+  @override
+  String get filtersSummaryPrefix => 'Current:';
+
+  @override
+  String get allLabel => 'All';
+
+  @override
+  String get sortNameAsc => 'Name (A-Z)';
+
+  @override
+  String get sortNameDesc => 'Name (Z-A)';
+
+  @override
+  String get sortPriceAsc => 'Price (Low-High)';
+
+  @override
+  String get sortPriceDesc => 'Price (High-Low)';
+
+  @override
   String get deleteAccount => 'Delete Account';
 
   @override

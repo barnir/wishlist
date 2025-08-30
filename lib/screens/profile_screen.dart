@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -340,9 +341,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                     Set<WidgetState> states,
                   ) {
                     if (states.contains(WidgetState.disabled)) {
-                      return Colors.red.withValues(alpha: 0.5);
+                      return context.semanticColors.danger.withValues(alpha: 0.5);
                     }
-                    return Colors.red;
+                    return context.semanticColors.danger;
                   }),
                 ),
                 child: Text(l10n.deletePermanently),
@@ -373,15 +374,13 @@ class ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.accountDeletedSuccessfully),
-          backgroundColor: Colors.green,
+          backgroundColor: context.semanticColors.success,
         ),
       );
 
       // Navigate to login
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
+  Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
       debugPrint('Error deleting account: $e');
@@ -400,13 +399,13 @@ class ProfileScreenState extends State<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.accountDeletedSuccessfully),
-            backgroundColor: Colors.green,
+            backgroundColor: context.semanticColors.success,
           ),
         );
         
         // Navigate to login as the account was successfully deleted
         if (mounted) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+          Navigator.of(context).pushReplacementNamed('/login');
         }
       } else {
         // Show actual errors to user
@@ -575,7 +574,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 HapticService.mediumImpact();
                                 _signOut();
                               },
-                              iconColor: Colors.orange,
+                              iconColor: context.semanticColors.warning,
                             ),
                             ProfileListTile(
                               icon: Icons.delete_forever,
@@ -585,7 +584,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 HapticService.heavyImpact();
                                 _confirmDeleteAccount();
                               },
-                              iconColor: Colors.red,
+                              iconColor: context.semanticColors.danger,
                             ),
                           ],
                         ),
@@ -615,9 +614,9 @@ class ProfileScreenState extends State<ProfileScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível abrir a loja de aplicações'),
-              backgroundColor: Colors.red,
+            SnackBar(
+              content: const Text('Não foi possível abrir a loja de aplicações'),
+              backgroundColor: context.semanticColors.danger,
             ),
           );
         }
@@ -626,9 +625,9 @@ class ProfileScreenState extends State<ProfileScreen> {
       debugPrint('Error opening app store: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erro ao abrir a loja de aplicações'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text('Erro ao abrir a loja de aplicações'),
+            backgroundColor: context.semanticColors.danger,
           ),
         );
       }

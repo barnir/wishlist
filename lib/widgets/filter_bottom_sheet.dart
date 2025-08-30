@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wishlist_app/models/category.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../constants/ui_constants.dart';
 
 class FilterBottomSheet extends StatefulWidget {
@@ -28,25 +29,29 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
 
   String? _selectedCategory;
   SortOptions _sortOption = SortOptions.nameAsc;
+  // Preserve original values to support true "Cancel" semantics
+  late final String? _originalCategory;
+  late final SortOptions _originalSort;
 
   @override
   void initState() {
     super.initState();
-    _selectedCategory = widget.selectedCategory;
-    _sortOption = widget.sortOption;
+  _selectedCategory = widget.selectedCategory;
+  _sortOption = widget.sortOption;
+  _originalCategory = widget.selectedCategory;
+  _originalSort = widget.sortOption;
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
-    _slideAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _slideAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
@@ -66,10 +71,13 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
   }
 
   void _handleClose() async {
+    // Revert to original state (no external callback)
+    setState(() {
+      _selectedCategory = _originalCategory;
+      _sortOption = _originalSort;
+    });
     await _animationController.reverse();
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _handleApply() async {
@@ -89,10 +97,31 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
     });
   }
 
+  String _selectedSummary(AppLocalizations? l10n) {
+    final cat = _selectedCategory ?? (l10n?.allLabel ?? 'Todas');
+    String sortLabel;
+    switch (_sortOption) {
+      case SortOptions.nameAsc:
+        sortLabel = l10n?.sortNameAsc ?? 'Nome (A-Z)';
+        break;
+      case SortOptions.nameDesc:
+        sortLabel = l10n?.sortNameDesc ?? 'Nome (Z-A)';
+        break;
+      case SortOptions.priceAsc:
+        sortLabel = l10n?.sortPriceAsc ?? 'Preço (Menor-Maior)';
+        break;
+      case SortOptions.priceDesc:
+        sortLabel = l10n?.sortPriceDesc ?? 'Preço (Maior-Menor)';
+        break;
+    }
+    return '${l10n?.filtersSummaryPrefix ?? 'Atual:'} $cat • $sortLabel';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+  final colorScheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
+  final l10n = AppLocalizations.of(context);
 
     return AnimatedBuilder(
       animation: _animationController,
@@ -148,7 +177,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                           ),
                           Spacing.horizontalS,
                           Text(
-                            'Filtros e Ordenação',
+                            l10n?.filtersAndSortingTitle ?? 'Filtros e Ordenação',
                             style: textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -156,12 +185,27 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                           const Spacer(),
                           TextButton(
                             onPressed: _handleReset,
-                            child: const Text('Limpar'),
+                            child: Text(l10n?.clear ?? 'Limpar'),
                           ),
                         ],
                       ),
                     ),
 
+                    const Divider(height: 1),
+
+                    // Current selection summary (helps user remember state)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _selectedSummary(l10n),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
                     const Divider(height: 1),
 
                     // Content
@@ -172,14 +216,14 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Category Section
-                            _buildSectionTitle('Categoria', Icons.category),
+                            _buildSectionTitle(l10n?.categoryLabel ?? 'Categoria', Icons.category),
                             Spacing.s,
                             _buildCategorySelector(),
                             
                             Spacing.l,
 
                             // Sort Section
-                            _buildSectionTitle('Ordenar por', Icons.sort),
+                            _buildSectionTitle(l10n?.sortBy ?? 'Ordenar por', Icons.sort),
                             Spacing.s,
                             _buildSortSelector(),
                           ],
@@ -205,7 +249,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 48),
                               ),
-                              child: const Text('Cancelar'),
+                              child: Text(l10n?.cancel ?? 'Cancelar'),
                             ),
                           ),
                           Spacing.horizontalM,
@@ -215,7 +259,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(0, 48),
                               ),
-                              child: const Text('Aplicar Filtros'),
+                              child: Text(l10n?.applyFilters ?? 'Aplicar Filtros'),
                             ),
                           ),
                         ],
@@ -259,7 +303,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
       children: [
         // All categories option
         _buildCategoryChip(
-          label: 'Todas',
+          label: AppLocalizations.of(context)?.allLabel ?? 'Todas',
           isSelected: _selectedCategory == null,
           onTap: () {
             HapticService.selectionClick();
@@ -293,7 +337,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       child: FilterChip(
-        label: Text(label),
+  label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
         selectedColor: colorScheme.primaryContainer,
@@ -376,7 +420,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                 Spacing.horizontalS,
                 Expanded(
                   child: Text(
-                    option.displayName,
+                    option.displayName, // TODO: Localization mapping if needed
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: isSelected 
                           ? colorScheme.onPrimaryContainer

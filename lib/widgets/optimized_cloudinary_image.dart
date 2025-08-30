@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
@@ -122,13 +123,13 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
 
   Widget _buildShimmer(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: widget.shimmerBase ?? Colors.grey[300]!,
-      highlightColor: widget.shimmerHighlight ?? Colors.grey[100]!,
+  baseColor: widget.shimmerBase ?? context.semanticColors.skeletonBase,
+  highlightColor: widget.shimmerHighlight ?? context.semanticColors.skeletonHighlight,
       child: Container(
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(
-          color: (widget.shimmerBase ?? Colors.grey[300]!).withAlpha(180),
+          color: (widget.shimmerBase ?? context.semanticColors.skeletonBase).withAlpha(180),
           borderRadius: widget.circle ? null : (widget.borderRadius ?? BorderRadius.circular(8)),
           shape: widget.circle ? BoxShape.circle : BoxShape.rectangle,
         ),

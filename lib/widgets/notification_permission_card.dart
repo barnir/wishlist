@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:wishlist_app/services/notification_service.dart';
 import 'package:wishlist_app/services/fcm_service.dart';
 import 'package:wishlist_app/constants/ui_constants.dart';
@@ -110,7 +111,7 @@ class _NotificationPermissionCardState extends State<NotificationPermissionCard>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_notificationsSuccess),
-        backgroundColor: Colors.green,
+  backgroundColor: context.semanticColors.success,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -120,7 +121,7 @@ class _NotificationPermissionCardState extends State<NotificationPermissionCard>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_notificationsProvisional),
-        backgroundColor: Colors.orange,
+  backgroundColor: context.semanticColors.warning,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -130,7 +131,7 @@ class _NotificationPermissionCardState extends State<NotificationPermissionCard>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_notificationsDenied),
-        backgroundColor: Colors.red,
+  backgroundColor: context.semanticColors.danger,
         action: SnackBarAction(
           label: _notificationsSettingsButton,
           textColor: Colors.white,
@@ -158,7 +159,7 @@ class _NotificationPermissionCardState extends State<NotificationPermissionCard>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_notificationsErrorRequest),
-        backgroundColor: Colors.red,
+  backgroundColor: context.semanticColors.danger,
         action: SnackBarAction(
           label: _notificationsRetryButtonLabel,
           textColor: Colors.white,
@@ -219,7 +220,7 @@ class _NotificationPermissionCardState extends State<NotificationPermissionCard>
               children: [
                 Icon(
                   isEnabled ? Icons.notifications_active : Icons.notifications_off,
-                  color: isEnabled ? Colors.green : Colors.orange,
+                  color: isEnabled ? context.semanticColors.success : context.semanticColors.warning,
                   size: 28,
                 ),
                 const SizedBox(width: 12),

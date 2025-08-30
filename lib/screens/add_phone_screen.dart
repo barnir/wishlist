@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/screens/otp_screen.dart';
@@ -43,7 +44,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
       debugPrint('   - Signing out and redirecting to login');
       _authService.signOut();
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  Navigator.of(context).pushReplacementNamed('/login');
       }
       return;
     }
@@ -77,7 +78,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: TextButton.styleFrom(foregroundColor: context.semanticColors.danger),
               child: const Text('Cancelar Registo'),
             ),
           ],
@@ -89,7 +90,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
       try {
         await _authService.cancelRegistration();
         if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          Navigator.of(context).pushReplacementNamed('/login');
         }
       } catch (e) {
         if (mounted) {
@@ -159,9 +160,9 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           actions: [
             TextButton(
               onPressed: _cancelRegistration,
-              child: const Text(
+              child: Text(
                 'Cancelar',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: context.semanticColors.danger),
               ),
             ),
           ],
@@ -178,10 +179,10 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(
+        Icon(
           Icons.phone_android,
           size: 80,
-          color: Colors.blue,
+          color: Theme.of(context).colorScheme.primary,
         ),
         const SizedBox(height: 32),
         const Text(
@@ -198,21 +199,21 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.symmetric(horizontal: 0),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
+              color: context.semanticColors.successContainer,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.shade200),
+              border: Border.all(color: context.semanticColors.success.withValues(alpha: 0.4)),
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    Icon(Icons.check_circle, color: Colors.green.shade600),
+                    Icon(Icons.check_circle, color: context.semanticColors.success),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Continuando registo para:',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -226,7 +227,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                         _userEmail!,
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.green.shade800,
+                          color: context.semanticColors.onSuccessContainer,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -238,11 +239,11 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           ),
           const SizedBox(height: 24),
         ],
-        const Text(
+    Text(
           'Para completar o registo, é necessário verificar um número de telemóvel.',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,
         ),
@@ -272,7 +273,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
               try {
                 await _authService.signOut();
                 if (mounted) {
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.of(context).pushReplacementNamed('/login');
                 }
               } catch (e) {
                 if (mounted) {
@@ -322,12 +323,12 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
             ],
           ),
           const SizedBox(height: 32),
-          const Text(
+      Text(
             'Insira o seu número de telemóvel para receber um código de verificação.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),

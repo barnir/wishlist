@@ -242,6 +242,66 @@ abstract class AppLocalizations {
   /// **'Sign Out'**
   String get signOut;
 
+  /// Filter sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Filters & Sorting'**
+  String get filtersAndSortingTitle;
+
+  /// Button to clear filters
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// Button to apply filters
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Filters'**
+  String get applyFilters;
+
+  /// Sort section label
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get sortBy;
+
+  /// Prefix for current filters summary
+  ///
+  /// In en, this message translates to:
+  /// **'Current:'**
+  String get filtersSummaryPrefix;
+
+  /// Label for all categories option
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allLabel;
+
+  /// Name ascending
+  ///
+  /// In en, this message translates to:
+  /// **'Name (A-Z)'**
+  String get sortNameAsc;
+
+  /// Name descending
+  ///
+  /// In en, this message translates to:
+  /// **'Name (Z-A)'**
+  String get sortNameDesc;
+
+  /// Price ascending
+  ///
+  /// In en, this message translates to:
+  /// **'Price (Low-High)'**
+  String get sortPriceAsc;
+
+  /// Price descending
+  ///
+  /// In en, this message translates to:
+  /// **'Price (High-Low)'**
+  String get sortPriceDesc;
+
   /// Delete account button
   ///
   /// In en, this message translates to:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'theme_extensions.dart';
 
 // Unified brand seed color (matches splash and app icon accent)
 const Color _brandSeed = Color(0xFFFF6B9D);
@@ -14,6 +15,9 @@ ThemeData _buildTheme(Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
+    extensions: <ThemeExtension<dynamic>>[
+      isDark ? AppSemanticColors.dark(scheme) : AppSemanticColors.light(scheme),
+    ],
     scaffoldBackgroundColor: scheme.surface,
     appBarTheme: AppBarTheme(
       centerTitle: true,

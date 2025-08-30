@@ -824,9 +824,35 @@ class FirebaseDatabaseService {
       if (category != null && category.isNotEmpty) {
         query = query.where('category', isEqualTo: category);
       }
+      // Apply sorting based on SortOptions (fallback to created_at desc)
+      // NOTE: Previously always ordered by created_at causing filter/sort UI mismatch.
+      try {
+        // Defensive: sortOption may come in as enum or something else.
+        String orderField = 'name';
+        bool descending = false;
 
-      // Apply sorting (simplified - just use created_at for now)
-      query = query.orderBy('created_at', descending: true);
+        if (sortOption != null) {
+          final optionName = sortOption.toString();
+          if (optionName.contains('nameDesc')) {
+            orderField = 'name';
+            descending = true;
+          } else if (optionName.contains('nameAsc')) {
+            orderField = 'name';
+            descending = false;
+          } else if (optionName.contains('priceDesc')) {
+            orderField = 'price';
+            descending = true;
+          } else if (optionName.contains('priceAsc')) {
+            orderField = 'price';
+            descending = false;
+          }
+        }
+
+        query = query.orderBy(orderField, descending: descending);
+      } catch (e) {
+        // Fallback if any issue with dynamic ordering
+        query = query.orderBy('created_at', descending: true);
+      }
 
       // Apply pagination (note: Firestore doesn't have direct offset)
       query = query.limit(limit + offset);

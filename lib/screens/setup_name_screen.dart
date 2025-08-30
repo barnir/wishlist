@@ -42,7 +42,7 @@ class _SetupNameScreenState extends State<SetupNameScreen> {
 
       if (mounted) {
         // Navigate to home after setting up name
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
       if (mounted) {

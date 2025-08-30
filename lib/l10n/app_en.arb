@@ -119,6 +119,26 @@
   "@signOut": {
     "description": "Sign out button"
   },
+  "filtersAndSortingTitle": "Filters & Sorting",
+  "@filtersAndSortingTitle": {"description": "Filter sheet title"},
+  "clear": "Clear",
+  "@clear": {"description": "Button to clear filters"},
+  "applyFilters": "Apply Filters",
+  "@applyFilters": {"description": "Button to apply filters"},
+  "sortBy": "Sort by",
+  "@sortBy": {"description": "Sort section label"},
+  "filtersSummaryPrefix": "Current:",
+  "@filtersSummaryPrefix": {"description": "Prefix for current filters summary"},
+  "allLabel": "All",
+  "@allLabel": {"description": "Label for all categories option"},
+  "sortNameAsc": "Name (A-Z)",
+  "@sortNameAsc": {"description": "Name ascending"},
+  "sortNameDesc": "Name (Z-A)",
+  "@sortNameDesc": {"description": "Name descending"},
+  "sortPriceAsc": "Price (Low-High)",
+  "@sortPriceAsc": {"description": "Price ascending"},
+  "sortPriceDesc": "Price (High-Low)",
+  "@sortPriceDesc": {"description": "Price descending"},
 
   "deleteAccount": "Delete Account",
   "@deleteAccount": {

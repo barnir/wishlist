@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
@@ -85,9 +86,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildPasswordRequirement(String text, bool isValid) {
-    final theme = Theme.of(context);
-    final validColor = isValid ? Colors.green[600]! : 
-        (theme.brightness == Brightness.dark ? Colors.red[400]! : Colors.red[600]!);
+    final semantic = context.semanticColors;
+  final validColor = isValid ? semantic.success : semantic.danger;
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
@@ -134,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               children: [
                 if (_erro != null) ...[
-                  Text(_erro!, style: const TextStyle(color: Colors.red)),
+                  Text(_erro!, style: TextStyle(color: context.semanticColors.danger)),
                   const SizedBox(height: 12),
                 ],
                 TextFormField(

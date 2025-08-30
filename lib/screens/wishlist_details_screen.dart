@@ -191,8 +191,17 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   Widget build(BuildContext context) {
     return SafeNavigationWrapper(
       onBackPressed: () {
-        // Da tela de detalhes da wishlist, voltar para a lista de wishlists
-        Navigator.pushNamedAndRemoveUntil(context, '/wishlists', (route) => false);
+        // Prefer a simple pop so we return to HomeScreen / BottomNav intact.
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+              // Da tela de detalhes da wishlist: pop preservando bottom navigation
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushReplacementNamed('/wishlists');
+              }
+        }
       },
       child: Scaffold(
         appBar: AppBar(

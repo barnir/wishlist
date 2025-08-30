@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import '../models/wish_item_status.dart';
 import '../services/wish_item_status_service.dart';
 import '../constants/ui_constants.dart';
@@ -196,9 +197,9 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
         if (widget.currentStatus != null)
           TextButton(
             onPressed: _isLoading ? null : _removeStatus,
-            child: const Text(
+            child: Text(
               'Remover',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: context.semanticColors.danger),
             ),
           ),
         TextButton(
@@ -294,7 +295,7 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Item marcado como "${_selectedStatus.shortDisplayName}"'),
-            backgroundColor: Colors.green,
+            backgroundColor: context.semanticColors.success,
           ),
         );
       }
@@ -305,7 +306,7 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.semanticColors.danger,
           ),
         );
       }
@@ -322,9 +323,9 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
         Navigator.of(context).pop(true); // true indica sucesso
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Status removido'),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: const Text('Status removido'),
+            backgroundColor: context.semanticColors.warning,
           ),
         );
       }
@@ -335,7 +336,7 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.semanticColors.danger,
           ),
         );
       }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:shimmer/shimmer.dart';
 
 class SkeletonLoading extends StatelessWidget {
@@ -16,8 +17,8 @@ class SkeletonLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: baseColor ?? Colors.grey[300]!,
-      highlightColor: highlightColor ?? Colors.grey[100]!,
+  baseColor: baseColor ?? context.semanticColors.skeletonBase,
+  highlightColor: highlightColor ?? context.semanticColors.skeletonHighlight,
       child: child,
     );
   }

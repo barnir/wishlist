@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -41,7 +42,7 @@ class LazyImage extends StatelessWidget {
         fit: fit,
         fadeInDuration: fadeInDuration,
         fadeOutDuration: fadeOutDuration,
-        placeholder: (context, url) => _buildPlaceholder(),
+    placeholder: (context, url) => _buildPlaceholder(context),
         errorWidget: (context, url, error) => _buildErrorWidget(),
         memCacheWidth: _calculateCacheWidth(),
         memCacheHeight: _calculateCacheHeight(),
@@ -49,14 +50,12 @@ class LazyImage extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder() {
-    if (placeholder != null) {
-      return placeholder!;
-    }
-
+  Widget _buildPlaceholder(BuildContext context) {
+    if (placeholder != null) return placeholder!;
+    final semantic = Theme.of(context).extension<AppSemanticColors>()!;
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: semantic.skeletonBase,
+      highlightColor: semantic.skeletonHighlight,
       child: Container(
         width: width,
         height: height,
@@ -126,14 +125,15 @@ class LazyImageWithSkeleton extends StatelessWidget {
       fit: fit,
       borderRadius: borderRadius,
       errorWidget: errorWidget,
-      placeholder: _buildSkeleton(),
+      placeholder: Builder(builder: (context) => _buildSkeleton(context)),
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
+    final semantic = Theme.of(context).extension<AppSemanticColors>()!;
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: semantic.skeletonBase,
+      highlightColor: semantic.skeletonHighlight,
       child: Container(
         width: width,
         height: height,

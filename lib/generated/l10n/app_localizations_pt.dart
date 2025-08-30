@@ -83,6 +83,36 @@ class AppLocalizationsPt extends AppLocalizations {
   String get signOut => 'Terminar Sessão';
 
   @override
+  String get filtersAndSortingTitle => 'Filtros e Ordenação';
+
+  @override
+  String get clear => 'Limpar';
+
+  @override
+  String get applyFilters => 'Aplicar Filtros';
+
+  @override
+  String get sortBy => 'Ordenar por';
+
+  @override
+  String get filtersSummaryPrefix => 'Atual:';
+
+  @override
+  String get allLabel => 'Todas';
+
+  @override
+  String get sortNameAsc => 'Nome (A-Z)';
+
+  @override
+  String get sortNameDesc => 'Nome (Z-A)';
+
+  @override
+  String get sortPriceAsc => 'Preço (Menor-Maior)';
+
+  @override
+  String get sortPriceDesc => 'Preço (Maior-Menor)';
+
+  @override
   String get deleteAccount => 'Apagar Conta';
 
   @override

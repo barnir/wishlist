@@ -418,6 +418,26 @@
   ,"@errorRequestingPermission": {"description": "Erro ao solicitar permissão"}
   ,"errorLoadingContacts": "Erro ao carregar contactos: {error}"
   ,"@errorLoadingContacts": {"description": "Erro ao carregar contactos"}
+  ,"filtersAndSortingTitle": "Filtros e Ordenação"
+  ,"@filtersAndSortingTitle": {"description": "Título da folha de filtros"}
+  ,"clear": "Limpar"
+  ,"@clear": {"description": "Botão para limpar filtros"}
+  ,"applyFilters": "Aplicar Filtros"
+  ,"@applyFilters": {"description": "Botão para aplicar filtros"}
+  ,"sortBy": "Ordenar por"
+  ,"@sortBy": {"description": "Rótulo da secção de ordenação"}
+  ,"filtersSummaryPrefix": "Atual:"
+  ,"@filtersSummaryPrefix": {"description": "Prefixo no resumo de filtros"}
+  ,"allLabel": "Todas"
+  ,"@allLabel": {"description": "Rótulo para todas as categorias"}
+  ,"sortNameAsc": "Nome (A-Z)"
+  ,"@sortNameAsc": {"description": "Ordenação nome ascendente"}
+  ,"sortNameDesc": "Nome (Z-A)"
+  ,"@sortNameDesc": {"description": "Ordenação nome descendente"}
+  ,"sortPriceAsc": "Preço (Menor-Maior)"
+  ,"@sortPriceAsc": {"description": "Ordenação preço ascendente"}
+  ,"sortPriceDesc": "Preço (Maior-Menor)"
+  ,"@sortPriceDesc": {"description": "Ordenação preço descendente"}
   ,"errorSendingInvite": "Erro ao enviar convite: {error}"
   ,"@errorSendingInvite": {"description": "Erro ao enviar convite"}
   

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -183,19 +184,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.amber.withAlpha(51),
+  color: context.semanticColors.favorite.withAlpha(51),
         borderRadius: BorderRadius.circular(UIConstants.radiusL),
-        border: Border.all(color: Colors.amber, width: 1),
+  border: Border.all(color: context.semanticColors.favorite, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star, size: UIConstants.iconSizeS, color: Colors.amber),
+          Icon(Icons.star, size: UIConstants.iconSizeS, color: context.semanticColors.favorite),
           Spacing.horizontalXS,
           Text(
             (AppLocalizations.of(context)?.favoriteBadge ?? 'Favorito'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.amber,
+              color: context.semanticColors.favorite,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -209,7 +210,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return IconButton(
       icon: Icon(
         _isFavorite ? Icons.star : Icons.star_border,
-        color: _isFavorite ? Colors.amber : Theme.of(context).colorScheme.primary,
+  color: _isFavorite ? context.semanticColors.favorite : Theme.of(context).colorScheme.primary,
       ),
       onPressed: _toggleFavorite,
       tooltip: _isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,

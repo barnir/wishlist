@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../theme_extensions.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
@@ -100,7 +101,7 @@ class WishItemTile extends StatelessWidget {
                                         ? Icons.star_half
                                         : Icons.star_border,
                                 size: 14,
-                                color: Colors.amber,
+                                color: context.semanticColors.favorite,
                               );
                             }),
                             const SizedBox(width: 4),
@@ -108,7 +109,7 @@ class WishItemTile extends StatelessWidget {
                               item.rating!.toStringAsFixed(1),
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 fontWeight: FontWeight.w500,
-                                color: Colors.amber.shade700,
+                                color: context.semanticColors.favorite,
                               ),
                             ),
                           ],
