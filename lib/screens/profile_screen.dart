@@ -18,6 +18,7 @@ import 'package:wishlist_app/widgets/memoized_widgets.dart';
 import 'package:wishlist_app/widgets/ui_components.dart';
 import 'package:wishlist_app/screens/help_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/app_snack.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -204,12 +205,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       } catch (e) {
         // Handle error
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao carregar imagem: ${e.toString()}'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
+          AppSnack.show(context, 'Erro ao carregar imagem: ${e.toString()}', type: SnackType.error);
         }
       } finally {
         if (mounted) {
@@ -370,13 +366,8 @@ class ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).pop();
       }
 
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.accountDeletedSuccessfully),
-          backgroundColor: context.semanticColors.success,
-        ),
-      );
+  final l10n = AppLocalizations.of(context)!;
+  AppSnack.show(context, l10n.accountDeletedSuccessfully, type: SnackType.success);
 
       // Navigate to login
       if (mounted) {
@@ -395,13 +386,8 @@ class ProfileScreenState extends State<ProfileScreen> {
           Navigator.of(context).pop();
         }
         
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.accountDeletedSuccessfully),
-            backgroundColor: context.semanticColors.success,
-          ),
-        );
+  final l10n = AppLocalizations.of(context)!;
+  AppSnack.show(context, l10n.accountDeletedSuccessfully, type: SnackType.success);
         
         // Navigate to login as the account was successfully deleted
         if (mounted) {
@@ -415,13 +401,8 @@ class ProfileScreenState extends State<ProfileScreen> {
           Navigator.of(context).pop();
         }
         
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.errorDeletingAccount('')), // placeholder sem detalhe técnico
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+  final l10n = AppLocalizations.of(context)!;
+  AppSnack.show(context, l10n.errorDeletingAccount(''), type: SnackType.error);
       }
     }
   }
@@ -613,23 +594,13 @@ class ProfileScreenState extends State<ProfileScreen> {
         );
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Não foi possível abrir a loja de aplicações'),
-              backgroundColor: context.semanticColors.danger,
-            ),
-          );
+          AppSnack.show(context, 'Não foi possível abrir a loja de aplicações', type: SnackType.error);
         }
       }
     } catch (e) {
       debugPrint('Error opening app store: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Erro ao abrir a loja de aplicações'),
-            backgroundColor: context.semanticColors.danger,
-          ),
-        );
+        AppSnack.show(context, 'Erro ao abrir a loja de aplicações', type: SnackType.error);
       }
     }
   }

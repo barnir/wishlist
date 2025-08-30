@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
@@ -12,6 +14,8 @@ import '../widgets/ui_components.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../constants/ui_constants.dart';
 import 'package:wishlist_app/services/auth_service.dart';
+import '../services/filter_preferences_service.dart';
+import '../widgets/app_snack.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -34,14 +38,17 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   // Paginação
   static const int _pageSize = 20;
   final List<WishItem> _items = [];
-  int _currentPage = 0;
   bool _isLoading = false;
   bool _hasMoreData = true;
   bool _isInitialLoading = true;
+  Timer? _reloadDebounce;
+  DocumentSnapshot? _lastDoc; // cursor for Firestore pagination
+  DateTime _lastScrollRequest = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
     super.initState();
+  _restoreSavedFilters();
     _loadWishlistDetails();
     _checkOwnership();
     _loadInitialData();
@@ -51,6 +58,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _reloadDebounce?.cancel();
     super.dispose();
   }
 
@@ -90,8 +98,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     setState(() {
       _isInitialLoading = true;
       _items.clear();
-      _currentPage = 0;
       _hasMoreData = true;
+  _lastDoc = null;
     });
 
     await _loadMoreData();
@@ -105,33 +113,46 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _loadMoreData() async {
     if (_isLoading || !_hasMoreData) return;
+  final now = DateTime.now();
+  if (now.difference(_lastScrollRequest).inMilliseconds < 150) return; // throttle
+  _lastScrollRequest = now;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final newItemsData = await _databaseService.getWishItemsPaginatedFuture(
+  final pageResult = await _databaseService.getWishItemsPageCursor(
         widget.wishlistId,
         limit: _pageSize,
-        offset: _currentPage * _pageSize,
         category: _selectedCategory,
         sortOption: _sortOption,
+        startAfter: _lastDoc,
       );
-
-      final newItems = newItemsData
-          .map((itemData) => WishItem.fromMap(itemData))
-          .toList();
+  final (pageItems, pageLastDoc) = pageResult;
+  final newItems = pageItems.map((m) => WishItem.fromMap(m)).toList();
 
       if (mounted) {
         setState(() {
-          if (newItems.length < _pageSize) {
+          _lastDoc = pageLastDoc;
+          if (newItems.length < _pageSize || pageLastDoc == null) {
             _hasMoreData = false;
           }
           _items.addAll(newItems);
-          _currentPage++;
           _isLoading = false;
         });
+
+        // Precache first image of newly loaded first page for smoother UX
+        if (_items.length == newItems.length && newItems.isNotEmpty) {
+          final firstWithImage = newItems.firstWhere(
+            (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
+            orElse: () => newItems.first,
+          );
+          if (firstWithImage.imageUrl != null && mounted) {
+            // Use a NetworkImage; OptimizedCloudinaryImage already transforms at build time
+            precacheImage(NetworkImage(firstWithImage.imageUrl!), context).catchError((_) {});
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -155,8 +176,22 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   }
 
   Future<void> _onFilterChanged() async {
-    // Reload data with new filters
-    await _loadInitialData();
+    _reloadDebounce?.cancel();
+    _reloadDebounce = Timer(const Duration(milliseconds: 120), () async {
+      await FilterPreferencesService()
+          .save(_selectedCategory, _sortOption, wishlistId: widget.wishlistId);
+      await _loadInitialData();
+    });
+  }
+
+  Future<void> _restoreSavedFilters() async {
+    final data = await FilterPreferencesService().load(wishlistId: widget.wishlistId);
+    if (data != null && mounted) {
+      setState(() {
+        _selectedCategory = data.$1;
+        _sortOption = data.$2;
+      });
+    }
   }
 
   Future<void> _deleteItem(String itemId) async {
@@ -177,14 +212,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.primary,
-      ),
-    );
+    AppSnack.show(context, message,
+        type: isError ? SnackType.error : SnackType.info);
   }
 
   @override
@@ -597,6 +626,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         });
         _onFilterChanged();
       },
+      wishlistId: widget.wishlistId,
     );
   }
 }

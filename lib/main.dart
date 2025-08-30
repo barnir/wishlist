@@ -7,6 +7,7 @@ import 'package:flutter_sharing_intent/model/sharing_file.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/theme.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
@@ -39,6 +40,14 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp();
+
+  // Enable Firestore offline persistence (safe to call once; ignore if already enabled)
+  try {
+    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+    debugPrint('✅ Firestore offline persistence enabled');
+  } catch (e) {
+    debugPrint('⚠️ Could not enable offline persistence: $e');
+  }
 
   // Set up background message handler for FCM
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);

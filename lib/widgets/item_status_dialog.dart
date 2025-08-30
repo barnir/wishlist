@@ -4,6 +4,7 @@ import '../models/wish_item_status.dart';
 import '../services/wish_item_status_service.dart';
 import '../constants/ui_constants.dart';
 import 'ui_components.dart';
+import 'app_snack.dart';
 
 class ItemStatusDialog extends StatefulWidget {
   final String wishItemId;
@@ -292,23 +293,13 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
       if (mounted) {
         Navigator.of(context).pop(true); // true indica sucesso
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Item marcado como "${_selectedStatus.shortDisplayName}"'),
-            backgroundColor: context.semanticColors.success,
-          ),
-        );
+  AppSnack.show(context, 'Item marcado como "${_selectedStatus.shortDisplayName}"', type: SnackType.success);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: $e'),
-            backgroundColor: context.semanticColors.danger,
-          ),
-        );
+  AppSnack.show(context, 'Erro: $e', type: SnackType.error);
       }
     }
   }
@@ -322,23 +313,13 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
       if (mounted) {
         Navigator.of(context).pop(true); // true indica sucesso
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Status removido'),
-            backgroundColor: context.semanticColors.warning,
-          ),
-        );
+  AppSnack.show(context, 'Status removido', type: SnackType.info);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: $e'),
-            backgroundColor: context.semanticColors.danger,
-          ),
-        );
+  AppSnack.show(context, 'Erro: $e', type: SnackType.error);
       }
     }
   }

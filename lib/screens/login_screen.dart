@@ -3,6 +3,7 @@ import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/rate_limiter_service.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
+import '../widgets/app_snack.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -103,14 +104,8 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.primary,
-      ),
-    );
+    AppSnack.show(context, message,
+        type: isError ? SnackType.error : SnackType.info);
   }
 
   @override

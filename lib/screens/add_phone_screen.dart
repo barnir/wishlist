@@ -3,6 +3,7 @@ import '../theme_extensions.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/screens/otp_screen.dart';
+import '../widgets/app_snack.dart';
 
 class AddPhoneScreen extends StatefulWidget {
   const AddPhoneScreen({super.key});
@@ -94,9 +95,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao cancelar registo: $e')),
-          );
+          AppSnack.show(context, 'Erro ao cancelar registo: $e', type: SnackType.error);
         }
       }
     }
@@ -104,11 +103,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
 
   Future<void> _sendVerificationCode() async {
     if (_telefoneCompleto == null || _telefoneCompleto!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, insira um número de telemóvel válido.'),
-        ),
-      );
+  AppSnack.show(context, 'Por favor, insira um número de telemóvel válido.', type: SnackType.warning);
       return;
     }
     setState(() {
@@ -127,9 +122,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())), // Display the error message
-        );
+  AppSnack.show(context, e.toString(), type: SnackType.error);
       }
     } finally {
       if (mounted) {
@@ -277,9 +270,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erro ao fazer logout: $e')),
-                  );
+                  AppSnack.show(context, 'Erro ao fazer logout: $e', type: SnackType.error);
                 }
               }
             },

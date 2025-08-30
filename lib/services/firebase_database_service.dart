@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -13,6 +14,17 @@ class FirebaseDatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final CloudinaryService _cloudinaryService = CloudinaryService();
+  void _log(String msg) {
+    if (kDebugMode) debugPrint(msg);
+  }
+
+  // Simple in-memory cache for first page of wish_items queries to reduce reads on quick back/forth
+  final Map<String, (List<Map<String, dynamic>> items, DocumentSnapshot? lastDoc)> _firstPageCache = {};
+  final Map<String, DateTime> _firstPageCacheTime = {};
+  static const Duration _firstPageTtl = Duration(seconds: 30);
+
+  String _firstPageKey(String wishlistId, String? category, dynamic sortOption, int limit) =>
+      [wishlistId, category ?? '_ALL_', sortOption.toString(), limit].join('|');
 
   /// Generate a temporary client-side ID (not yet persisted) –
   /// format: tmp_epochMillis_random4
@@ -30,7 +42,7 @@ class FirebaseDatabaseService {
   /// Create user profile
   Future<Map<String, dynamic>> createUserProfile(String userId, Map<String, dynamic> profileData) async {
     try {
-      debugPrint('🔥 Creating user profile in Firestore: $userId');
+  _log('🔥 Creating user profile in Firestore: $userId');
       
       final docRef = _firestore.collection('users').doc(userId);
       
@@ -47,10 +59,10 @@ class FirebaseDatabaseService {
       final createdDoc = await docRef.get();
       final result = createdDoc.data()!;
       
-      debugPrint('✅ User profile created successfully');
+  _log('✅ User profile created successfully');
       return result;
     } catch (e) {
-      debugPrint('❌ Error creating user profile: $e');
+  _log('❌ Error creating user profile: $e');
       rethrow;
     }
   }
@@ -58,20 +70,20 @@ class FirebaseDatabaseService {
   /// Get user profile
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-      debugPrint('🔥 Getting user profile from Firestore: $userId');
+  _log('🔥 Getting user profile from Firestore: $userId');
       
       final doc = await _firestore.collection('users').doc(userId).get();
       
       if (doc.exists) {
         final data = doc.data()!;
-        debugPrint('✅ User profile retrieved successfully');
+  _log('✅ User profile retrieved successfully');
         return data;
       } else {
-        debugPrint('⚠️ User profile not found');
+  _log('⚠️ User profile not found');
         return null;
       }
     } catch (e) {
-      debugPrint('❌ Error getting user profile: $e');
+  _log('❌ Error getting user profile: $e');
       rethrow;
     }
   }
@@ -873,6 +885,68 @@ class FirebaseDatabaseService {
     } catch (e) {
       debugPrint('❌ Error getting paginated wish items: $e');
       return [];
+    }
+  }
+
+  /// Optimized cursor-based pagination (preferred over offset workaround)
+  Future<(List<Map<String, dynamic>> items, DocumentSnapshot? lastDoc)> getWishItemsPageCursor(
+    String wishlistId, {
+    int limit = 20,
+    String? category,
+    dynamic sortOption,
+    DocumentSnapshot? startAfter,
+  }) async {
+    try {
+      // Serve from cache only for first page (no startAfter) if still fresh
+      final cacheKey = _firstPageKey(wishlistId, category, sortOption, limit);
+      if (startAfter == null && _firstPageCache.containsKey(cacheKey)) {
+        final ts = _firstPageCacheTime[cacheKey];
+        if (ts != null && DateTime.now().difference(ts) < _firstPageTtl) {
+          debugPrint('⚡ Using cached first page for $cacheKey');
+          return _firstPageCache[cacheKey]!;
+        }
+      }
+      var query = _firestore
+          .collection('wish_items')
+          .where('wishlist_id', isEqualTo: wishlistId);
+
+      if (category != null && category.isNotEmpty) {
+        query = query.where('category', isEqualTo: category);
+      }
+
+      // Sorting (reuse logic)
+      try {
+        String orderField = 'name';
+        bool descending = false;
+        if (sortOption != null) {
+          final optionName = sortOption.toString();
+            if (optionName.contains('nameDesc')) {
+              orderField = 'name'; descending = true; }
+            else if (optionName.contains('nameAsc')) { orderField = 'name'; }
+            else if (optionName.contains('priceDesc')) { orderField = 'price'; descending = true; }
+            else if (optionName.contains('priceAsc')) { orderField = 'price'; }
+        }
+        query = query.orderBy(orderField, descending: descending).orderBy('created_at', descending: true);
+      } catch (_) {
+        query = query.orderBy('created_at', descending: true);
+      }
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snap = await query.limit(limit).get();
+      final docs = snap.docs;
+      final items = docs.map((d) => {'id': d.id, ...d.data()}).toList();
+      final last = docs.isNotEmpty ? docs.last : null;
+      if (startAfter == null) {
+        _firstPageCache[cacheKey] = (items, last);
+        _firstPageCacheTime[cacheKey] = DateTime.now();
+      }
+      return (items, last);
+    } catch (e) {
+      debugPrint('❌ Cursor pagination error: $e');
+  return (<Map<String, dynamic>>[], null);
     }
   }
 

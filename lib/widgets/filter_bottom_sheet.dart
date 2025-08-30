@@ -3,18 +3,21 @@ import 'package:wishlist_app/models/category.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import '../services/filter_preferences_service.dart';
 import '../constants/ui_constants.dart';
 
 class FilterBottomSheet extends StatefulWidget {
   final String? selectedCategory;
   final SortOptions sortOption;
   final Function(String? category, SortOptions sortOption) onFiltersChanged;
+  final String? wishlistId;
 
   const FilterBottomSheet({
     super.key,
     this.selectedCategory,
     required this.sortOption,
     required this.onFiltersChanged,
+    this.wishlistId,
   });
 
   @override
@@ -83,6 +86,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
   void _handleApply() async {
     HapticService.success();
     widget.onFiltersChanged(_selectedCategory, _sortOption);
+    // persist selection (scoped if wishlistId provided)
+    FilterPreferencesService().save(
+      _selectedCategory,
+      _sortOption,
+      wishlistId: widget.wishlistId,
+    );
     await _animationController.reverse();
     if (mounted) {
       Navigator.of(context).pop();
@@ -95,6 +104,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
       _selectedCategory = null;
       _sortOption = SortOptions.nameAsc;
     });
+    // Persist reset immediately
+    FilterPreferencesService().save(
+      _selectedCategory,
+      _sortOption,
+      wishlistId: widget.wishlistId,
+    );
   }
 
   String _selectedSummary(AppLocalizations? l10n) {
@@ -450,6 +465,7 @@ Future<void> showFilterBottomSheet({
   String? selectedCategory,
   required SortOptions sortOption,
   required Function(String? category, SortOptions sortOption) onFiltersChanged,
+  String? wishlistId,
 }) {
   HapticService.lightImpact();
   
@@ -459,6 +475,7 @@ Future<void> showFilterBottomSheet({
         selectedCategory: selectedCategory,
         sortOption: sortOption,
         onFiltersChanged: onFiltersChanged,
+        wishlistId: wishlistId,
       ),
       transitionDuration: const Duration(milliseconds: 300),
       reverseTransitionDuration: const Duration(milliseconds: 250),

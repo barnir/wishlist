@@ -5,6 +5,7 @@ import 'package:wishlist_app/services/firebase_auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../constants/ui_constants.dart';
 import '../main.dart';
+import '../widgets/app_snack.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phoneNumber;
@@ -91,7 +92,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     final code = _otpControllers.map((c) => c.text).join();
     if (code.length != 6) {
       HapticFeedback.lightImpact();
-      _showSnackBar('Por favor, insira todos os 6 dígitos.');
+  _showSnackBar('Por favor, insira todos os 6 dígitos.');
       return;
     }
     
@@ -157,7 +158,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
         if (e.toString().contains('No verification ID found')) {
           errorMessage = AppLocalizations.of(context)?.otpCodeExpired ?? 'Sessão expirou. Por favor, volte e reenvie o código.';
         }
-        _showSnackBar(errorMessage);
+  _showSnackBar(errorMessage);
         setState(() {
           _hasSubmitted = false;
         });
@@ -191,12 +192,12 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
       setState(() => _isLoading = true);
       await _firebaseAuthService.resendPhoneOtp(widget.phoneNumber);
       if (!mounted) return;
-      _showSnackBar(AppLocalizations.of(context)?.otpCodeResent ?? 'Código reenviado.');
+  _showSnackBar(AppLocalizations.of(context)?.otpCodeResent ?? 'Código reenviado.');
       HapticFeedback.selectionClick();
       _startCountdown();
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar(e.toString().replaceFirst('Exception: ', ''));
+  _showSnackBar(e.toString().replaceFirst('Exception: ', ''));
       HapticFeedback.lightImpact();
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -204,9 +205,8 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
   }
   
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    if (!mounted) return;
+    AppSnack.show(context, message, type: SnackType.info);
   }
   
   void _onCodeChanged(String value, int index) {
