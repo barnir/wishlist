@@ -154,5 +154,9 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
     );
   }
 
-  int? _cacheDim(double? value) => value == null ? null : (value * 2).round();
+  int? _cacheDim(double? value) {
+    if (value == null) return null;
+    if (value.isInfinite || value.isNaN) return null;
+    return (value * 2).round();
+  }
 }
