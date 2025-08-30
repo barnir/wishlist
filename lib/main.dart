@@ -315,16 +315,46 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
         if (snapshot.connectionState == ConnectionState.done &&
             snapshot.hasData &&
             snapshot.data!['registration_complete'] == false) {
-          debugPrint('📱 User profile exists but registration is incomplete - redirecting to phone verification');
-          // Allow a small delay for the UI to render before navigation
-          Future.microtask(() {
-            if (context.mounted) {
-              Navigator.pushReplacementNamed(context, '/add_phone');
-            }
-          });
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          
+          final profile = snapshot.data!;
+          final hasValidPhone = profile['phone_number'] != null && 
+                               profile['phone_number'].toString().isNotEmpty &&
+                               profile['phone_verified'] == true;
+          
+          if (hasValidPhone) {
+            // User already has verified phone - fix registration_complete flag
+            debugPrint('🔧 User has verified phone but registration_complete=false. Auto-fixing...');
+            FirebaseDatabaseService().updateUserProfile(widget.user.uid, {
+              'registration_complete': true,
+            }).then((_) {
+              debugPrint('✅ Registration completion flag fixed');
+            }).catchError((error) {
+              debugPrint('❌ Error fixing registration flag: $error');
+            });
+            
+            // Continue to main app instead of phone verification
+            return FutureBuilder<Map<String, dynamic>?>(
+              future: Future.value(profile..['registration_complete'] = true),
+              builder: (context, fixedSnapshot) {
+                if (fixedSnapshot.hasData) {
+                  debugPrint('🎯 ROUTING: Fixed profile → WishlistsScreen');
+                  return const WishlistsScreen();
+                }
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              },
+            );
+          } else {
+            debugPrint('📱 User profile exists but registration is incomplete - redirecting to phone verification');
+            // Allow a small delay for the UI to render before navigation
+            Future.microtask(() {
+              if (context.mounted) {
+                Navigator.pushReplacementNamed(context, '/add_phone');
+              }
+            });
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
         }
         
         // If profile is completely missing but user exists, redirect to phone verification

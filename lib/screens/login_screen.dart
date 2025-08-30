@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
               userProfile['phone_number'].toString().isEmpty) {
             Navigator.pushReplacementNamed(context, '/add_phone');
           } else {
-            Navigator.pushReplacementNamed(context, '/home');
+            Navigator.pushReplacementNamed(context, '/wishlists');
           }
         }
       } catch (e) {
@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
 
     switch (result) {
       case GoogleSignInResult.success:
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/wishlists');
         break;
       case GoogleSignInResult.missingPhoneNumber:
         Navigator.pushReplacementNamed(context, '/add_phone');
