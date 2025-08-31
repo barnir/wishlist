@@ -227,7 +227,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           ),
           AccessibleIconButton(
             icon: Icons.edit,
-            semanticLabel: (AppLocalizations.of(context)?.edit ?? 'Editar') + ' wishlist',
+            semanticLabel: '${AppLocalizations.of(context)?.edit ?? 'Editar'} wishlist',
             tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
             onPressed: () {
               Navigator.pushNamed(

@@ -170,7 +170,7 @@ class WishItemTile extends StatelessWidget {
                               AccessibleIconButton(
                                 icon: Icons.edit_outlined,
                                 color: Theme.of(context).colorScheme.outline,
-                                semanticLabel: (AppLocalizations.of(context)?.edit ?? 'Editar') + ' item',
+                                semanticLabel: '${AppLocalizations.of(context)?.edit ?? 'Editar'} item',
                                 tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
                                 onPressed: () {
                                   HapticService.lightImpact();
@@ -182,7 +182,7 @@ class WishItemTile extends StatelessWidget {
                             AccessibleIconButton(
                               icon: Icons.delete_outline,
                               color: Theme.of(context).colorScheme.error,
-                              semanticLabel: (AppLocalizations.of(context)?.delete ?? 'Eliminar') + ' item',
+                              semanticLabel: '${AppLocalizations.of(context)?.delete ?? 'Eliminar'} item',
                               tooltip: AppLocalizations.of(context)?.delete ?? 'Eliminar',
                               onPressed: () {
                                 HapticService.mediumImpact();

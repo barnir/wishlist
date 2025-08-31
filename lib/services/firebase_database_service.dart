@@ -622,33 +622,10 @@ class FirebaseDatabaseService {
     return await getUserWishlists(currentUserId!);
   }
 
-  /// Get wishlists (alias for getUserWishlists) 
-  // TODO(legacy-cleanup): remove after full migration to Stats/Wishlist repositories in UI
-  Stream<List<Map<String, dynamic>>> getWishlists(String userId) {
-    return _firestore
-        .collection('wishlists')
-        .where('user_id', isEqualTo: userId)
-        .orderBy('created_at', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => {
-              'id': doc.id,
-              ...doc.data(),
-            }).toList());
-  }
-
-  /// Get wish items as Stream (alias for getWishlistItems)
-  // TODO(legacy-cleanup): remove after all widgets use repositories/typed models
-  Stream<List<Map<String, dynamic>>> getWishItems(String wishlistId) {
-    return _firestore
-        .collection('wish_items')
-        .where('wishlist_id', isEqualTo: wishlistId)
-        .orderBy('created_at', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => {
-              'id': doc.id,
-              ...doc.data(),
-            }).toList());
-  }
+  // Legacy stream alias methods (getWishlists/getWishItems) removed after full migration
+  // to repository layer (WishlistRepository & WishItemRepository). This service now
+  // retains only direct data operations still referenced elsewhere. New UI code
+  // must use repositories for typed models and pagination.
 
   /// Get single wish item
   Future<Map<String, dynamic>?> getWishItem(String itemId) async {

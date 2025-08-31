@@ -28,7 +28,7 @@ class UserProfile {
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
-    DateTime? _ts(dynamic v) {
+  DateTime? parseTs(dynamic v) {
       if (v == null) return null;
       if (v is Timestamp) return v.toDate();
       if (v is String) {
@@ -45,8 +45,8 @@ class UserProfile {
       isPrivate: map['is_private'] as bool? ?? false,
   registrationComplete: map['registration_complete'] as bool?,
   bio: map['bio'] as String?,
-      createdAt: _ts(map['created_at']),
-      updatedAt: _ts(map['updated_at']),
+  createdAt: parseTs(map['created_at']),
+  updatedAt: parseTs(map['updated_at']),
     );
   }
 
