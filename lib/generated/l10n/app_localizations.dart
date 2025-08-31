@@ -272,6 +272,72 @@ abstract class AppLocalizations {
   /// **'Current:'**
   String get filtersSummaryPrefix;
 
+  /// Sort by newest
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get sortNewestFirst;
+
+  /// Sort by oldest
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get sortOldestFirst;
+
+  /// Sort by total value descending
+  ///
+  /// In en, this message translates to:
+  /// **'Total value (High-Low)'**
+  String get sortTotalDesc;
+
+  /// Sort by total value ascending
+  ///
+  /// In en, this message translates to:
+  /// **'Total value (Low-High)'**
+  String get sortTotalAsc;
+
+  /// Privacy section title
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacyTitle;
+
+  /// All wishlists filter
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get privacyAll;
+
+  /// Public wishlists filter
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get privacyPublic;
+
+  /// Private wishlists filter
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get privacyPrivate;
+
+  /// Total value filter title
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by total value (€)'**
+  String get totalValueFilterTitle;
+
+  /// Minimum value label
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get minLabel;
+
+  /// Maximum value label
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get maxLabel;
+
   /// Label for all categories option
   ///
   /// In en, this message translates to:

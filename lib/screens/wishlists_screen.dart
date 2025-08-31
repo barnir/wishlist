@@ -31,6 +31,108 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   bool _isInitialLoading = true;
   DocumentSnapshot? _lastDoc;
 
+  // Sorting & filtering state
+  String _sortField = 'created_at';
+  bool _sortDescending = true;
+  bool? _isPrivateFilter; // null = all
+  double? _minTotal;
+  double? _maxTotal;
+
+  void _openSortFilterSheet() {
+    final l10n = AppLocalizations.of(context);
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setModalState) {
+          final minController = TextEditingController(text: _minTotal?.toStringAsFixed(0) ?? '');
+          final maxController = TextEditingController(text: _maxTotal?.toStringAsFixed(0) ?? '');
+          Widget radio(String label, String field, bool descending) => RadioListTile<String>(
+                value: '$field|$descending',
+                groupValue: '$_sortField|$_sortDescending',
+                title: Text(label),
+                onChanged: (v) {
+                  if (v == null) return;
+                  final parts = v.split('|');
+                  setModalState(() {
+                    _sortField = parts[0];
+                    _sortDescending = parts[1] == 'true';
+                  });
+                },
+              );
+          Widget privacyFilter(String label, bool? value) => RadioListTile<bool?>(
+                value: value,
+                groupValue: _isPrivateFilter,
+                title: Text(label),
+                onChanged: (v) => setModalState(() => _isPrivateFilter = v),
+              );
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n?.sortBy ?? 'Ordenar', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Wrap(children: [
+                    radio(l10n?.sortNewestFirst ?? 'Mais recentes', 'created_at', true),
+                    radio(l10n?.sortOldestFirst ?? 'Mais antigas', 'created_at', false),
+                    radio(l10n?.sortNameAsc ?? 'Nome (A-Z)', 'name', false),
+                    radio(l10n?.sortNameDesc ?? 'Nome (Z-A)', 'name', true),
+                    radio(l10n?.sortTotalDesc ?? 'Valor total (Maior-Menor)', 'total_value', true),
+                    radio(l10n?.sortTotalAsc ?? 'Valor total (Menor-Maior)', 'total_value', false),
+                  ]),
+                  const Divider(),
+                  Text(l10n?.privacyTitle ?? 'Privacidade', style: Theme.of(context).textTheme.titleMedium),
+                  privacyFilter(l10n?.privacyAll ?? 'Todas', null),
+                  privacyFilter(l10n?.privacyPublic ?? 'Públicas', false),
+                  privacyFilter(l10n?.privacyPrivate ?? 'Privadas', true),
+                  const Divider(),
+                  Text(l10n?.totalValueFilterTitle ?? 'Filtro por valor total (€)', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(
+                      child: TextField(
+                        controller: minController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: l10n?.minLabel ?? 'Mínimo'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: maxController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: l10n?.maxLabel ?? 'Máximo'),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () {
+                        double? parse(String v) => v.trim().isEmpty ? null : double.tryParse(v.replaceAll(',', '.'));
+                        setState(() {
+                          _minTotal = parse(minController.text);
+                          _maxTotal = parse(maxController.text);
+                        });
+                        Navigator.pop(ctx);
+                        _loadInitialData();
+                      },
+                      child: Text(l10n?.applyFilters ?? 'Aplicar'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,10 +181,29 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         ownerId: user.uid,
         limit: _pageSize,
         startAfter: _lastDoc,
+  sortField: _sortField,
+  descending: _sortDescending,
+  isPrivateFilter: _isPrivateFilter,
       );
       if (!mounted) return;
+      var newItems = page.items;
+      // If we need total values (sorting or filtering) compute them client-side
+      final needTotals = _sortField == 'total_value' || _minTotal != null || _maxTotal != null;
+      if (needTotals) {
+        newItems = await _computeTotals(newItems);
+        newItems = newItems.where((w) {
+          final v = w.totalValue ?? 0;
+          if (_minTotal != null && v < _minTotal!) return false;
+            if (_maxTotal != null && v > _maxTotal!) return false;
+          return true;
+        }).toList();
+        if (_sortField == 'total_value') {
+          newItems.sort((a, b) => (a.totalValue ?? 0).compareTo(b.totalValue ?? 0));
+          if (_sortDescending) newItems = newItems.reversed.toList();
+        }
+      }
       setState(() {
-        _wishlists.addAll(page.items);
+        _wishlists.addAll(newItems);
         _lastDoc = page.lastDoc;
         _hasMoreData = page.hasMore;
         _isLoading = false;
@@ -100,6 +221,32 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         );
       }
     }
+  }
+
+  Future<List<Wishlist>> _computeTotals(List<Wishlist> batch) async {
+    final firestore = FirebaseFirestore.instance;
+    final List<Wishlist> enriched = [];
+    for (final w in batch) {
+      if (w.totalValue != null) {
+        enriched.add(w);
+        continue;
+      }
+      try {
+        final snap = await firestore
+            .collection('wish_items')
+            .where('wishlist_id', isEqualTo: w.id)
+            .get();
+        double total = 0;
+        for (final d in snap.docs) {
+          final price = (d.data()['price'] as num?)?.toDouble() ?? 0;
+          total += price;
+        }
+        enriched.add(w.copyWith(totalValue: total));
+      } catch (_) {
+        enriched.add(w);
+      }
+    }
+    return enriched;
   }
 
   void _onScroll() {
@@ -164,6 +311,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
+  final l10n = AppLocalizations.of(context);
 
     if (user == null) {
       return Scaffold(
@@ -187,6 +335,13 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         appBar: WishlistAppBar(
           title: AppLocalizations.of(context)?.myWishlists ?? 'Minhas Wishlists',
           showBackButton: false,
+          actions: [
+            IconButton(
+              tooltip: l10n?.filtersAndSortingTitle ?? 'Filtros',
+              icon: const Icon(Icons.filter_list_rounded),
+              onPressed: _openSortFilterSheet,
+            ),
+          ],
         ),
       body: _isInitialLoading
           ? WishlistLoadingIndicator(message: AppLocalizations.of(context)?.loadingWishlists ?? 'A carregar wishlists...')

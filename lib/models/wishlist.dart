@@ -7,6 +7,8 @@ class Wishlist {
   final bool isPrivate;
   final DateTime createdAt;
   final String? imageUrl;
+  // Client-side computed aggregate (not persisted unless explicitly stored)
+  final double? totalValue;
 
   Wishlist({
     required this.id,
@@ -15,6 +17,7 @@ class Wishlist {
     required this.isPrivate,
     required this.createdAt,
     this.imageUrl,
+  this.totalValue,
   });
 
   factory Wishlist.fromMap(Map<String, dynamic> data) {
@@ -36,6 +39,8 @@ class Wishlist {
       isPrivate: data['is_private'] as bool,
       createdAt: createdAt,
       imageUrl: data['image_url'] as String?,
+  // Firestore docs currently do not store aggregate; ignore if absent
+  totalValue: (data['total_value'] as num?)?.toDouble(),
     );
   }
 
@@ -49,4 +54,22 @@ class Wishlist {
       'image_url': imageUrl,
     };
   }
+
+  Wishlist copyWith({
+    String? id,
+    String? name,
+    String? ownerId,
+    bool? isPrivate,
+    DateTime? createdAt,
+    String? imageUrl,
+    double? totalValue,
+  }) => Wishlist(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        ownerId: ownerId ?? this.ownerId,
+        isPrivate: isPrivate ?? this.isPrivate,
+        createdAt: createdAt ?? this.createdAt,
+        imageUrl: imageUrl ?? this.imageUrl,
+        totalValue: totalValue ?? this.totalValue,
+      );
 }

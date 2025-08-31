@@ -35,12 +35,19 @@ class WishlistRepository {
     required String ownerId,
     int limit = 20,
     DocumentSnapshot? startAfter,
+    String sortField = 'created_at',
+    bool descending = true,
+    bool? isPrivateFilter,
   }) async => _withLatency('fetchUserWishlists', () async {
     try {
       var query = _firestore
           .collection('wishlists')
           .where('owner_id', isEqualTo: ownerId)
-          .orderBy('created_at', descending: true);
+          .orderBy(sortField, descending: descending);
+
+      if (isPrivateFilter != null) {
+        query = query.where('is_private', isEqualTo: isPrivateFilter);
+      }
 
       if (startAfter != null) {
         query = query.startAfterDocument(startAfter);
@@ -48,7 +55,13 @@ class WishlistRepository {
 
       final snap = await query.limit(limit).get();
       final docs = snap.docs;
-      final items = docs.map((d) => Wishlist.fromMap({'id': d.id, ...d.data()})).toList();
+      var items = docs.map((d) => Wishlist.fromMap({'id': d.id, ...d.data()})).toList();
+
+      // If ordering by a field that may not exist (e.g., total_value) fallback to client sort.
+      if (sortField == 'total_value') {
+        items.sort((a, b) => (a.totalValue ?? 0).compareTo(b.totalValue ?? 0));
+        if (descending) items = items.reversed.toList();
+      }
       final last = docs.isNotEmpty ? docs.last : null;
       final hasMore = docs.length == limit && last != null;
       logI('Wishlist page loaded', tag: 'DB', data: {'ownerId': ownerId, 'count': items.length});

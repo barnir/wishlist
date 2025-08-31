@@ -96,6 +96,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filtersSummaryPrefix => 'Current:';
 
   @override
+  String get sortNewestFirst => 'Newest first';
+
+  @override
+  String get sortOldestFirst => 'Oldest first';
+
+  @override
+  String get sortTotalDesc => 'Total value (High-Low)';
+
+  @override
+  String get sortTotalAsc => 'Total value (Low-High)';
+
+  @override
+  String get privacyTitle => 'Privacy';
+
+  @override
+  String get privacyAll => 'All';
+
+  @override
+  String get privacyPublic => 'Public';
+
+  @override
+  String get privacyPrivate => 'Private';
+
+  @override
+  String get totalValueFilterTitle => 'Filter by total value (€)';
+
+  @override
+  String get minLabel => 'Min';
+
+  @override
+  String get maxLabel => 'Max';
+
+  @override
   String get allLabel => 'All';
 
   @override

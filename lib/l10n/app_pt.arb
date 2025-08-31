@@ -479,6 +479,28 @@
   ,"@sortBy": {"description": "Rótulo da secção de ordenação"}
   ,"filtersSummaryPrefix": "Atual:"
   ,"@filtersSummaryPrefix": {"description": "Prefixo no resumo de filtros"}
+  ,"sortNewestFirst": "Mais recentes"
+  ,"@sortNewestFirst": {"description": "Ordenar por mais recentes"}
+  ,"sortOldestFirst": "Mais antigas"
+  ,"@sortOldestFirst": {"description": "Ordenar por mais antigas"}
+  ,"sortTotalDesc": "Valor total (Maior-Menor)"
+  ,"@sortTotalDesc": {"description": "Ordenar por valor total desc"}
+  ,"sortTotalAsc": "Valor total (Menor-Maior)"
+  ,"@sortTotalAsc": {"description": "Ordenar por valor total asc"}
+  ,"privacyTitle": "Privacidade"
+  ,"@privacyTitle": {"description": "Título da secção privacidade"}
+  ,"privacyAll": "Todas"
+  ,"@privacyAll": {"description": "Filtro todas as listas"}
+  ,"privacyPublic": "Públicas"
+  ,"@privacyPublic": {"description": "Filtro listas públicas"}
+  ,"privacyPrivate": "Privadas"
+  ,"@privacyPrivate": {"description": "Filtro listas privadas"}
+  ,"totalValueFilterTitle": "Filtro por valor total (€)"
+  ,"@totalValueFilterTitle": {"description": "Título filtro valor total"}
+  ,"minLabel": "Mínimo"
+  ,"@minLabel": {"description": "Label mínimo"}
+  ,"maxLabel": "Máximo"
+  ,"@maxLabel": {"description": "Label máximo"}
   ,"allLabel": "Todas"
   ,"@allLabel": {"description": "Rótulo para todas as categorias"}
   ,"sortNameAsc": "Nome (A-Z)"
