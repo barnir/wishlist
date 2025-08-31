@@ -25,8 +25,25 @@ enum PhoneVerificationResult {
 
 class FirebaseAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final UserProfileRepository _userProfileRepo = UserProfileRepository();
+  bool _googleInitialized = false;
+
+  Future<void> _ensureGoogleInitialized() async {
+    if (_googleInitialized) return;
+    // Use singleton instance per v7 API
+    final signIn = GoogleSignIn.instance;
+    await signIn.initialize();
+    // Start lightweight auth attempt (may or may not return a Future)
+    try {
+      final future = signIn.attemptLightweightAuthentication();
+      if (future is Future) {
+        await future; // Only await if a future was returned (non-web)
+      }
+    } catch (_) {
+      // Non-fatal
+    }
+    _googleInitialized = true;
+  }
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
   User? get currentUser => _firebaseAuth.currentUser;
@@ -38,17 +55,36 @@ class FirebaseAuthService {
     try {
   logI('Google Sign-In started', tag: 'AUTH');
       
-      // Android-only Google Sign-In
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      await _ensureGoogleInitialized();
+      final signIn = GoogleSignIn.instance;
+
+      GoogleSignInAccount? googleUser;
+      try {
+        if (signIn.supportsAuthenticate()) {
+          googleUser = await signIn.authenticate();
+        } else {
+          // attemptLightweightAuthentication already run in initializer; if it returned a user it would have been via Future
+          final attempt = signIn.attemptLightweightAuthentication();
+          if (attempt is Future<GoogleSignInAccount?>) {
+            googleUser = await attempt;
+          }
+        }
+      } on GoogleSignInException catch (e) {
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          logI('Google sign-in cancelled by user', tag: 'AUTH');
+          return null;
+        }
+        rethrow;
+      }
+
       if (googleUser == null) {
-  logI('Google sign-in cancelled by user', tag: 'AUTH');
+        logI('No Google user obtained', tag: 'AUTH');
         return null;
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final tokenData = googleUser.authentication; // Provides idToken only in v7
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+        idToken: tokenData.idToken,
       );
 
       final userCredential = await _firebaseAuth.signInWithCredential(credential);
@@ -455,7 +491,7 @@ class FirebaseAuthService {
   Future<void> signOut() async {
     try {
   logI('Firebase Sign Out started', tag: 'AUTH');
-      await _googleSignIn.signOut();
+  try { await GoogleSignIn.instance.signOut(); } catch (_) {}
       await _firebaseAuth.signOut();
   logI('Firebase sign out success', tag: 'AUTH');
     } catch (e) {
