@@ -435,7 +435,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
                 Spacing.horizontalS,
                 Expanded(
                   child: Text(
-                    option.displayName, // TODO: Localization mapping if needed
+                    _localizedSortName(option, context),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: isSelected 
                           ? colorScheme.onPrimaryContainer
@@ -456,6 +456,19 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
         ),
       ),
     );
+  }
+}
+
+String _localizedSortName(SortOptions option, BuildContext context) {
+  switch (option) {
+    case SortOptions.priceAsc:
+  return 'Preço (Menor-Maior)';
+    case SortOptions.priceDesc:
+  return 'Preço (Maior-Menor)';
+    case SortOptions.nameAsc:
+  return 'Nome (A-Z)';
+    case SortOptions.nameDesc:
+  return 'Nome (Z-A)';
   }
 }
 
