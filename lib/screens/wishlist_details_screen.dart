@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
@@ -124,6 +125,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           _isLoading = false;
         });
 
+        if (!_hasMoreData) {
+          _scrollController.removeListener(_onScroll);
+        }
+
         // Precache first image of newly loaded first page for smoother UX
           if (_items.length == newItems.length && newItems.isNotEmpty) {
           final firstWithImage = newItems.firstWhere(
@@ -147,8 +152,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    // Guard: ignore when user not actively scrolling (idle/ballistic) to reduce spurious checks
+    final pos = _scrollController.position;
+    if (pos.userScrollDirection == ScrollDirection.idle) return;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
       _loadMoreData();
     }
   }
@@ -357,7 +364,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       onDelete: () => _showDeleteConfirmation(item),
   editLabel: AppLocalizations.of(context)?.edit ?? 'Editar',
   deleteLabel: AppLocalizations.of(context)?.delete ?? 'Eliminar',
-      child: _buildItemCard(item),
+      child: RepaintBoundary( // isolate expensive image & layout from sibling repaints
+        child: _buildItemCard(item),
+      ),
     );
   }
 

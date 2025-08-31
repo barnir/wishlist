@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import '../theme_extensions.dart';
 import 'package:wishlist_app/repositories/favorites_repository.dart';
 import 'package:wishlist_app/models/user_favorite.dart';
@@ -78,6 +79,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
           _lastDoc = page.lastDoc;
           _isLoading = false;
         });
+        if (!_hasMoreData) {
+          _scrollController.removeListener(_onScroll);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -92,8 +96,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    final pos = _scrollController.position;
+    if (pos.userScrollDirection == ScrollDirection.idle) return;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
       _loadMoreData();
     }
   }

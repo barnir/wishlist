@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
@@ -82,8 +83,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    final pos = _scrollController.position;
+    if (pos.userScrollDirection == ScrollDirection.idle) return;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
       _loadMoreData();
     }
   }
@@ -127,6 +129,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           _hasMoreData = page.hasMore;
           _isLoading = false;
         });
+        if (!_hasMoreData) {
+          _scrollController.removeListener(_onScroll);
+        }
       }
     } catch (e) {
       if (mounted) {
