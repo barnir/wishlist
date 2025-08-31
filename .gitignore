@@ -128,7 +128,7 @@ test_scripts/
 test/reports/
 test/coverage/
 test/screenshots/
-test
+# (Removido) pasta test agora versionada para incluir testes unitários
 
 # Symbols
 app.*.symbols
