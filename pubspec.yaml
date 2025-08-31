@@ -1,10 +1,10 @@
 name: wishlist_app
-description: "A new Flutter project."
+description: "Wishlist social app: cria e partilha listas de desejos, adiciona produtos com imagens (Cloudinary), acompanha quedas de preço, recebe notificações (FCM) e sincroniza tudo em tempo real via Firebase."
 publish_to: 'none'
 version: 0.1.1+2
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.9.0
 
 dependencies:
   flutter:
@@ -43,14 +43,7 @@ dependencies:
   url_launcher: ^6.3.2
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
   flutter_lints: ^6.0.0
-  build_runner: ^2.4.9
-  flutter_launcher_icons: ^0.13.1
-  flutter_native_splash: ^2.4.1
-  mocktail: ^1.0.3
-
 
 flutter:
   uses-material-design: true
@@ -58,25 +51,3 @@ flutter:
   assets:
     - .env
     - assets/images/
-
-flutter_launcher_icons:
-  android: true
-  ios: false
-  web: false
-  windows: false
-  macos: false
-  linux: false
-  image_path: "assets/images/app_icon.jpg"
-  adaptive_icon_background: "#FF6B9D"
-  adaptive_icon_foreground: "assets/images/app_icon.jpg"
-
-flutter_native_splash:
-  color: "#FF6B9D"
-  image: assets/images/app_icon.jpg
-  android: true
-  ios: false
-  web: false
-  android_12:
-    image: assets/images/app_icon.jpg
-    color: "#FF6B9D"
-  fullscreen: true

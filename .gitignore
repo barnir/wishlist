@@ -124,11 +124,8 @@ firebase-debug.log
 coverage/
 
 # Testing
-test_scripts/
-test/reports/
-test/coverage/
-test/screenshots/
-# (Removido) pasta test agora versionada para incluir testes unitários
+# Ignore entire test directory (no longer versioned)
+test/
 
 # Symbols
 app.*.symbols
