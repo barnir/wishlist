@@ -6,7 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy for stats only (to be migrated)
+// Estatísticas migradas para StatsRepository (serviço legado removido desta tela)
+import 'package:wishlist_app/repositories/stats_repository.dart';
 import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/favorites_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
@@ -31,7 +32,7 @@ class ProfileScreen extends StatefulWidget {
 
 class ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
-  final _databaseService = FirebaseDatabaseService();
+  final _statsRepository = StatsRepository();
   final _userProfileRepo = UserProfileRepository();
   final _favoritesService = FavoritesService();
   final _languageService = LanguageService();
@@ -111,55 +112,26 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserStats(String userId) async {
-    // Verificar cache antes de carregar
     final now = DateTime.now();
-    if (_statsLastUpdated != null && 
-        now.difference(_statsLastUpdated!) < _statsCacheDuration) {
-  logD('Stats cache hit', tag: 'UI', data: {'lastUpdated': _statsLastUpdated.toString()});
+    if (_statsLastUpdated != null && now.difference(_statsLastUpdated!) < _statsCacheDuration) {
+      logD('Stats cache hit', tag: 'UI', data: {'lastUpdated': _statsLastUpdated.toString()});
       return;
     }
-    
     try {
-  logD('Loading fresh stats', tag: 'UI');
-      
-      // Carregar wishlists do utilizador - usando stream primeiro valor
-      final wishlistsStream = _databaseService.getWishlists(userId);
-      final wishlistsSnapshot = await wishlistsStream.first;
-      _wishlistsCount = wishlistsSnapshot.length;
-      
-      // Contar items total
-      int totalItems = 0;
-      int sharedWishlists = 0;
-      
-      for (final wishlistData in wishlistsSnapshot) {
-        // Contar items em cada wishlist
-        final itemsStream = _databaseService.getWishItems(wishlistData['id'] as String);
-        final itemsSnapshot = await itemsStream.first;
-        totalItems += itemsSnapshot.length;
-        
-        // Verificar se é pública
-        if (wishlistData['is_public'] == true) {
-          sharedWishlists++;
-        }
-      }
-      
-      _itemsCount = totalItems;
-      _sharedCount = sharedWishlists;
-      
-      // Carregar contagem real de favoritos
+      logD('Loading fresh stats (repository)', tag: 'UI');
+      final stats = await _statsRepository.loadUserStats(userId);
+      _wishlistsCount = stats.wishlists;
+      _itemsCount = stats.items;
+      _sharedCount = stats.shared;
       try {
         _favoritesCount = await _favoritesService.getFavoritesCount();
       } catch (e) {
         logE('Favorites count error', tag: 'UI', error: e);
-        _favoritesCount = 0; // Fallback to 0 on error
+        _favoritesCount = 0;
       }
-      
-      // Atualizar timestamp do cache
       _statsLastUpdated = now;
-      
     } catch (e) {
       logE('Stats load error', tag: 'UI', error: e);
-      // Em caso de erro, usar valores padrão
       _wishlistsCount = 0;
       _itemsCount = 0;
       _sharedCount = 0;

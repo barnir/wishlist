@@ -623,6 +623,7 @@ class FirebaseDatabaseService {
   }
 
   /// Get wishlists (alias for getUserWishlists) 
+  // TODO(legacy-cleanup): remove after full migration to Stats/Wishlist repositories in UI
   Stream<List<Map<String, dynamic>>> getWishlists(String userId) {
     return _firestore
         .collection('wishlists')
@@ -636,6 +637,7 @@ class FirebaseDatabaseService {
   }
 
   /// Get wish items as Stream (alias for getWishlistItems)
+  // TODO(legacy-cleanup): remove after all widgets use repositories/typed models
   Stream<List<Map<String, dynamic>>> getWishItems(String wishlistId) {
     return _firestore
         .collection('wish_items')

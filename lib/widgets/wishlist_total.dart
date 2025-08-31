@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/repositories/stats_repository.dart';
 
 class WishlistTotal extends StatefulWidget {
   final String wishlistId;
@@ -11,12 +11,12 @@ class WishlistTotal extends StatefulWidget {
 }
 
 class _WishlistTotalState extends State<WishlistTotal> {
-  final _databaseService = FirebaseDatabaseService();
+  final _statsRepo = StatsRepository();
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _databaseService.getWishItems(widget.wishlistId),
+    return StreamBuilder<double>(
+      stream: _statsRepo.wishlistTotalStream(widget.wishlistId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(
@@ -29,19 +29,7 @@ class _WishlistTotalState extends State<WishlistTotal> {
         if (snapshot.hasError) {
           return const Text('-');
         }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Text('€0.00');
-        }
-
-        double total = 0;
-        for (var itemData in snapshot.data!) {
-          final price = (itemData['price'] as num?)?.toDouble() ?? 0.0;
-          // Quantity is not in the wish_items table in the proposed schema.
-          // If needed, it should be added to the wish_items table.
-          total += price; // Assuming quantity is 1 if not specified
-        }
-
+        final total = snapshot.data ?? 0.0;
         return Text('€${total.toStringAsFixed(2)}');
       },
     );
