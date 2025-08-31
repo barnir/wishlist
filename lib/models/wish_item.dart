@@ -15,6 +15,7 @@ class WishItem {
   final String? imageUrl;
   final String category;
   final double? rating;
+  final int quantity;
   final DateTime createdAt;
 
   WishItem({
@@ -26,6 +27,7 @@ class WishItem {
     this.imageUrl,
     required this.category,
     this.rating,
+  this.quantity = 1,
     required this.createdAt,
   });
 
@@ -50,8 +52,21 @@ class WishItem {
       imageUrl: data['image_url'] as String?,
       category: data['category'] ?? 'Outros',
       rating: (data['rating'] as num?)?.toDouble(),
+      quantity: _parseQuantity(data['quantity']),
       createdAt: createdAt,
     );
+  }
+
+  static int _parseQuantity(dynamic v) {
+    if (v == null) return 1;
+    if (v is int) return v <= 0 ? 1 : v;
+    if (v is num) return v.toInt() <= 0 ? 1 : v.toInt();
+    if (v is String) {
+      final p = int.tryParse(v.trim());
+      if (p == null || p <= 0) return 1;
+      return p;
+    }
+    return 1;
   }
 
   Map<String, dynamic> toMap() {
@@ -64,6 +79,7 @@ class WishItem {
       'image_url': imageUrl,
       'category': category,
       'rating': rating,
+  'quantity': quantity,
       'created_at': createdAt.toIso8601String(),
     };
   }

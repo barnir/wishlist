@@ -9,7 +9,6 @@ import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/repositories/wishlist_repository.dart';
 import 'package:wishlist_app/repositories/wish_item_repository.dart';
-import 'package:wishlist_app/widgets/swipe_action_widget.dart';
 import 'package:wishlist_app/widgets/safe_navigation_wrapper.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/models/wishlist_layout_mode.dart';
@@ -39,6 +38,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   String? _selectedCategory;
   SortOptions _sortOption = SortOptions.nameAsc;
   WishlistLayoutMode _layoutMode = WishlistLayoutMode.list;
+  bool get _isCompactList => _layoutMode == WishlistLayoutMode.list;
 
   // Paginação
   static const int _pageSize = 20;
@@ -130,17 +130,22 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         if (!_hasMoreData) {
           _scrollController.removeListener(_onScroll);
         }
-
-        // Precache first image of newly loaded first page for smoother UX
-          if (_items.length == newItems.length && newItems.isNotEmpty) {
-          final firstWithImage = newItems.firstWhere(
-            (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
-            orElse: () => newItems.first,
-          );
-          if (firstWithImage.imageUrl != null && mounted) {
-            // Use a NetworkImage; OptimizedCloudinaryImage already transforms at build time
-            precacheImage(NetworkImage(firstWithImage.imageUrl!), context).catchError((_) {});
-          }
+      }
+      // Precache fora de setState e proteger com mounted
+  // Context usage abaixo após await é seguro pois verificamos mounted e apenas precache; ignorar aviso.
+  // ignore: use_build_context_synchronously
+  if (mounted && _items.length == newItems.length && newItems.isNotEmpty) {
+        final firstWithImage = newItems.firstWhere(
+          (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
+          orElse: () => newItems.first,
+        );
+        final imageUrl = firstWithImage.imageUrl;
+        if (imageUrl != null) {
+          // Precaching post-frame para evitar uso de context imediatamente após async gap
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            precacheImage(NetworkImage(imageUrl), context).catchError((_) {});
+          });
         }
       }
     } catch (e) {
@@ -308,8 +313,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: _layoutMode == WishlistLayoutMode.list
-          ? ListView.builder(
+  child: _isCompactList
+      ? ListView.builder(
               controller: _scrollController,
               padding: UIConstants.listPadding,
               itemCount: _items.length + (_isLoading ? 1 : 0),
@@ -317,7 +322,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 if (index == _items.length) {
                   return _buildLoadingIndicator();
                 }
-                return _buildItemCardWithSwipe(_items[index]);
+        return _buildCompactRow(_items[index]);
               },
             )
           : GridView.builder(
@@ -337,6 +342,65 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 return _buildGridItem(_items[index]);
               },
             ),
+    );
+  }
+
+  Widget _buildCompactRow(WishItem item) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    return InkWell(
+      onTap: () => _editItem(item),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      if (item.price != null && item.price! > 0)
+                        Text('€${item.price!.toStringAsFixed(2)}', style: textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                      if (item.price != null && item.price! > 0) const SizedBox(width: 8),
+                      Text('x${item.quantity}', style: textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (item.link?.isNotEmpty == true)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: AppLocalizations.of(context)?.view ?? 'Ver',
+                icon: const Icon(Icons.shopping_cart_outlined, size: 20),
+                onPressed: () async {
+                  final uri = Uri.tryParse(item.link!);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+                  }
+                },
+              ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: () => _editItem(item),
+            ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: AppLocalizations.of(context)?.delete ?? 'Eliminar',
+              icon: Icon(Icons.delete_outline, size: 20, color: Theme.of(context).colorScheme.error),
+              onPressed: () => _showDeleteConfirmation(item),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -398,17 +462,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     );
   }
 
-  Widget _buildItemCardWithSwipe(WishItem item) {
-    return SwipeActionWidget(
-      onEdit: () => _editItem(item),
-      onDelete: () => _showDeleteConfirmation(item),
-  editLabel: AppLocalizations.of(context)?.edit ?? 'Editar',
-  deleteLabel: AppLocalizations.of(context)?.delete ?? 'Eliminar',
-      child: RepaintBoundary( // isolate expensive image & layout from sibling repaints
-        child: _buildItemCard(item),
-      ),
-    );
-  }
 
   void _editItem(WishItem item) {
     Navigator.pushNamed(
@@ -421,189 +474,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     ).then((_) => _loadInitialData());
   }
 
-  Widget _buildItemCard(WishItem item) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return WishlistCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Item image with Hero animation
-          if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-            Hero(
-              tag: 'item_image_${item.id}',
-              child: GestureDetector(
-                onTap: () => _showImageFullscreen(item),
-                child: SizedBox(
-                  height: 200,
-                  width: double.infinity,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(UIConstants.radiusM),
-                      topRight: Radius.circular(UIConstants.radiusM),
-                    ),
-                    child: OptimizedCloudinaryImage(
-                      originalUrl: item.imageUrl!,
-                      transformationType: ImageType.productLarge,
-                      width: double.infinity,
-                      height: 200,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(UIConstants.radiusM),
-                        topRight: Radius.circular(UIConstants.radiusM),
-                      ),
-                      fallbackIcon: Icon(
-                        Icons.broken_image,
-                        color: Theme.of(context).colorScheme.error,
-                        size: 48,
-                      ),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          
-          Padding(
-            padding: UIConstants.paddingM,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Item name
-                Text(
-                  item.name,
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                
-                if (item.description?.isNotEmpty == true) ...[
-                  Spacing.xs,
-                  Text(
-                    item.description!,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                
-                Spacing.s,
-                
-                // Price and category row
-                Row(
-                  children: [
-                    if (item.price != null && item.price! > 0) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                        ),
-                        child: Text(
-                          '€${item.price!.toStringAsFixed(2)}',
-                          style: textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Spacing.horizontalS,
-                    ],
-                    
-                    if (item.category.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(UIConstants.radiusS),
-                        ),
-                        child: Text(
-                          item.category,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                
-                Spacing.s,
-                
-                // Action buttons
-                Row(
-                  children: [
-                    if (item.link?.isNotEmpty == true)
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final l10n = AppLocalizations.of(context);
-                            final uri = Uri.tryParse(item.link!);
-                            if (uri != null && await canLaunchUrl(uri)) {
-                              await launchUrl(uri);
-                            } else {
-                              if (context.mounted) {
-                                _showSnackBar(l10n?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.launch, size: 16),
-              label: Text(AppLocalizations.of(context)?.view ?? 'Ver'),
-                          style: OutlinedButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                      ),
-                    
-                    if (item.link?.isNotEmpty == true)
-                      Spacing.horizontalS,
-                    
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          if (!mounted) return;
-                          Navigator.pushNamed(
-                            context,
-                            '/add_edit_item',
-                            arguments: {
-                              'wishlistId': widget.wishlistId,
-                              'itemId': item.id,
-                            },
-                          ).then((_) => _loadInitialData());
-                        },
-                        icon: const Icon(Icons.edit, size: 16),
-                        label: Text(AppLocalizations.of(context)?.edit ?? 'Editar'),
-                        style: OutlinedButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ),
-                    
-                    Spacing.horizontalS,
-                    
-                    AccessibleIconButton(
-                      icon: Icons.delete_outline,
-                      color: colorScheme.error,
-                      semanticLabel: AppLocalizations.of(context)?.deleteItemTooltip ?? 'Eliminar item',
-                      tooltip: AppLocalizations.of(context)?.deleteItemTooltip ?? 'Eliminar item',
-                      onPressed: () => _showDeleteConfirmation(item),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildGridItem(WishItem item) {
     final textTheme = Theme.of(context).textTheme;
@@ -696,22 +566,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     );
   }
 
-  void _showImageFullscreen(WishItem item) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => _FullscreenImageViewer(
-          imageUrl: item.imageUrl!,
-          heroTag: 'item_image_${item.id}',
-          title: item.name,
-        ),
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        opaque: false,
-        barrierColor: Colors.black87,
-      ),
-    );
-  }
 
   void _showDeleteConfirmation(WishItem item) {
     showDialog(
@@ -754,54 +608,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         _onFilterChanged();
       },
       wishlistId: widget.wishlistId,
-    );
-  }
-}
-
-class _FullscreenImageViewer extends StatelessWidget {
-  final String imageUrl;
-  final String heroTag;
-  final String title;
-
-  const _FullscreenImageViewer({
-    required this.imageUrl,
-    required this.heroTag,
-    required this.title,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-      body: Center(
-        child: Hero(
-          tag: heroTag,
-          child: InteractiveViewer(
-            child: OptimizedCloudinaryImage(
-              originalUrl: imageUrl,
-              transformationType: ImageType.productLarge,
-              fit: BoxFit.contain,
-              fallbackIcon: Icon(
-                Icons.broken_image,
-                color: Theme.of(context).colorScheme.error,
-                size: 64,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

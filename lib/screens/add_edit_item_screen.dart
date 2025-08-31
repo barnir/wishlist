@@ -388,6 +388,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       'rating': _rating,
       'link': _linkController.text.trim(),
       'image_url': uploadedUrl ?? _existingImageUrl,
+  'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
     };
     if (widget.itemId == null) {
       await _wishItemRepo.create(data);
