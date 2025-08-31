@@ -1,7 +1,12 @@
 import * as admin from "firebase-admin";
 import { logger } from "firebase-functions";
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } from "firebase-functions/v2/firestore";
+
+// Initialize admin SDK once
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 
 // Secure scraper function
 interface ScrapedData {
@@ -192,6 +197,114 @@ function validateAndNormalizeUrl(url: string): string {
     throw error;
   }
 }
+
+// =============================
+// deleteUser: Apaga dados do utilizador autenticado (scoped, não destrutivo global)
+// - Requer auth
+// - Remove: users/{uid}, wishlists do utilizador + seus wish_items
+// - Limpa imagens Cloudinary referenciadas (se variáveis CLOUDINARY_* disponíveis)
+// =============================
+
+interface DeletionSummary {
+  wishlistsDeleted: number;
+  wishItemsDeleted: number;
+  userDocDeleted: boolean;
+  cloudinaryImagesDeleted?: number;
+}
+
+export const deleteUser = onCall<DeletionSummary>(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'Utilizador não autenticado');
+  }
+  const db = admin.firestore();
+  const summary: DeletionSummary = {wishlistsDeleted: 0, wishItemsDeleted: 0, userDocDeleted: false};
+
+  try {
+    // Collect wishlist IDs for user
+    const wishlistsSnap = await db.collection('wishlists').where('user_id', '==', uid).get();
+    const wishlistIds = wishlistsSnap.docs.map(d => d.id);
+    summary.wishlistsDeleted = wishlistIds.length;
+
+    // Pre-collect wish_item IDs for Cloudinary cleanup (product_<id>) then delete in batches
+    const allWishItemIds: string[] = [];
+    for (const wid of wishlistIds) {
+      let lastBatchSize = 0;
+      do {
+        const itemsSnap = await db.collection('wish_items').where('wishlist_id', '==', wid).limit(450).get();
+        lastBatchSize = itemsSnap.size;
+        if (lastBatchSize === 0) break;
+        const batch = db.batch();
+        itemsSnap.docs.forEach(doc => {
+          allWishItemIds.push(doc.id);
+          batch.delete(doc.ref);
+          summary.wishItemsDeleted++;
+        });
+        await batch.commit();
+      } while (lastBatchSize === 450);
+    }
+
+    // Delete wishlists in batches
+    if (wishlistIds.length) {
+      let idx = 0;
+      while (idx < wishlistIds.length) {
+        const slice = wishlistIds.slice(idx, idx + 450);
+        const batch = db.batch();
+        slice.forEach(id => batch.delete(db.collection('wishlists').doc(id)));
+        await batch.commit();
+        idx += slice.length;
+      }
+    }
+
+    // Delete user profile doc if exists
+    const userDocRef = db.collection('users').doc(uid);
+    const userDoc = await userDocRef.get();
+    if (userDoc.exists) {
+      await userDocRef.delete();
+      summary.userDocDeleted = true;
+    }
+
+  // Optional Cloudinary cleanup (server-side) if credentials provided
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    if (cloudName && apiKey && apiSecret) {
+      try {
+        // Lazy import to avoid cost if not configured
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const cloudinary = require('cloudinary').v2;
+        cloudinary.config({cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret});
+        // Public IDs follow patterns: profile_<uid>, wishlist_<wishlistId>, product_<wishItemId>
+  const toDelete: string[] = [`profile_${uid}`];
+  // wishlist images
+  toDelete.push(...wishlistIds.map(id => `wishlist_${id}`));
+  // product images (wish items)
+  toDelete.push(...allWishItemIds.map(id => `product_${id}`));
+        if (toDelete.length) {
+          const chunkSize = 90; // below 100 admin API limit
+            for (let i = 0; i < toDelete.length; i += chunkSize) {
+              const slice = toDelete.slice(i, i + chunkSize);
+              try {
+                const res = await cloudinary.api.delete_resources(slice, {invalidate: true});
+                const deletedIds = Object.keys(res.deleted || {}).filter(k => res.deleted[k] === 'deleted');
+                summary.cloudinaryImagesDeleted = (summary.cloudinaryImagesDeleted || 0) + deletedIds.length;
+              } catch (e:any) {
+                logger.warn('Cloudinary deletion partial failure', {error: String(e)});
+              }
+            }
+        }
+      } catch (e:any) {
+        logger.warn('Cloudinary cleanup skipped/failed', {error: String(e)});
+      }
+    }
+
+    logger.info('User data deletion summary', {uid, summary});
+    return summary;
+  } catch (e:any) {
+    logger.error('deleteUser error', {uid, error: String(e)});
+    throw new HttpsError('internal', 'Falha ao apagar dados do utilizador');
+  }
+});
 
 
 function isValidEcommerceDomain(hostname: string): boolean {

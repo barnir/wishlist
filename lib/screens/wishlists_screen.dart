@@ -47,25 +47,50 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         return StatefulBuilder(builder: (ctx, setModalState) {
           final minController = TextEditingController(text: _minTotal?.toStringAsFixed(0) ?? '');
           final maxController = TextEditingController(text: _maxTotal?.toStringAsFixed(0) ?? '');
-          Widget radio(String label, String field, bool descending) => RadioListTile<String>(
-                value: '$field|$descending',
-                groupValue: '$_sortField|$_sortDescending',
-                title: Text(label),
-                onChanged: (v) {
-                  if (v == null) return;
-                  final parts = v.split('|');
-                  setModalState(() {
-                    _sortField = parts[0];
-                    _sortDescending = parts[1] == 'true';
-                  });
-                },
+          // Substitui RadioListTile deprecated por SegmentedButton + ChoiceChips
+          final sortSegments = <ButtonSegment<String>>[
+            ButtonSegment(value: 'created_at|true', label: Text(l10n?.sortNewestFirst ?? 'Mais recentes')),
+            ButtonSegment(value: 'created_at|false', label: Text(l10n?.sortOldestFirst ?? 'Mais antigas')),
+            ButtonSegment(value: 'name|false', label: Text(l10n?.sortNameAsc ?? 'Nome A-Z')),
+            ButtonSegment(value: 'name|true', label: Text(l10n?.sortNameDesc ?? 'Nome Z-A')),
+            ButtonSegment(value: 'total_value|true', label: Text(l10n?.sortTotalDesc ?? 'Valor ↓')),
+            ButtonSegment(value: 'total_value|false', label: Text(l10n?.sortTotalAsc ?? 'Valor ↑')),
+          ];
+          Widget sortSelector() => SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<String>(
+                  segments: sortSegments,
+                  selected: <String>{'$_sortField|$_sortDescending'},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (set) {
+                    if (set.isEmpty) return;
+                    final sel = set.first.split('|');
+                    setModalState(() {
+                      _sortField = sel[0];
+                      _sortDescending = sel[1] == 'true';
+                    });
+                  },
+                ),
               );
-          Widget privacyFilter(String label, bool? value) => RadioListTile<bool?>(
-                value: value,
-                groupValue: _isPrivateFilter,
-                title: Text(label),
-                onChanged: (v) => setModalState(() => _isPrivateFilter = v),
-              );
+          Widget privacyChips() {
+            final entries = <(String, bool?)>[
+              (l10n?.privacyAll ?? 'Todas', null),
+              (l10n?.privacyPublic ?? 'Públicas', false),
+              (l10n?.privacyPrivate ?? 'Privadas', true),
+            ];
+            return Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: entries.map((e) {
+                final selected = _isPrivateFilter == e.$2;
+                return ChoiceChip(
+                  label: Text(e.$1),
+                  selected: selected,
+                  onSelected: (_) => setModalState(() => _isPrivateFilter = e.$2),
+                );
+              }).toList(),
+            );
+          }
           return SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -75,19 +100,11 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                 children: [
                   Text(l10n?.sortBy ?? 'Ordenar', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Wrap(children: [
-                    radio(l10n?.sortNewestFirst ?? 'Mais recentes', 'created_at', true),
-                    radio(l10n?.sortOldestFirst ?? 'Mais antigas', 'created_at', false),
-                    radio(l10n?.sortNameAsc ?? 'Nome (A-Z)', 'name', false),
-                    radio(l10n?.sortNameDesc ?? 'Nome (Z-A)', 'name', true),
-                    radio(l10n?.sortTotalDesc ?? 'Valor total (Maior-Menor)', 'total_value', true),
-                    radio(l10n?.sortTotalAsc ?? 'Valor total (Menor-Maior)', 'total_value', false),
-                  ]),
+                  sortSelector(),
                   const Divider(),
                   Text(l10n?.privacyTitle ?? 'Privacidade', style: Theme.of(context).textTheme.titleMedium),
-                  privacyFilter(l10n?.privacyAll ?? 'Todas', null),
-                  privacyFilter(l10n?.privacyPublic ?? 'Públicas', false),
-                  privacyFilter(l10n?.privacyPrivate ?? 'Privadas', true),
+                  const SizedBox(height: 8),
+                  privacyChips(),
                   const Divider(),
                   Text(l10n?.totalValueFilterTitle ?? 'Filtro por valor total (€)', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),

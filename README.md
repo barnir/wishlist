@@ -1,4 +1,4 @@
-# 📱 Wishlist App
+# 📱 Wishlist App (Exclusivamente Android)
 
 Uma aplicação Flutter moderna para gestão de listas de desejos, com **internacionalização completa**, **integração Cloudinary otimizada** e interface Material 3. Projeto com **qualidade técnica perfeita** - zero Flutter analyze issues.
 
@@ -12,7 +12,7 @@ Uma aplicação Flutter moderna para gestão de listas de desejos, com **interna
 - 📸 **Cloudinary Integration**: Upload e otimização automática de imagens
 - 🎨 **Material 3 Design**: Interface moderna com temas light/dark/system
 - 🔄 **Firebase Realtime**: Sincronização instantânea via Firestore
-- 📱 **Android Optimized**: Otimizada especificamente para dispositivos Android
+- 📱 **Android Only**: Projeto suportado e mantido apenas para Android (sem web/iOS/desktop)
 
 ### 🛡️ **Segurança & Qualidade**
 - **Zero Technical Debt**: Flutter analyze com 0 issues
@@ -177,17 +177,14 @@ lib/
 ## 🔧 Configuração do Firebase
 
 ### Cloud Functions
-As seguintes Cloud Functions estão implementadas:
+Funções ativas atuais:
 
 #### `deleteUser`
 ```typescript
-// Elimina conta de utilizador e limpa dados associados (incluindo Cloudinary)
-exports.deleteUser = onCall({
-  region: "europe-west1",
-  cors: true
-}, async (request) => {
-  // Lógica de eliminação segura
-});
+// Apaga dados do utilizador autenticado (scoped) sem operações destrutivas globais
+// Remove user doc, wishlists + wish_items e tenta limpar imagens Cloudinary relacionadas
+// (profile_<uid>, wishlist_<wishlistId>, product_<wishItemId>).
+exports.deleteUser = onCall(async (request) => { /* ver código em functions/src/index.ts */ });
 ```
 
 #### `secureScraper`
@@ -200,6 +197,11 @@ exports.secureScraper = onCall({
   // Scraping com validação e rate limiting
 });
 ```
+
+Triggers Firestore (nível backend – não expostos diretamente no cliente):
+- `wish_items` create/update/delete → atualização automática de agregados em documentos `wishlists` (`item_count`, `total_value`).
+
+Funções administrativas destrutivas foram removidas para endurecimento de segurança (não existem endpoints de purge/audit/cleanup nesta versão).
 
 ### Firestore Database Structure
 
