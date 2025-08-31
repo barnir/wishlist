@@ -10,6 +10,7 @@ import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
+import '../widgets/selectable_image_preview.dart';
 import 'package:wishlist_app/services/web_scraper_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:wishlist_app/services/auth_service.dart';
@@ -51,10 +52,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   late TextEditingController _newWishlistNameController;
   String? _selectedCategory;
   double? _rating;
-  Uint8List? _imageBytes;
+  Uint8List? _imageBytes; // New (unsaved) selection bytes
   bool _isUploading = false;
-  Future<File?>? _imageFuture;
   String? _existingImageUrl;
+  String? _localPreviewPath; // local file path for immediate preview
   final _cloudinaryService = CloudinaryService();
 
   bool _isSaving = false;
@@ -146,8 +147,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             );
             await tempFile.writeAsBytes(response.bodyBytes);
             setState(() {
-              _imageBytes = response.bodyBytes;
-              _imageFuture = Future.value(tempFile);
+              _imageBytes = response.bodyBytes; // for upload later
+              _localPreviewPath = tempFile.path;
             });
           }
         }
@@ -293,9 +294,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         _priceController.text = (item.price ?? 0).toString();
         _selectedCategory = item.category.isNotEmpty ? item.category : categories.first.name;
         _existingImageUrl = item.imageUrl;
-        if (_existingImageUrl != null) {
-          _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
-        }
+  // existing image will be shown via OptimizedCloudinaryImage
       }
     } catch (e) {
   setState(() => _erro = AppLocalizations.of(context)?.errorLoadingItem(e.toString()) ?? 'Erro ao carregar item: $e');
@@ -313,10 +312,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     );
     if (pickedFile != null) {
       final imageBytes = await pickedFile.readAsBytes();
-      final tempFile = File(pickedFile.path);
       setState(() {
         _imageBytes = imageBytes;
-        _imageFuture = Future.value(tempFile);
+        _localPreviewPath = pickedFile.path;
       });
     }
   }
@@ -364,11 +362,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         
   if (!mounted) return; // Guard
         _existingImageUrl = uploadedUrl;
-        if (uploadedUrl != null) {
+  if (uploadedUrl != null) {
           await ImageCacheService.putFile(uploadedUrl, _imageBytes!);
-          setState(() {
-            _imageFuture = ImageCacheService.getFile(uploadedUrl!);
-          });
           MonitoringService.logImageUploadSuccess('item', id: targetId, bytes: _imageBytes?.length);
         }
       } catch (e) {
@@ -584,34 +579,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         ),
                       const SizedBox(height: 20),
                     ],
-                    GestureDetector(
-                      onTap: _isUploading ? null : _pickImage,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          FutureBuilder<File?>(
-                            future: _imageFuture,
-                            builder: (context, snapshot) {
-                              final imageFile = snapshot.data;
-                              return CircleAvatar(
-                                radius: 50,
-                                backgroundImage: imageFile != null
-                                    ? FileImage(imageFile)
-                                    : null,
-                                child: imageFile == null && !_isUploading
-                                    ? const Icon(Icons.add_a_photo, size: 50)
-                                    : null,
-                              );
-                            },
-                          ),
-                          if (_isUploading)
-                            const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                        ],
-                      ),
+                    SelectableImagePreview(
+                      existingUrl: _existingImageUrl,
+                      localPreviewPath: _localPreviewPath,
+                      onTap: _pickImage,
+                      isUploading: _isUploading,
+                      transformationType: ImageType.productThumbnail,
+                      size: 100,
+                      circle: true,
+                      fallbackIcon: const Icon(Icons.add_a_photo, size: 42),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

@@ -10,6 +10,7 @@ import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../widgets/ui_components.dart';
+import '../widgets/selectable_image_preview.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
 import '../constants/ui_constants.dart';
@@ -32,9 +33,9 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   bool _isPrivate = false;
   bool _isLoading = false;
   bool _isUploading = false;
-  Uint8List? _imageBytes;
-  Future<File?>? _imageFuture;
+  Uint8List? _imageBytes; // raw bytes for newly picked image
   String? _existingImageUrl; // Added to store original image URL
+  String? _localPreviewPath; // local file path for immediate preview (new selection)
 
   @override
   void initState() {
@@ -53,9 +54,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
           _nameController.text = wishlist.name;
           _isPrivate = wishlist.isPrivate;
           _existingImageUrl = wishlist.imageUrl;
-          if (_existingImageUrl != null) {
-            _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
-          }
+          // existing image handled via OptimizedCloudinaryImage
         });
       }
     } catch (e) {
@@ -78,7 +77,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
       final tempFile = File(pickedFile.path);
       setState(() {
         _imageBytes = imageBytes;
-        _imageFuture = Future.value(tempFile);
+        _localPreviewPath = tempFile.path; // use new unified preview path
       });
     }
   }
@@ -127,9 +126,6 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
               await _wishlistRepo.update(newId, {'image_url': uploadedImageUrl});
               _existingImageUrl = uploadedImageUrl;
               await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
-              setState(() {
-                _imageFuture = ImageCacheService.getFile(uploadedImageUrl!);
-              });
               MonitoringService.logImageUploadSuccess('wishlist', id: newId, bytes: _imageBytes?.length);
             }
           } catch (e) {
@@ -167,9 +163,6 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
 
         if (uploadedImageUrl != null) {
           await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
-          setState(() {
-            _imageFuture = ImageCacheService.getFile(uploadedImageUrl!);
-          });
         }
       }
 
@@ -243,80 +236,19 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                             
                             Spacing.m,
                             
-                            GestureDetector(
-                              onTap: _isUploading ? null : _pickImage,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Container(
-                                    width: 120,
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(UIConstants.radiusL),
-                                      border: Border.all(
-                                        color: Theme.of(context).colorScheme.outline,
-                                        width: 2,
-                                        style: BorderStyle.solid,
-                                      ),
-                                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                    ),
-                                    child: FutureBuilder<File?>(
-                                      future: _imageFuture,
-                                      builder: (context, snapshot) {
-                                        final imageFile = snapshot.data;
-                                        return ClipRRect(
-                                          borderRadius: BorderRadius.circular(UIConstants.radiusL - 2),
-                                          child: imageFile != null
-                                              ? Image.file(
-                                                  imageFile,
-                                                  fit: BoxFit.cover,
-                                                  width: double.infinity,
-                                                  height: double.infinity,
-                                                )
-                                              : Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.add_photo_alternate,
-                                                      size: UIConstants.iconSizeXL,
-                                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                    ),
-                                                    Spacing.s,
-                                                    Text(
-                                                      AppLocalizations.of(context)?.tapToAdd ?? 'Toca para adicionar',
-                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  if (_isUploading)
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surface.withAlpha(204),
-                                        borderRadius: BorderRadius.circular(UIConstants.radiusL),
-                                      ),
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            CircularProgressIndicator(
-                                              color: Theme.of(context).colorScheme.primary,
-                                            ),
-                                            Spacing.s,
-                                            Text(
-                                              AppLocalizations.of(context)?.processingImage ?? 'A processar...',
-                                              style: Theme.of(context).textTheme.bodySmall,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                            SelectableImagePreview(
+                              existingUrl: _existingImageUrl,
+                              localPreviewPath: _localPreviewPath,
+                              onTap: _pickImage,
+                              isUploading: _isUploading,
+                              transformationType: ImageType.wishlistIcon,
+                              size: 120,
+                              circle: false,
+                              borderRadius: UIConstants.radiusL,
+                              fallbackIcon: Icon(
+                                Icons.add_photo_alternate,
+                                size: UIConstants.iconSizeXL,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             

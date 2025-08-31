@@ -338,12 +338,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             )
           : GridView.builder(
               controller: _scrollController,
-              padding: UIConstants.listPadding,
+              padding: UIConstants.listPadding.copyWith(top: 4, bottom: 8),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 6, // reduzido para maior densidade
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.74, // ligeiramente mais compacto vertical
+                mainAxisSpacing: 4, // ainda mais compacto
+                crossAxisSpacing: 10,
+                childAspectRatio: 0.82, // aumenta ratio => reduz altura usada por item
               ),
               itemCount: _items.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {

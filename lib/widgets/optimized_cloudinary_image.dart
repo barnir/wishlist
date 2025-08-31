@@ -6,6 +6,7 @@ import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'dart:math';
 import 'package:wishlist_app/services/analytics/analytics_service.dart';
+import 'dart:io';
 
 /// Unified image widget applying Cloudinary transformation + shimmer + fallback to original URL on error.
 class OptimizedCloudinaryImage extends StatefulWidget {
@@ -22,6 +23,11 @@ class OptimizedCloudinaryImage extends StatefulWidget {
   final Color? shimmerBase;
   final Color? shimmerHighlight;
   final bool blurPlaceholder;
+  /// Optional local preview file path (e.g. freshly picked image) shown immediately
+  /// while the remote (possibly newly uploaded) Cloudinary image is loading.
+  /// When provided, a quick fade transition will occur once the network image
+  /// finishes loading successfully.
+  final String? localPreviewPath;
 
   const OptimizedCloudinaryImage({
     super.key,
@@ -36,8 +42,9 @@ class OptimizedCloudinaryImage extends StatefulWidget {
     this.fadeIn = const Duration(milliseconds: 280),
     this.fadeOut = const Duration(milliseconds: 280),
     this.shimmerBase,
-  this.shimmerHighlight,
-  this.blurPlaceholder = false,
+    this.shimmerHighlight,
+    this.blurPlaceholder = false,
+    this.localPreviewPath,
   });
 
   @override
@@ -52,6 +59,8 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
   DateTime? _loadStart;
   bool _reportedSuccess = false;
   bool _reportedFailure = false;
+  bool _networkLoaded = false;
+  ImageProvider? _localPreviewProvider;
 
   @override
   void initState() {
@@ -79,6 +88,8 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
   _currentUrl = original;
   _lowResUrl = null;
     }
+  _networkLoaded = false;
+  _setupLocalPreview();
   }
 
   @override
@@ -87,6 +98,22 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
     if (oldWidget.originalUrl != widget.originalUrl || oldWidget.transformationType != widget.transformationType) {
       _triedOriginal = false;
       _init();
+    }
+    if (oldWidget.localPreviewPath != widget.localPreviewPath) {
+      _setupLocalPreview();
+    }
+  }
+
+  void _setupLocalPreview() {
+    final path = widget.localPreviewPath;
+    if (path != null && path.isNotEmpty) {
+      try {
+        _localPreviewProvider = FileImage(File(path));
+      } catch (_) {
+        _localPreviewProvider = null;
+      }
+    } else {
+      _localPreviewProvider = null;
     }
   }
 
@@ -106,7 +133,7 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
       fit: widget.fit,
       fadeInDuration: widget.fadeIn,
       fadeOutDuration: widget.fadeOut,
-      placeholder: (c, _) => _buildShimmer(context),
+      placeholder: (c, _) => _buildPlaceholder(context),
       imageBuilder: (c, imageProvider) {
         if (!_reportedSuccess && _loadStart != null) {
           _reportedSuccess = true;
@@ -118,12 +145,19 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
                 'orig_diff': (url == widget.originalUrl) ? 'original' : 'optimized',
               }));
         }
-        return Image(
-          image: imageProvider,
-          width: widget.width,
-          height: widget.height,
-          fit: widget.fit,
-          filterQuality: FilterQuality.high,
+        _networkLoaded = true;
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: Image(
+            key: const ValueKey('networkImage'),
+            image: imageProvider,
+            width: widget.width,
+            height: widget.height,
+            fit: widget.fit,
+            filterQuality: FilterQuality.high,
+          ),
         );
       },
       errorWidget: (c, _, err) {
@@ -164,6 +198,28 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
         : ClipRRect(borderRadius: radius, child: image);
 
     return clipped;
+  }
+
+  Widget _buildPlaceholder(BuildContext context) {
+    // If a local preview is provided, show it immediately beneath a subtle shimmer overlay
+    if (_localPreviewProvider != null) {
+      final preview = Image(
+        image: _localPreviewProvider!,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        filterQuality: FilterQuality.high,
+      );
+      return Stack(
+        fit: StackFit.passthrough,
+        children: [
+          preview,
+          // Overlay shimmer only until network loads
+          if (!_networkLoaded) Positioned.fill(child: _buildShimmer(context)),
+        ],
+      );
+    }
+    return _buildShimmer(context);
   }
 
   Widget _buildShimmer(BuildContext context) {
