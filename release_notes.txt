@@ -1,4 +1,4 @@
-🚀 Wishlist App Beta v1.0.1
+🚀 Wishlist App Beta v0.1.1 (Build 2)
 
 ✨ Novidades:
 - Alternância de layout (lista | grelha) nas wishlists com persistência
@@ -16,6 +16,7 @@
 🐞 Correções:
 - Navegação incorreta para ecrã de verificação de telefone corrigida
 - Evita bloqueio do fluxo em falta de índice Firestore
+ - Ajuste de versionCode/Name para evitar falha de instalação em atualização
 
 📌 Nota:
 Cria automaticamente novos índices; garantir propagação antes de testes intensivos de ordenação.
