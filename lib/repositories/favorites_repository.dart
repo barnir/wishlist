@@ -12,12 +12,24 @@ class FavoritesRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance;
 
+  Future<T> _withLatency<T>(String op, Future<T> Function() fn) async {
+    final sw = Stopwatch()..start();
+    try {
+      final r = await fn();
+  logD('FavoritesRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
+      return r;
+    } catch (e, st) {
+  logE('FavoritesRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
   String? get _currentUserId => _auth.currentUser?.uid;
 
   Future<PageResult<UserFavoriteWithProfile>> fetchPage({
     int limit = 20,
     DocumentSnapshot? startAfter,
-  }) async {
+  }) async => _withLatency('fetchPage', () async {
     if (_currentUserId == null) {
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
@@ -77,5 +89,5 @@ class FavoritesRepository {
       logE('Favorites page load error', tag: 'FAVORITES', error: e, data: {'limit': limit});
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
-  }
+  });
 }

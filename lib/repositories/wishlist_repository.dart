@@ -7,23 +7,35 @@ class WishlistRepository {
   final FirebaseFirestore _firestore;
   WishlistRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  /// Fetch a single wishlist by ID. Returns null if not found.
-  Future<Wishlist?> fetchById(String id) async {
+  Future<T> _withLatency<T>(String op, Future<T> Function() fn) async {
+    final sw = Stopwatch()..start();
     try {
-      final doc = await _firestore.collection('wishlists').doc(id).get();
-      if (!doc.exists) return null;
-      return Wishlist.fromMap({'id': doc.id, ...doc.data()!});
-    } catch (e) {
-      logE('Wishlist fetchById error', tag: 'DB', error: e, data: {'id': id});
-      return null;
+      final r = await fn();
+  logD('WishlistRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
+      return r;
+    } catch (e, st) {
+  logE('WishlistRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);
+      rethrow;
     }
   }
+
+  /// Fetch a single wishlist by ID. Returns null if not found.
+  Future<Wishlist?> fetchById(String id) async => _withLatency('fetchById', () async {
+        try {
+          final doc = await _firestore.collection('wishlists').doc(id).get();
+          if (!doc.exists) return null;
+          return Wishlist.fromMap({'id': doc.id, ...doc.data()!});
+        } catch (e) {
+          logE('Wishlist fetchById error', tag: 'DB', error: e, data: {'id': id});
+          return null;
+        }
+      });
 
   Future<PageResult<Wishlist>> fetchUserWishlists({
     required String ownerId,
     int limit = 20,
     DocumentSnapshot? startAfter,
-  }) async {
+  }) async => _withLatency('fetchUserWishlists', () async {
     try {
       var query = _firestore
           .collection('wishlists')
@@ -45,5 +57,5 @@ class WishlistRepository {
       logE('Wishlist page load error', tag: 'DB', error: e, data: {'ownerId': ownerId});
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
-  }
+  });
 }

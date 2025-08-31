@@ -1,5 +1,5 @@
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart'; // still used for favorites but legacy search removed
 import 'package:wishlist_app/services/monitoring_service.dart';
 
 /// Service for managing user favorites system.
@@ -123,19 +123,6 @@ class FavoritesService {
     }
   }
 
-  /// Search for users by name or phone (only public profiles)
-  /// Used for manual search in "Explore" screen
-  Future<List<Map<String, dynamic>>> searchPublicUsers(String query) async {
-    try {
-      if (query.trim().isEmpty) return [];
-      
-      // Use the method from FirebaseDatabaseService
-      return await _database.searchUsersPaginated(query, limit: 20, offset: 0);
-    } catch (e) {
-      MonitoringService.logErrorStatic('search_public_users', e, stackTrace: StackTrace.current);
-      return [];
-    }
-  }
 
   /// Get public wishlists for a favorite user
   /// Only returns public wishlists

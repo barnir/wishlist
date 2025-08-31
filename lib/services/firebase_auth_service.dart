@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+// Removed legacy firebase_database_service usage for profiles
+import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/utils/app_logger.dart';
 
@@ -25,7 +26,7 @@ enum PhoneVerificationResult {
 class FirebaseAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
+  final UserProfileRepository _userProfileRepo = UserProfileRepository();
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
   User? get currentUser => _firebaseAuth.currentUser;
@@ -114,7 +115,7 @@ class FirebaseAuthService {
             if (userCredential.user != null) {
               logI('Auto-verification success: ${userCredential.user!.uid}', tag: 'OTP');
               await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
-              await _databaseService.updateUserProfile(userCredential.user!.uid, {'phone_verified': true});
+              await _userProfileRepo.update(userCredential.user!.uid, {'phone_verified': true});
               await _clearVerificationData();
             }
           } catch (e) {
@@ -195,7 +196,7 @@ class FirebaseAuthService {
             logI('Provider already linked (phone already present)', tag: 'OTP');
             // Continue with profile update using current user
             await _createOrUpdateUserProfile(currentUser, phoneNumber: phoneNumber);
-      await _databaseService.updateUserProfile(currentUser.uid, {'phone_verified': true});
+            await _userProfileRepo.update(currentUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             logI('Phone verification success (already linked): ${currentUser.uid}', tag: 'OTP');
             return null;
@@ -212,7 +213,7 @@ class FirebaseAuthService {
             
             // Create user profile for successful linking
             await _createOrUpdateUserProfile(updatedUser, phoneNumber: phoneNumber);
-            await _databaseService.updateUserProfile(updatedUser.uid, {'phone_verified': true});
+            await _userProfileRepo.update(updatedUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             
             logI('Phone verification success via linking fallback: ${updatedUser.uid}', tag: 'OTP');
@@ -237,7 +238,7 @@ class FirebaseAuthService {
             
             // Create user profile for successful linking
             await _createOrUpdateUserProfile(nowCurrentUser, phoneNumber: phoneNumber);
-            await _databaseService.updateUserProfile(nowCurrentUser.uid, {'phone_verified': true});
+            await _userProfileRepo.update(nowCurrentUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             
             logI('Phone verification success via fallback: ${nowCurrentUser.uid}', tag: 'OTP');
@@ -252,16 +253,16 @@ class FirebaseAuthService {
   logI('Phone verification success: ${userCredential.user!.uid}', tag: 'OTP');
         
         // Check if this is completing an email registration
-        final profile = await _databaseService.getUserProfile(userCredential.user!.uid);
-        if (profile != null && profile['registration_complete'] == false) {
+  final profileObj = await _userProfileRepo.fetchById(userCredential.user!.uid);
+  if (profileObj != null && profileObj.registrationComplete == false) {
           logD('Completing email registration adding phone', tag: 'OTP');
-          await _databaseService.updateUserProfile(userCredential.user!.uid, {
+          await _userProfileRepo.update(userCredential.user!.uid, {
             'phone_number': phoneNumber,
             'registration_complete': true,
             'phone_verified': true,
           });
           logI('Email registration completed (phone added)', tag: 'OTP');
-        } else if (profile == null) {
+  } else if (profileObj == null) {
           logW('No profile after phone verification – creating new', tag: 'OTP');
           // Create complete profile if missing entirely
           final profileData = {
@@ -272,12 +273,12 @@ class FirebaseAuthService {
             'registration_complete': true,
             'phone_verified': true,
           };
-          await _databaseService.createUserProfile(userCredential.user!.uid, profileData);
+          await _userProfileRepo.create(userCredential.user!.uid, profileData);
           logI('Created complete profile after phone verification', tag: 'OTP');
         } else {
           // Normal phone verification flow
           await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
-          await _databaseService.updateUserProfile(userCredential.user!.uid, {'phone_verified': true});
+          await _userProfileRepo.update(userCredential.user!.uid, {'phone_verified': true});
         }
         
         await _clearVerificationData(); // Clear stored verification data after success
@@ -350,7 +351,7 @@ class FirebaseAuthService {
             final userCredential = await _firebaseAuth.signInWithCredential(credential);
             if (userCredential.user != null) {
               await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
-              await _databaseService.updateUserProfile(userCredential.user!.uid, {'phone_verified': true});
+              await _userProfileRepo.update(userCredential.user!.uid, {'phone_verified': true});
               await _clearVerificationData();
             }
           } catch (e) {
@@ -400,7 +401,7 @@ class FirebaseAuthService {
         
         // Create a temporary minimal user profile to prevent orphaned account detection
         // This profile will be updated when phone verification is completed
-        await _databaseService.createUserProfile(userCredential.user!.uid, {
+  await _userProfileRepo.create(userCredential.user!.uid, {
           'email': email,
             // Nome inicial já fornecido no ecrã de registo, pode ser ajustado depois
           'display_name': displayName,
@@ -474,7 +475,8 @@ class FirebaseAuthService {
   logD('uid=${user.uid} email=${user.email} phone=${user.phoneNumber ?? phoneNumber}', tag: 'PROFILE');
 
   logD('Check existing profile', tag: 'PROFILE');
-      final existingProfile = await _databaseService.getUserProfile(user.uid);
+  final existingProfileProfile = await _userProfileRepo.fetchById(user.uid);
+  final existingProfile = existingProfileProfile?.toMap();
   logD('Existing profile found=${existingProfile != null}', tag: 'PROFILE');
       
       final profileData = <String, dynamic>{
@@ -506,14 +508,14 @@ class FirebaseAuthService {
         
         if (updateData.isNotEmpty) {
           logD('Calling updateUserProfile', tag: 'PROFILE');
-          await _databaseService.updateUserProfile(user.uid, updateData);
+          await _userProfileRepo.update(user.uid, updateData);
           logI('Profile updated', tag: 'PROFILE');
         } else {
           logD('No profile changes needed', tag: 'PROFILE');
         }
       } else {
   logD('No existing profile - creating new', tag: 'PROFILE');
-        await _databaseService.createUserProfile(user.uid, profileData);
+  await _userProfileRepo.create(user.uid, profileData);
   logI('New profile created', tag: 'PROFILE');
       }
       
@@ -543,10 +545,8 @@ class FirebaseAuthService {
     if (user.phoneNumber != null) return true;
     
     // Check Firebase database
-    final profile = await _databaseService.getUserProfile(user.uid);
-    return profile != null && 
-           profile['phone_number'] != null && 
-           profile['phone_number'].toString().isNotEmpty;
+  final profile = await _userProfileRepo.fetchById(user.uid);
+  return profile != null && profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty;
   }
 
   /// Check if user has email

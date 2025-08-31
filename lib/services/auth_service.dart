@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy profile updates gradually migrating
+// Removed legacy FirebaseDatabaseService usage after full migration to repositories
 import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/firebase_functions_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -21,7 +21,6 @@ enum GoogleSignInResult {
 /// Firebase for Auth, Database, and Cloud Functions, Cloudinary for Images
 class AuthService {
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
-  final FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
   final UserProfileRepository _userProfileRepo = UserProfileRepository();
   final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
@@ -90,7 +89,7 @@ class AuthService {
       
       final userId = currentUser?.uid;
       if (userId != null) {
-        await _databaseService.updateUserProfile(userId, {'fcm_token': null});
+  await _userProfileRepo.update(userId, {'fcm_token': null});
         await NotificationService().unsubscribeFromUserTopic(userId);
       }
       
@@ -172,7 +171,7 @@ class AuthService {
     try {
       final fcmToken = await NotificationService().getDeviceToken();
       if (fcmToken != null) {
-        await _databaseService.updateUserProfile(userId, {'fcm_token': fcmToken});
+  await _userProfileRepo.update(userId, {'fcm_token': fcmToken});
   logD('FCM token updated on sign in', tag: 'AUTH');
       }
     } catch (e) {
@@ -215,7 +214,7 @@ class AuthService {
       );
       
       await user.linkWithCredential(credential);
-      await _databaseService.updateUserProfile(user.uid, {'email': email});
+  await _userProfileRepo.update(user.uid, {'email': email});
     } catch (e) {
   logE('Link email/password error', tag: 'AUTH', error: e);
       rethrow;
@@ -238,8 +237,8 @@ class AuthService {
       // Get current photo URL before uploading new one for cleanup
       String? oldPhotoUrl;
       try {
-        final userDoc = await _databaseService.getUserProfile(user.uid);
-        oldPhotoUrl = userDoc?['photo_url'] as String?;
+  final userProfile = await _userProfileRepo.fetchById(user.uid);
+  oldPhotoUrl = userProfile?.photoUrl;
   logD('Current photo URL for cleanup: $oldPhotoUrl', tag: 'AUTH');
       } catch (e) {
   logW('Could not retrieve current photo URL: $e', tag: 'AUTH');
@@ -262,7 +261,7 @@ class AuthService {
         }
         
         // Always update Firestore profile regardless of Firebase Auth result
-        await _databaseService.updateUserProfile(user.uid, {'photo_url': imageUrl});
+  await _userProfileRepo.update(user.uid, {'photo_url': imageUrl});
   logI('Profile photo URL saved to Firestore', tag: 'AUTH');
   logD('Old image scheduled for cleanup: $oldPhotoUrl', tag: 'AUTH');
       }
@@ -294,7 +293,7 @@ class AuthService {
       if (photoURL != null) updateData['photo_url'] = photoURL;
       
       if (updateData.isNotEmpty) {
-        await _databaseService.updateUserProfile(user.uid, updateData);
+  await _userProfileRepo.update(user.uid, updateData);
       }
     } catch (e) {
   logE('Update user error', tag: 'AUTH', error: e);
@@ -374,12 +373,15 @@ class AuthService {
         await _functionsService.deleteUserAccount();
   logI('Firebase data cleanup completed successfully', tag: 'AUTH');
       } catch (e) {
-  logW('Firebase data cleanup failed: $e', tag: 'AUTH');
-        // Fallback: try basic profile deletion
+        logW('Firebase data cleanup failed: $e', tag: 'AUTH');
+        // Fallback: try repository profile deletion (best-effort)
         try {
-          await _databaseService.deleteUserProfile(user.uid);
+          final ok = await _userProfileRepo.delete(user.uid);
+          if (!ok) {
+            logW('Repository fallback profile deletion returned false', tag: 'AUTH');
+          }
         } catch (fallbackError) {
-          logW('Fallback deletion also failed: $fallbackError', tag: 'AUTH');
+          logW('Repository fallback deletion threw: $fallbackError', tag: 'AUTH');
         }
       }
       
@@ -427,8 +429,7 @@ class AuthService {
     
     try {
   final profile = await _userProfileRepo.fetchById(user.uid);
-  final map = profile?.toMap();
-  return map != null && map['registration_complete'] == true;
+  return profile?.registrationComplete == true;
     } catch (e) {
       debugPrint('Error checking registration status: $e');
       return false;

@@ -11,7 +11,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/theme.dart';
 import 'utils/app_logger.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy fallback
 import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/theme_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
@@ -284,13 +283,11 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
             DateTime.now().difference(widget.user.metadata.creationTime!).inMinutes < 10) {
           appLog('Creating temporary profile (email registration in progress)', tag: 'ROUTING');
           try {
-            await FirebaseDatabaseService().createUserProfile(widget.user.uid, { // deprecated; keep for transition
-              'email': widget.user.email,
-              'display_name': widget.user.displayName ?? widget.user.email!.split('@')[0],
-              'registration_complete': false,
-              'is_private': false,  // Default to public profile
-              'created_at': DateTime.now().toIso8601String(),
-            });
+            await _userProfileRepo.ensureTemporaryProfile(
+              widget.user.uid,
+              email: widget.user.email,
+              displayName: widget.user.displayName ?? widget.user.email!.split('@')[0],
+            );
             appLog('Temporary profile created', tag: 'ROUTING');
           } catch (e) {
             appLog('Error creating temporary profile: $e', tag: 'ROUTING');
@@ -336,7 +333,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
           if (hasValidPhone) {
             // User already has verified phone - fix registration_complete flag
             appLog('Verified phone but registration incomplete -> auto-fix', tag: 'ROUTING');
-            FirebaseDatabaseService().updateUserProfile(widget.user.uid, {
+            UserProfileRepository().update(widget.user.uid, {
               'registration_complete': true,
             }).then((_) {
               appLog('Registration completion flag fixed', tag: 'ROUTING');

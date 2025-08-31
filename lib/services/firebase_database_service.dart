@@ -36,95 +36,7 @@ class FirebaseDatabaseService {
 
   // ============== USER METHODS ==============
 
-  /// Create user profile (legacy – use UserProfileRepository.create)
-  @Deprecated('Use UserProfileRepository.create for typed access')
-  Future<Map<String, dynamic>> createUserProfile(String userId, Map<String, dynamic> profileData) async {
-    try {
-      logI('Creating user profile', tag: 'DB', data: {'userId': userId});
-      
-      final docRef = _firestore.collection('users').doc(userId);
-      
-      final data = {
-        ...profileData,
-        'id': userId,
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      };
-      
-      await docRef.set(data);
-      
-      // Return the created data with server timestamp
-      final createdDoc = await docRef.get();
-      final result = createdDoc.data()!;
-      
-  logI('User profile created', tag: 'DB', data: {'userId': userId});
-      return result;
-    } catch (e) {
-  logE('Error creating user profile', tag: 'DB', error: e, data: {'userId': userId});
-      rethrow;
-    }
-  }
-
-  /// Get user profile (legacy – use UserProfileRepository.fetchById)
-  @Deprecated('Use UserProfileRepository.fetchById for typed access')
-  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
-    try {
-      logD('Get user profile', tag: 'DB', data: {'userId': userId});
-      
-      final doc = await _firestore.collection('users').doc(userId).get();
-      
-      if (doc.exists) {
-        final data = doc.data()!;
-        logI('User profile retrieved', tag: 'DB', data: {'userId': userId});
-        return data;
-      } else {
-        logW('User profile not found', tag: 'DB', data: {'userId': userId});
-        return null;
-      }
-    } catch (e) {
-      logE('Error getting user profile', tag: 'DB', error: e, data: {'userId': userId});
-      rethrow;
-    }
-  }
-
-  /// Update user profile (legacy – use UserProfileRepository.update)
-  @Deprecated('Use UserProfileRepository.update for typed access')
-  Future<void> updateUserProfile(String userId, Map<String, dynamic> updates) async {
-    try {
-      logI('Updating user profile', tag: 'DB', data: {'userId': userId});
-      
-      final data = {
-        ...updates,
-        'updated_at': FieldValue.serverTimestamp(),
-      };
-      
-      await _firestore.collection('users').doc(userId).update(data);
-      
-  logI('User profile updated', tag: 'DB', data: {'userId': userId});
-    } catch (e) {
-  logE('Error updating user profile', tag: 'DB', error: e, data: {'userId': userId});
-      rethrow;
-    }
-  }
-
-  /// Delete user profile (legacy – use UserProfileRepository.delete)
-  @Deprecated('Use UserProfileRepository.delete for typed access')
-  Future<void> deleteUserProfile(String userId) async {
-    try {
-      logI('Deleting user profile', tag: 'DB', data: {'userId': userId});
-      
-      // Before deleting profile, schedule cleanup of all user images
-      await _cloudinaryService.deleteUserImages(userId);
-      
-      await _firestore.collection('users').doc(userId).delete();
-      
-  logI('User profile deleted', tag: 'DB', data: {'userId': userId});
-  logD('Scheduled cleanup for user images', tag: 'IMG', data: {'userId': userId});
-    } catch (e) {
-  logE('Error deleting user profile', tag: 'DB', error: e, data: {'userId': userId});
-      rethrow;
-    }
-  }
+  // Legacy user profile CRUD removed (migrated to UserProfileRepository)
 
   // ============== WISHLIST METHODS ==============
 
@@ -496,12 +408,12 @@ class FirebaseDatabaseService {
         throw Exception('Cannot favorite yourself');
       }
 
-      // Check if target user exists and is public
-      final targetUser = await getUserProfile(favoriteUserId);
-      if (targetUser == null) {
+      // Check if target user exists and is public (direct doc fetch since legacy method removed)
+      final targetSnap = await _firestore.collection('users').doc(favoriteUserId).get();
+      if (!targetSnap.exists) {
         throw Exception('User not found');
       }
-
+      final targetUser = targetSnap.data() ?? {};
       if (targetUser['is_private'] == true) {
         throw Exception('Cannot favorite private users');
       }
@@ -640,48 +552,6 @@ class FirebaseDatabaseService {
     }
   }
 
-  /// Search for users by name or email (only public profiles)
-  Future<List<Map<String, dynamic>>> searchUsersPaginated(
-    String query, {
-    int limit = 10,
-    int offset = 0,
-  }) async {
-    try {
-      if (query.trim().isEmpty || currentUserId == null) return [];
-
-      // Firestore text search is limited, so we'll search by display_name and email
-      // Note: This is a simplified search. For better search, consider using Algolia
-      final searchQuery = query.trim().toLowerCase();
-
-      final usersQuery = await _firestore
-          .collection('users')
-          .where('is_private', isEqualTo: false)
-          .limit(limit + offset)
-          .get();
-
-      final filteredUsers = usersQuery.docs
-          .where((doc) {
-            final data = doc.data();
-            final displayName = (data['display_name'] as String?)?.toLowerCase() ?? '';
-            final email = (data['email'] as String?)?.toLowerCase() ?? '';
-            return doc.id != currentUserId && 
-                   (displayName.contains(searchQuery) || email.contains(searchQuery));
-          })
-          .skip(offset)
-          .take(limit)
-          .map((doc) => {
-            'id': doc.id,
-            ...doc.data(),
-          })
-          .toList();
-
-  logI('Users search results', tag: 'SEARCH', data: {'query': query, 'count': filteredUsers.length});
-      return filteredUsers;
-    } catch (e) {
-  logE('Error searching users', tag: 'SEARCH', error: e, data: {'query': query});
-      return [];
-    }
-  }
 
   /// Find users by phone numbers (for contacts discovery)
   Future<List<Map<String, dynamic>>> findUsersByPhoneNumbers(List<String> phoneNumbers) async {

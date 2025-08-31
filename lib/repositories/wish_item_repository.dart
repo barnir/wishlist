@@ -9,6 +9,18 @@ class WishItemRepository {
   final FirebaseFirestore _firestore;
   WishItemRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
 
+  Future<T> _withLatency<T>(String op, Future<T> Function() fn) async {
+    final sw = Stopwatch()..start();
+    try {
+      final r = await fn();
+  logD('WishItemRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
+      return r;
+    } catch (e, st) {
+  logE('WishItemRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
   /// Fetch a page of items for a wishlist using cursor pagination.
   Future<PageResult<WishItem>> fetchPage({
     required String wishlistId,
@@ -16,7 +28,7 @@ class WishItemRepository {
     String? category,
     SortOptions? sortOptions,
     DocumentSnapshot? startAfter,
-  }) async {
+  }) async => _withLatency('fetchPage', () async {
     try {
       var query = _firestore.collection('wish_items').where('wishlist_id', isEqualTo: wishlistId);
 
@@ -58,16 +70,16 @@ class WishItemRepository {
       logE('WishItem page load error', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
-  }
+  });
 
-  Future<bool> deleteItem(String itemId) async {
-    try {
-      await _firestore.collection('wish_items').doc(itemId).delete();
-      logI('WishItem deleted', tag: 'DB', data: {'itemId': itemId});
-      return true;
-    } catch (e) {
-      logE('WishItem delete error', tag: 'DB', error: e, data: {'itemId': itemId});
-      return false;
-    }
-  }
+  Future<bool> deleteItem(String itemId) async => _withLatency('deleteItem', () async {
+        try {
+          await _firestore.collection('wish_items').doc(itemId).delete();
+          logI('WishItem deleted', tag: 'DB', data: {'itemId': itemId});
+          return true;
+        } catch (e) {
+          logE('WishItem delete error', tag: 'DB', error: e, data: {'itemId': itemId});
+          return false;
+        }
+      });
 }

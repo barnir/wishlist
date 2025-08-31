@@ -4,7 +4,10 @@ import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy
+import 'package:wishlist_app/repositories/user_search_repository.dart';
+import 'package:wishlist_app/models/user_profile.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 import 'package:wishlist_app/utils/app_logger.dart';
@@ -17,7 +20,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateMixin {
-  final _databaseService = FirebaseDatabaseService();
+  final _userSearchRepo = UserSearchRepository();
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   
@@ -30,8 +33,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   
   // Paginação
   static const int _pageSize = 15;
-  final List<Map<String, dynamic>> _users = [];
-  int _currentPage = 0;
+  final List<UserProfile> _users = [];
+  DocumentSnapshot? _lastDoc;
   bool _isLoading = false;
   bool _hasMoreData = true;
   bool _isInitialLoading = false;
@@ -68,7 +71,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         setState(() {
           _searchQuery = query;
           _users.clear();
-          _currentPage = 0;
+          _lastDoc = null;
           _hasMoreData = true;
         });
         
@@ -92,7 +95,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     setState(() {
       _isInitialLoading = true;
       _users.clear();
-      _currentPage = 0;
+  _lastDoc = null;
       _hasMoreData = true;
     });
 
@@ -113,19 +116,16 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     });
 
     try {
-      final newUsers = await _databaseService.searchUsersPaginated(
-        _searchQuery,
+      final page = await _userSearchRepo.searchPage(
+        query: _searchQuery,
         limit: _pageSize,
-        offset: _currentPage * _pageSize,
+        startAfter: _lastDoc,
       );
-
       if (mounted) {
         setState(() {
-          if (newUsers.length < _pageSize) {
-            _hasMoreData = false;
-          }
-          _users.addAll(newUsers);
-          _currentPage++;
+          _users.addAll(page.items);
+          _lastDoc = page.lastDoc;
+          _hasMoreData = page.hasMore;
           _isLoading = false;
         });
       }
@@ -449,12 +449,12 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildUserCard(Map<String, dynamic> user) {
-    final displayName = user['display_name'] as String? ?? 'Utilizador';
-    final email = user['email'] as String?;
-    final userId = user['id'] as String;
-    final bio = user['bio'] as String?;
-    final isPrivate = user['is_private'] as bool? ?? false;
+  Widget _buildUserCard(UserProfile user) {
+    final displayName = user.displayName ?? 'Utilizador';
+    final email = user.email;
+    final userId = user.id;
+  final isPrivate = user.isPrivate;
+  final String? bio = user.bio;
 
     return Card(
       margin: UIConstants.cardMargin,

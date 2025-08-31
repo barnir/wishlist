@@ -9,6 +9,8 @@ class UserProfile {
   final String? phoneNumber; // Some code uses `phone` others `phone_number`
   final String? photoUrl;
   final bool isPrivate;
+  final bool? registrationComplete;
+  final String? bio;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -18,7 +20,9 @@ class UserProfile {
     this.email,
     this.phoneNumber,
     this.photoUrl,
-    this.isPrivate = false,
+  this.isPrivate = false,
+  this.registrationComplete,
+  this.bio,
     this.createdAt,
     this.updatedAt,
   });
@@ -39,6 +43,8 @@ class UserProfile {
       phoneNumber: (map['phone_number'] ?? map['phone']) as String?,
       photoUrl: map['photo_url'] as String?,
       isPrivate: map['is_private'] as bool? ?? false,
+  registrationComplete: map['registration_complete'] as bool?,
+  bio: map['bio'] as String?,
       createdAt: _ts(map['created_at']),
       updatedAt: _ts(map['updated_at']),
     );
@@ -51,6 +57,8 @@ class UserProfile {
         'phone_number': phoneNumber,
         'photo_url': photoUrl,
         'is_private': isPrivate,
+  'registration_complete': registrationComplete,
+  'bio': bio,
         'created_at': createdAt?.toIso8601String(),
         'updated_at': updatedAt?.toIso8601String(),
       };
@@ -62,6 +70,8 @@ class UserProfile {
     String? phoneNumber,
     String? photoUrl,
     bool? isPrivate,
+  bool? registrationComplete,
+  String? bio,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => UserProfile(
@@ -71,6 +81,8 @@ class UserProfile {
         phoneNumber: phoneNumber ?? this.phoneNumber,
         photoUrl: photoUrl ?? this.photoUrl,
         isPrivate: isPrivate ?? this.isPrivate,
+  registrationComplete: registrationComplete ?? this.registrationComplete,
+  bio: bio ?? this.bio,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
