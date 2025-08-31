@@ -694,6 +694,58 @@ class WebScraperServiceSecure {
         'sala', 'decoration', 'decoração', 'appliance', 'eletrodoméstico',
         'cleaning', 'limpeza', 'garden', 'jardim', 'tool', 'ferramenta',
         'lamp', 'lâmpada', 'table', 'mesa', 'chair', 'cadeira', 'sofa'
+      ],
+      'Beleza': [
+        'beleza', 'beauty', 'skincare', 'skin', 'creme', 'sérum', 'serum', 'maquilhagem', 'makeup',
+        'perfume', 'fragrância', 'fragrance', 'batom', 'lipstick', 'hidratante', 'cosmético', 'cosmetic'
+      ],
+      'Saúde & Fitness': [
+        'fitness', 'ginásio', 'gym', 'health', 'saúde', 'protein', 'suplemento', 'suplement', 'vitamina',
+        'vitamin', 'yoga', 'pilates', 'dumbbell', 'halter', 'corrida', 'running'
+      ],
+      'Brinquedos': [
+        'toy', 'toys', 'brinquedo', 'lego', 'puzzle', 'jogo infantil', 'boneca', 'action figure', 'carrinho'
+      ],
+      'Gourmet': [
+        'gourmet', 'cozinha', 'kitchen', 'utensílio', 'utensil', 'culinária', 'culinary', 'chef', 'panela',
+        'frigideira', 'knife', 'faca', 'spice', 'tempero', 'vinho', 'wine'
+      ],
+      'Gaming': [
+        'gaming', 'game', 'jogo', 'steam', 'playstation', 'xbox', 'nintendo', 'pc gamer', 'gpu', 'graphics card',
+        'controller', 'controlo', 'teclado mecânico', 'mechanical keyboard'
+      ],
+      'Música': [
+        'música', 'music', 'guitarra', 'guitar', 'piano', 'teclado', 'sintetizador', 'synth', 'drums', 'bateria',
+        'violino', 'instrumento', 'instrument'
+      ],
+      'Arte & DIY': [
+        'arte', 'art', 'pintura', 'painting', 'acrílico', 'acrylic', 'canvas', 'quadro', 'easel', 'cavalete',
+        'diy', 'craft', 'artesanato', 'cerâmica', 'ceramic', 'escultura'
+      ],
+      'Fotografia': [
+        'camera', 'câmara', 'fotografia', 'photography', 'lente', 'lens', 'tripé', 'tripod', 'dslr', 'mirrorless',
+        'gimbal'
+      ],
+      'Educação': [
+        'curso', 'course', 'aula', 'lesson', 'tutorial', 'formação', 'training', 'aprendizagem', 'learning', 'educação',
+        'education', 'online course'
+      ],
+      'Jardim': [
+        'jardim', 'garden', 'plant', 'planta', 'semente', 'seed', 'fertilizante', 'fertilizer', 'vaso', 'pot',
+        'regador', 'watering can'
+      ],
+      'Bebé': [
+        'bebé', 'bebe', 'baby', 'fralda', 'diaper', 'carrinho de bebé', 'stroller', 'berço', 'crib', 'chupeta', 'pacifier'
+      ],
+      'Experiência': [
+        'experiência', 'experience', 'evento', 'event', 'bilhete', 'ticket', 'workshop', 'aula', 'lesson', 'escape room',
+        'viagem curta', 'short trip'
+      ],
+      'Eco': [
+        'eco', 'sustentável', 'sustainable', 'bamboo', 'biodegradável', 'biodegradable', 'reciclado', 'recycled', 'orgânico', 'organic'
+      ],
+      'Pet': [
+        'pet', 'animal', 'cão', 'dog', 'gato', 'cat', 'ração', 'pet food', 'brinquedo para cão', 'dog toy', 'trela', 'leash'
       ]
     };
 

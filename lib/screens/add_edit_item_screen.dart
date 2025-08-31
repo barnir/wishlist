@@ -17,6 +17,7 @@ import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
 
 import '../models/category.dart';
+import 'package:wishlist_app/services/category_usage_service.dart';
 
 class AddEditItemScreen extends StatefulWidget {
   final String? wishlistId;
@@ -395,6 +396,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     } else {
       await _wishItemRepo.update(widget.itemId!, data);
     }
+
+    // Record local usage of the chosen category (best effort, non-blocking)
+    try {
+      if (_selectedCategory != null) {
+        // Lazy import avoidance: service is lightweight
+        // ignore: avoid_print
+        CategoryUsageService().recordUse(_selectedCategory!);
+      }
+    } catch (_) {}
 
     if (!mounted) return;
     Navigator.of(context).pop(true);

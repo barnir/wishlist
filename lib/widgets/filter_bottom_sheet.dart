@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/models/category.dart';
+import 'package:wishlist_app/services/category_usage_service.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
@@ -310,35 +311,33 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
   }
 
   Widget _buildCategorySelector() {
-    final categories = Category.getAllCategories();
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        // All categories option
-        _buildCategoryChip(
-          label: AppLocalizations.of(context)?.allLabel ?? 'Todas',
-          isSelected: _selectedCategory == null,
-          onTap: () {
-            HapticService.selectionClick();
-            setState(() {
-              _selectedCategory = null;
-            });
-          },
-        ),
-        // Individual categories
-        ...categories.map((category) => _buildCategoryChip(
-          label: category,
-          isSelected: _selectedCategory == category,
-          onTap: () {
-            HapticService.selectionClick();
-            setState(() {
-              _selectedCategory = category;
-            });
-          },
-        )),
-      ],
+    return FutureBuilder<List<String>>(
+      future: CategoryUsageService().sortByUsage(Category.getAllCategories()),
+      builder: (context, snapshot) {
+        final categories = snapshot.data ?? Category.getAllCategories();
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildCategoryChip(
+              label: AppLocalizations.of(context)?.allLabel ?? 'Todas',
+              isSelected: _selectedCategory == null,
+              onTap: () {
+                HapticService.selectionClick();
+                setState(() { _selectedCategory = null; });
+              },
+            ),
+            ...categories.map((category) => _buildCategoryChip(
+              label: category,
+              isSelected: _selectedCategory == category,
+              onTap: () {
+                HapticService.selectionClick();
+                setState(() { _selectedCategory = category; });
+              },
+            )),
+          ],
+        );
+      },
     );
   }
 
