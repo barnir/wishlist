@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import '../theme_extensions.dart';
 import 'package:wishlist_app/services/notification_service.dart';
 import 'package:wishlist_app/services/fcm_service.dart';
@@ -239,11 +240,12 @@ class _NotificationPermissionCardState extends State<NotificationPermissionCard>
                   ),
                 ),
                 if (!isEnabled)
-                  IconButton(
+                  AccessibleIconButton(
+                    icon: Icons.close,
+                    iconSize: 20,
+                    semanticLabel: 'Dispensar cartão de notificações',
+                    tooltip: 'Fechar',
                     onPressed: _dismissCard,
-                    icon: const Icon(Icons.close, size: 20),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
                   ),
               ],
             ),

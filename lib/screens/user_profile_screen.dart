@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
+import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -96,8 +97,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: displayName,
         actions: [
           _buildFavoriteActionButton(),
-          IconButton(
-            icon: const Icon(Icons.share),
+          AccessibleIconButton(
+            icon: Icons.share,
+            semanticLabel: AppLocalizations.of(context)?.shareProfileTooltip ?? 'Partilhar perfil',
             tooltip: AppLocalizations.of(context)?.shareProfileTooltip ?? 'Partilhar perfil',
             onPressed: _shareProfile,
           ),
@@ -209,13 +211,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildFavoriteActionButton() {
     final l10n = AppLocalizations.of(context)!;
-    return IconButton(
-      icon: Icon(
-        _isFavorite ? Icons.star : Icons.star_border,
-  color: _isFavorite ? context.semanticColors.favorite : Theme.of(context).colorScheme.primary,
-      ),
-      onPressed: _toggleFavorite,
+    return AccessibleIconButton(
+      icon: _isFavorite ? Icons.star : Icons.star_border,
+      color: _isFavorite ? context.semanticColors.favorite : Theme.of(context).colorScheme.primary,
+      semanticLabel: _isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
       tooltip: _isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+      onPressed: _toggleFavorite,
     );
   }
 

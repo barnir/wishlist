@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
+import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/repositories/wishlist_repository.dart';
 import 'package:wishlist_app/repositories/wish_item_repository.dart';
@@ -218,13 +219,16 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         appBar: AppBar(
           title: Text(_wishlistName),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterBottomSheet(),
+          AccessibleIconButton(
+            icon: Icons.filter_list,
+            semanticLabel: AppLocalizations.of(context)?.filterAndSortTooltip ?? 'Filtrar e ordenar wishlist',
             tooltip: AppLocalizations.of(context)?.filterAndSortTooltip ?? 'Filtrar e Ordenar',
+            onPressed: () => _showFilterBottomSheet(),
           ),
-          IconButton(
-            icon: const Icon(Icons.edit),
+          AccessibleIconButton(
+            icon: Icons.edit,
+            semanticLabel: (AppLocalizations.of(context)?.edit ?? 'Editar') + ' wishlist',
+            tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
             onPressed: () {
               Navigator.pushNamed(
                 context,
@@ -243,16 +247,20 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(
-            context,
-            '/add_edit_item',
-            arguments: {'wishlistId': widget.wishlistId},
-          ).then((_) => _loadInitialData()); // Refresh after adding item
-        },
-        tooltip: AppLocalizations.of(context)?.addNewItemTooltip ?? 'Adicionar novo item',
-        child: const Icon(Icons.add),
+      floatingActionButton: Semantics(
+        label: AppLocalizations.of(context)?.addNewItemTooltip ?? 'Adicionar novo item',
+        button: true,
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.pushNamed(
+              context,
+              '/add_edit_item',
+              arguments: {'wishlistId': widget.wishlistId},
+            ).then((_) => _loadInitialData());
+          },
+          tooltip: AppLocalizations.of(context)?.addNewItemTooltip ?? 'Adicionar novo item',
+          child: const Icon(Icons.add),
+        ),
       ),
       ),
     );
@@ -531,15 +539,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                     
                     Spacing.horizontalS,
                     
-                    IconButton(
-                      onPressed: () => _showDeleteConfirmation(item),
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: colorScheme.error,
-                        size: 20,
-                      ),
+                    AccessibleIconButton(
+                      icon: Icons.delete_outline,
+                      color: colorScheme.error,
+                      semanticLabel: AppLocalizations.of(context)?.deleteItemTooltip ?? 'Eliminar item',
                       tooltip: AppLocalizations.of(context)?.deleteItemTooltip ?? 'Eliminar item',
-                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _showDeleteConfirmation(item),
                     ),
                   ],
                 ),

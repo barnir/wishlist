@@ -5,6 +5,7 @@ import 'package:wishlist_app/models/user_favorite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../widgets/ui_components.dart';
+import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -109,10 +110,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
         title: l10n.favoritesTitle,
         showBackButton: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => Navigator.pushNamed(context, '/explore'),
+          AccessibleIconButton(
+            icon: Icons.search,
+            semanticLabel: l10n.searchProfilesTooltip,
             tooltip: l10n.searchProfilesTooltip,
+            onPressed: () => Navigator.pushNamed(context, '/explore'),
           ),
         ],
       ),
