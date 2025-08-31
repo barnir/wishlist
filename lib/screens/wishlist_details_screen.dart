@@ -12,6 +12,7 @@ import 'package:wishlist_app/repositories/wish_item_repository.dart';
 import 'package:wishlist_app/widgets/swipe_action_widget.dart';
 import 'package:wishlist_app/widgets/safe_navigation_wrapper.dart';
 import 'package:wishlist_app/models/sort_options.dart';
+import 'package:wishlist_app/models/wishlist_layout_mode.dart';
 import '../models/wish_item.dart';
 import '../widgets/ui_components.dart';
 import '../widgets/filter_bottom_sheet.dart';
@@ -37,6 +38,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   bool _isPrivate = false;
   String? _selectedCategory;
   SortOptions _sortOption = SortOptions.nameAsc;
+  WishlistLayoutMode _layoutMode = WishlistLayoutMode.list;
 
   // Paginação
   static const int _pageSize = 20;
@@ -181,6 +183,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         _sortOption = data.$2;
       });
     }
+    final layout = await FilterPreferencesService().loadLayout(wishlistId: widget.wishlistId);
+    if (layout != null && mounted) {
+      setState(() {
+        _layoutMode = layout;
+      });
+    }
   }
 
   Future<void> _deleteItem(String itemId) async {
@@ -204,6 +212,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     if (!mounted) return;
     AppSnack.show(context, message,
         type: isError ? SnackType.error : SnackType.info);
+  }
+
+  Future<void> _toggleLayoutMode() async {
+    setState(() {
+      _layoutMode = _layoutMode.toggled;
+    });
+    // Persist preference (scoped by wishlist)
+    await FilterPreferencesService().saveLayout(_layoutMode, wishlistId: widget.wishlistId);
   }
 
   @override
@@ -231,6 +247,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             semanticLabel: AppLocalizations.of(context)?.filterAndSortTooltip ?? 'Filtrar e ordenar wishlist',
             tooltip: AppLocalizations.of(context)?.filterAndSortTooltip ?? 'Filtrar e Ordenar',
             onPressed: () => _showFilterBottomSheet(),
+          ),
+          AccessibleIconButton(
+            icon: _layoutMode == WishlistLayoutMode.list ? Icons.grid_view : Icons.view_agenda,
+            semanticLabel: _layoutMode.iconSemanticLabel,
+            tooltip: _layoutMode.tooltip,
+            onPressed: _toggleLayoutMode,
           ),
           AccessibleIconButton(
             icon: Icons.edit,
@@ -286,17 +308,35 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: UIConstants.listPadding,
-        itemCount: _items.length + (_isLoading ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _items.length) {
-            return _buildLoadingIndicator();
-          }
-          return _buildItemCardWithSwipe(_items[index]);
-        },
-      ),
+      child: _layoutMode == WishlistLayoutMode.list
+          ? ListView.builder(
+              controller: _scrollController,
+              padding: UIConstants.listPadding,
+              itemCount: _items.length + (_isLoading ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _items.length) {
+                  return _buildLoadingIndicator();
+                }
+                return _buildItemCardWithSwipe(_items[index]);
+              },
+            )
+          : GridView.builder(
+              controller: _scrollController,
+              padding: UIConstants.listPadding,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.68,
+              ),
+              itemCount: _items.length + (_isLoading ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _items.length) {
+                  return _buildLoadingIndicator();
+                }
+                return _buildGridItem(_items[index]);
+              },
+            ),
     );
   }
 
@@ -561,6 +601,97 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGridItem(WishItem item) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () => _editItem(item),
+      onLongPress: () => _showDeleteConfirmation(item),
+      child: RepaintBoundary(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(UIConstants.radiusM),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(UIConstants.radiusM),
+                    topRight: Radius.circular(UIConstants.radiusM),
+                  ),
+                  child: OptimizedCloudinaryImage(
+                    originalUrl: item.imageUrl!,
+                    transformationType: ImageType.productLarge,
+                    width: double.infinity,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    fallbackIcon: Icon(
+                      Icons.broken_image,
+                      color: colorScheme.error,
+                      size: 32,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(UIConstants.radiusM),
+                      topRight: Radius.circular(UIConstants.radiusM),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(Icons.image_not_supported, color: colorScheme.onSurfaceVariant),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    if (item.price != null && item.price! > 0)
+                      Text(
+                        '€${item.price!.toStringAsFixed(2)}',
+                        style: textTheme.bodySmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w600),
+                      ),
+                    if (item.category.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          item.category,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

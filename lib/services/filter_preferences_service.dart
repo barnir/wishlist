@@ -1,11 +1,13 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/sort_options.dart';
+import '../models/wishlist_layout_mode.dart';
 
 /// Persists last used wishlist filters (category + sort) per user and per wishlist.
 /// If [wishlistId] is provided the preference is scoped; otherwise falls back to global keys.
 class FilterPreferencesService {
   static const _keyCategory = 'filters.lastCategory';
   static const _keySort = 'filters.lastSort';
+  static const _keyLayout = 'filters.layoutMode';
 
   static SharedPreferences? _cachedPrefs;
   static Future<SharedPreferences> _prefs() async =>
@@ -39,5 +41,22 @@ class FilterPreferencesService {
       orElse: () => SortOptions.nameAsc,
     );
     return (category, sort);
+  }
+
+  Future<void> saveLayout(WishlistLayoutMode mode, {String? wishlistId}) async {
+    final prefs = await _prefs();
+    final layoutKey = _scoped(_keyLayout, wishlistId);
+    await prefs.setString(layoutKey, mode.name);
+  }
+
+  Future<WishlistLayoutMode?> loadLayout({String? wishlistId}) async {
+    final prefs = await _prefs();
+    final layoutKey = _scoped(_keyLayout, wishlistId);
+    final stored = prefs.getString(layoutKey);
+    if (stored == null) return null;
+    return WishlistLayoutMode.values.firstWhere(
+      (e) => e.name == stored,
+      orElse: () => WishlistLayoutMode.list,
+    );
   }
 }
