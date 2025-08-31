@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import '../theme_extensions.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -169,8 +170,8 @@ class WishItemTile extends StatelessWidget {
                               AccessibleIconButton(
                                 icon: Icons.edit_outlined,
                                 color: Theme.of(context).colorScheme.outline,
-                                semanticLabel: 'Editar item',
-                                tooltip: 'Editar',
+                                semanticLabel: (AppLocalizations.of(context)?.edit ?? 'Editar') + ' item',
+                                tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
                                 onPressed: () {
                                   HapticService.lightImpact();
                                   onEdit!();
@@ -181,8 +182,8 @@ class WishItemTile extends StatelessWidget {
                             AccessibleIconButton(
                               icon: Icons.delete_outline,
                               color: Theme.of(context).colorScheme.error,
-                              semanticLabel: 'Eliminar item',
-                              tooltip: 'Eliminar',
+                              semanticLabel: (AppLocalizations.of(context)?.delete ?? 'Eliminar') + ' item',
+                              tooltip: AppLocalizations.of(context)?.delete ?? 'Eliminar',
                               onPressed: () {
                                 HapticService.mediumImpact();
                                 onDelete();
