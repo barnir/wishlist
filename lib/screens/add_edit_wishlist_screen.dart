@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-// Migrated from legacy FirebaseDatabaseService to WishlistRepository
 import 'package:wishlist_app/repositories/wishlist_repository.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';

@@ -142,7 +142,7 @@ class FavoritesService {
 
       if (cleanedNumbers.isEmpty) return [];
 
-      // Usar o novo método do FirebaseDatabaseService para buscar utilizadores por números de telefone
+  // Buscar utilizadores por números de telefone (batched)
       // Query users by phone numbers (batched whereIn)
       final results = <Map<String, dynamic>>[];
       const batchSize = 10;
@@ -180,7 +180,7 @@ class FavoritesService {
         throw Exception('Utilizador não está nos favoritos');
       }
 
-      // Get only public wishlists using the method from FirebaseDatabaseService
+  // Obter apenas wishlists públicas
     // Fetch public wishlists for given user
     final snap = await FirebaseFirestore.instance
       .collection('wishlists')

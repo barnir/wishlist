@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
-// Removed legacy FirebaseDatabaseService usage after full migration to repositories
 import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/firebase_functions_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';

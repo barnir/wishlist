@@ -3,7 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+// Legacy FirebaseDatabaseService removed; analytics events can be forwarded to a future analytics provider
 
 class MonitoringService {
   static final MonitoringService _instance = MonitoringService._internal();
@@ -11,7 +11,7 @@ class MonitoringService {
   MonitoringService._internal();
 
 
-  final FirebaseDatabaseService _database = FirebaseDatabaseService();
+  // TODO: Inject analytics provider (e.g., Firebase Analytics) instead of direct DB writes
   final Map<String, DateTime> _operationStartTimes = {};
   final List<PerformanceMetric> _metrics = [];
   final List<ErrorLog> _errorLogs = [];
@@ -193,10 +193,11 @@ class MonitoringService {
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId != null) {
-        await _database.logAnalyticsEvent(eventName, {
-          'user_id': userId,
-          'properties': properties ?? {},
-        });
+        // Placeholder for analytics integration
+        if (kDebugMode) {
+          developer.log('Analytics event: $eventName', name: 'MonitoringService',
+              error: null, stackTrace: null, level: 0);
+        }
       }
     } catch (e) {
       logError('Failed to track event: $eventName', null, operation: 'trackEvent');

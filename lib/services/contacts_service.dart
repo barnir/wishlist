@@ -2,11 +2,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 // Using flutter_contacts built-in permission system
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/repositories/favorites_repository.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 
 class ContactsService {
-  final _database = FirebaseDatabaseService();
+  final FirebaseFirestore _firestore;
+  final FavoritesRepository _favoritesRepo;
+  ContactsService({FirebaseFirestore? firestore, FavoritesRepository? favoritesRepository})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _favoritesRepo = favoritesRepository ?? FavoritesRepository();
 
   // Solicitar permissão para aceder aos contactos usando flutter_contacts
   Future<bool> requestContactsPermission() async {
@@ -214,22 +219,25 @@ class ContactsService {
         return [];
       }
 
-      // Procurar utilizadores com estes números de telefone usando FirebaseDatabaseService
+      // Procurar utilizadores com estes números de telefone (batched whereIn queries)
       final registeredUsers = <Map<String, dynamic>>[];
-      
-      try {
-        // Usar o serviço Firebase para buscar usuários por números de telefone
-        // Esta implementação completa substitui o código pendente anterior
-        // e aproveita a consulta eficiente ao Firestore com batching
-        final databaseService = FirebaseDatabaseService();
-        final results = await databaseService.getUsersByPhoneNumbers(phoneNumbers);
-        registeredUsers.addAll(results);
-        debugPrint('✅ Encontrados ${results.length} utilizadores para ${phoneNumbers.length} números');
-      } catch (e) {
-        debugPrint('❌ Error looking up users by phone numbers: $e');
-        // Continue with empty list if lookup fails
-        // O tratamento de erro aqui é importante para não bloquear todo o fluxo de contactos
+      const batchSize = 10; // Firestore whereIn limit
+      for (int i = 0; i < phoneNumbers.length; i += batchSize) {
+        final slice = phoneNumbers.skip(i).take(batchSize).toList();
+        try {
+          final snap = await _firestore
+              .collection('users')
+              .where('phone_number', whereIn: slice)
+              .where('is_private', isEqualTo: false)
+              .get();
+          for (final doc in snap.docs) {
+            registeredUsers.add({'id': doc.id, ...doc.data()});
+          }
+        } catch (e) {
+          debugPrint('❌ Firestore lookup falhou (lote ${i ~/ batchSize}): $e');
+        }
       }
+      debugPrint('✅ Encontrados ${registeredUsers.length} utilizadores para ${phoneNumbers.length} números');
 
       // Criar mapa de contacto para facilitar a associação
       final contactMap = <String, Contact>{};
@@ -272,7 +280,7 @@ class ContactsService {
       // Isto pode ser útil para mostrar sugestões de amigos
       for (final friend in registeredFriends) {
         // Verificar se já está nos favoritos
-        final existingFavorite = await _database.isFavorite(friend['id']);
+  final existingFavorite = await _favoritesRepo.isFavorite(currentUserId, friend['id']);
 
         // Se não está nos favoritos, pode criar uma sugestão (opcional)
         if (!existingFavorite) {
@@ -298,7 +306,7 @@ class ContactsService {
       
       for (final friend in registeredFriends) {
         // Verificar se já está nos favoritos
-        final existingFavorite = await _database.isFavorite(friend['id']);
+  final existingFavorite = await _favoritesRepo.isFavorite(currentUserId, friend['id']);
 
         // Se não está nos favoritos, adicionar às sugestões
         if (!existingFavorite && friend['id'] != currentUserId) {

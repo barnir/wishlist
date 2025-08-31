@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/repositories/wishlist_repository.dart';
+import 'package:wishlist_app/repositories/wish_item_repository.dart';
+import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 
 /// Simple prefetch of initial wishlist + item images to warm cache.
@@ -10,27 +12,30 @@ class ImagePrefetchService {
   factory ImagePrefetchService() => _instance;
   ImagePrefetchService._internal();
 
-  final _db = FirebaseDatabaseService();
+  final WishlistRepository _wishlistRepo = WishlistRepository();
+  final WishItemRepository _wishItemRepo = WishItemRepository();
   bool _running = false;
 
   Future<void> warmUp({int wishlists = 5, int itemsPerWishlist = 3}) async {
     if (_running) return;
     _running = true;
     try {
-      final userId = _db.currentUserId;
+      final userId = AuthService.getCurrentUserId();
       if (userId == null) return;
-      final wl = await _db.getUserWishlists(userId);
-      final subset = wl.take(wishlists);
-      for (final w in subset) {
-        final url = w['image_url'];
-        if (_isNetworkUrl(url)) _prefetch(url);
+
+      // Fetch first page of wishlists
+      final wlPage = await _wishlistRepo.fetchUserWishlists(ownerId: userId, limit: wishlists);
+      for (final w in wlPage.items) {
+        final url = w.imageUrl;
+        if (url != null && _isNetworkUrl(url)) _prefetch(url);
       }
-      // Prefetch a few items per wishlist (simple approach)
-      for (final w in subset) {
-        final allItems = await _db.getWishItemsPaginatedFuture(w['id'], limit: itemsPerWishlist);
-        for (final it in allItems) {
-          final url = it['image_url'];
-            if (_isNetworkUrl(url)) _prefetch(url);
+
+      // For each wishlist, fetch a few items
+      for (final w in wlPage.items) {
+        final itemPage = await _wishItemRepo.fetchPage(wishlistId: w.id, limit: itemsPerWishlist);
+        for (final it in itemPage.items) {
+          final url = it.imageUrl;
+          if (url != null && _isNetworkUrl(url)) _prefetch(url);
         }
       }
       MonitoringService.logInfoStatic('ImagePrefetch', 'Warm-up concluído');

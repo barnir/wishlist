@@ -6,7 +6,7 @@ import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
-import '../services/firebase_database_service.dart'; // legacy for wishlists
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
@@ -22,7 +22,7 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  final _databaseService = FirebaseDatabaseService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _userProfileRepo = UserProfileRepository();
   final _favoritesService = FavoritesService();
 
@@ -253,7 +253,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildPublicWishlistsTab() {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _databaseService.getPublicWishlistsForUser(widget.userId),
+      future: _fetchPublicWishlists(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildWishlistSkeletonList();
@@ -283,6 +283,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         );
       },
     );
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchPublicWishlists() async {
+    try {
+      final snap = await _firestore
+          .collection('wishlists')
+          .where('owner_id', isEqualTo: widget.userId)
+          .where('is_private', isEqualTo: false)
+          .orderBy('created_at', descending: true)
+          .get();
+      return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Widget _buildWishlistCard(Map<String, dynamic> wishlist) {

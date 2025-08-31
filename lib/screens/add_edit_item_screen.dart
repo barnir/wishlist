@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
 import 'package:image_picker/image_picker.dart';
-// Migrated from legacy FirebaseDatabaseService to repositories
 import 'package:wishlist_app/repositories/wish_item_repository.dart';
 import 'package:wishlist_app/repositories/wishlist_repository.dart';
 import 'package:wishlist_app/models/wishlist.dart';
