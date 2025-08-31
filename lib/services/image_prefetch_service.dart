@@ -16,10 +16,17 @@ class ImagePrefetchService {
   final WishlistRepository _wishlistRepo = WishlistRepository();
   final WishItemRepository _wishItemRepo = WishItemRepository();
   bool _running = false;
+  bool _cancelled = false;
 
-  Future<void> warmUp({int wishlists = 5, int itemsPerWishlist = 3}) async {
+  /// Cancel any in-flight warmUp (best-effort).
+  void cancel() {
+    _cancelled = true;
+  }
+
+  Future<void> warmUp({int wishlists = 5, int itemsPerWishlist = 3, int concurrency = 4}) async {
     if (_running) return;
     _running = true;
+    _cancelled = false;
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId == null) return;
@@ -33,29 +40,34 @@ class ImagePrefetchService {
 
       // Fetch first page of wishlists (optimize to icon size if cloudinary available)
       final wlPage = await _wishlistRepo.fetchUserWishlists(ownerId: userId, limit: wishlists);
+      final wishlistUrls = <String>[];
       for (final w in wlPage.items) {
+        if (_cancelled) return;
         final url = w.imageUrl;
         if (url != null && _isNetworkUrl(url)) {
-          final effective = cloudinary != null
+          wishlistUrls.add(cloudinary != null
               ? cloudinary.optimizeExistingUrl(url, ImageType.wishlistIcon)
-              : url;
-          _prefetch(effective);
+              : url);
         }
       }
+      await _prefetchBatch(wishlistUrls, concurrency: concurrency);
 
       // For each wishlist, fetch a few items (optimize to thumbnail size)
+      final itemUrls = <String>[];
       for (final w in wlPage.items) {
+        if (_cancelled) return;
         final itemPage = await _wishItemRepo.fetchPage(wishlistId: w.id, limit: itemsPerWishlist);
         for (final it in itemPage.items) {
+          if (_cancelled) return;
           final url = it.imageUrl;
-          if (url != null && _isNetworkUrl(url)) {
-            final effective = cloudinary != null
-                ? cloudinary.optimizeExistingUrl(url, ImageType.productThumbnail)
-                : url;
-            _prefetch(effective);
-          }
+            if (url != null && _isNetworkUrl(url)) {
+              itemUrls.add(cloudinary != null
+                  ? cloudinary.optimizeExistingUrl(url, ImageType.productThumbnail)
+                  : url);
+            }
         }
       }
+      await _prefetchBatch(itemUrls, concurrency: concurrency);
       MonitoringService.logInfoStatic('ImagePrefetch', 'Warm-up concluído');
     } catch (e, st) {
       MonitoringService.logErrorStatic('image_prefetch', e, stackTrace: st);
@@ -70,6 +82,22 @@ class ImagePrefetchService {
     CachedNetworkImageProvider(url).resolve(const ImageConfiguration());
     if (kDebugMode) {
       MonitoringService.logInfoStatic('ImagePrefetch', 'Prefetch $url');
+    }
+  }
+
+  Future<void> _prefetchBatch(List<String> urls, {required int concurrency}) async {
+    if (urls.isEmpty) return;
+    concurrency = concurrency.clamp(1, 8);
+    var index = 0;
+    final total = urls.length;
+    while (index < total) {
+      if (_cancelled) return;
+      final slice = urls.sublist(index, (index + concurrency).clamp(0, total));
+      await Future.wait(slice.map((u) async {
+        if (_cancelled) return;
+        _prefetch(u);
+      }));
+      index += slice.length;
     }
   }
 }

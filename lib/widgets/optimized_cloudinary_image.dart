@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'dart:math';
+import 'package:wishlist_app/services/analytics/analytics_service.dart';
 
 /// Unified image widget applying Cloudinary transformation + shimmer + fallback to original URL on error.
 class OptimizedCloudinaryImage extends StatefulWidget {
@@ -48,6 +49,9 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
   bool _triedOriginal = false;
   CloudinaryService? _cloudinary;
   String? _lowResUrl;
+  DateTime? _loadStart;
+  bool _reportedSuccess = false;
+  bool _reportedFailure = false;
 
   @override
   void initState() {
@@ -61,6 +65,7 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
       _currentUrl = null;
       return;
     }
+  _loadStart = DateTime.now();
     try {
       _cloudinary = CloudinaryService();
       _currentUrl = _cloudinary!.optimizeExistingUrl(original, widget.transformationType);
@@ -102,6 +107,25 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
       fadeInDuration: widget.fadeIn,
       fadeOutDuration: widget.fadeOut,
       placeholder: (c, _) => _buildShimmer(context),
+      imageBuilder: (c, imageProvider) {
+        if (!_reportedSuccess && _loadStart != null) {
+          _reportedSuccess = true;
+          final dur = DateTime.now().difference(_loadStart!).inMilliseconds;
+          Future.microtask(() => AnalyticsService().log('image_render_success', properties: {
+                'url_hash': url.hashCode.toString(),
+                'duration_ms': dur,
+                'type': widget.transformationType.name,
+                'orig_diff': (url == widget.originalUrl) ? 'original' : 'optimized',
+              }));
+        }
+        return Image(
+          image: imageProvider,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          filterQuality: FilterQuality.high,
+        );
+      },
       errorWidget: (c, _, err) {
         if (widget.originalUrl != null) {
           MonitoringService.logImageRenderError(widget.originalUrl!, err);
@@ -113,9 +137,21 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
                 setState(() {
                   _currentUrl = widget.originalUrl;
                   _triedOriginal = true;
+                  _loadStart = DateTime.now();
+                  _reportedSuccess = false;
                 });
               }
             });
+        }
+        if (!_reportedFailure && !_reportedSuccess) {
+          _reportedFailure = true;
+          final start = _loadStart;
+          final dur = start == null ? null : DateTime.now().difference(start).inMilliseconds;
+          Future.microtask(() => AnalyticsService().log('image_render_failure', properties: {
+                'url_hash': url.hashCode.toString(),
+                if (dur != null) 'duration_ms': dur,
+                'type': widget.transformationType.name,
+              }));
         }
         return _buildFallback(context);
       },
@@ -188,6 +224,9 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
   int? _cacheDim(double? value) {
     if (value == null) return null;
     if (value.isInfinite || value.isNaN) return null;
-    return (value * 2).round();
+  // Scale by device pixel ratio (capped) instead of constant 2x
+  final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? MediaQuery.of(context).devicePixelRatio;
+  final scale = dpr.clamp(1.5, 3.0);
+  return (value * scale).round();
   }
 }
