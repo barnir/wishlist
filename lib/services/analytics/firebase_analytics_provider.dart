@@ -7,7 +7,11 @@ class FirebaseAnalyticsProvider implements AnalyticsProvider {
 
   @override
   Future<void> logEvent(String name, {Map<String, Object?> properties = const {}}) async {
-    await _analytics.logEvent(name: name, parameters: properties);
+    final cleaned = <String, Object>{};
+    properties.forEach((k, v) {
+      if (v != null) cleaned[k] = v; // assegura Object non-null
+    });
+    await _analytics.logEvent(name: name, parameters: cleaned.isEmpty ? null : cleaned);
   }
 
   @override
