@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy for streams & wishlist/item stats
+import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy for stats only (to be migrated)
 import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/favorites_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
@@ -72,7 +72,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       final userProfile = await _userProfileRepo.fetchById(userId);
       if (userProfile != null) {
         _displayName = userProfile.displayName ?? '';
-        _bio = userProfile.toMap()['bio'] as String? ?? '';
+  _bio = userProfile.bio ?? '';
         _isPrivate = userProfile.isPrivate;
         _phoneNumber = userProfile.phoneNumber;
       }

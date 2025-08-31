@@ -5,7 +5,6 @@ import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart'; // retained for legacy calls (delete)
 import 'package:wishlist_app/repositories/wishlist_repository.dart';
 import 'package:wishlist_app/repositories/wish_item_repository.dart';
 import 'package:wishlist_app/widgets/swipe_action_widget.dart';
@@ -15,7 +14,6 @@ import '../models/wish_item.dart';
 import '../widgets/ui_components.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../constants/ui_constants.dart';
-import 'package:wishlist_app/services/auth_service.dart';
 import '../services/filter_preferences_service.dart';
 import '../widgets/app_snack.dart';
 
@@ -29,7 +27,6 @@ class WishlistDetailsScreen extends StatefulWidget {
 }
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
-  final _databaseService = FirebaseDatabaseService(); // legacy usage (delete + misc)
   final _wishlistRepo = WishlistRepository();
   final _wishItemRepo = WishItemRepository();
   final _scrollController = ScrollController();
@@ -53,8 +50,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   void initState() {
     super.initState();
   _restoreSavedFilters();
-    _loadWishlistDetails();
-    _checkOwnership();
+  _loadWishlistDetails();
     _loadInitialData();
     _scrollController.addListener(_onScroll);
   }
@@ -66,21 +62,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     super.dispose();
   }
 
-  Future<void> _checkOwnership() async {
-    try {
-      final currentUserId = AuthService.getCurrentUserId();
-      if (currentUserId == null) return;
-      
-      final wishlistData = await _databaseService.getWishlist(widget.wishlistId);
-      if (wishlistData != null && mounted) {
-        setState(() {
-          // Ownership check can be added here if needed
-        });
-      }
-    } catch (e) {
-      // Falhar silenciosamente
-    }
-  }
+  // Ownership was previously checked via legacy database service. Removed after migration.
 
   Future<void> _loadWishlistDetails() async {
     try {
