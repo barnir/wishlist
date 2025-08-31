@@ -84,7 +84,8 @@ kotlin {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
+    // Bumped to >=2.1.4 to satisfy flutter_local_notifications AAR metadata requirement
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // Firebase BoM para controlar versões
     implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
     implementation("com.google.firebase:firebase-analytics")
