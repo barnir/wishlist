@@ -325,7 +325,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   child: _isCompactList
       ? ListView.builder(
               controller: _scrollController,
-              padding: UIConstants.listPadding,
+              padding: UIConstants.listPadding.copyWith(top: 4, bottom: 12),
+              // Define altura consistente para densidade maior
+              itemExtent: 68,
               itemCount: _items.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _items.length) {
@@ -357,15 +359,15 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   Widget _buildCompactRow(WishItem item) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-  return InkWell(
+    return InkWell(
       onTap: () => _editItem(item),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: Row(
+        padding: const EdgeInsets.symmetric(vertical: 2.0),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-      _buildItemThumbnail(item),
-      const SizedBox(width: 10),
+            _buildItemThumbnail(item, size: 48),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,8 +423,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     );
   }
 
-  Widget _buildItemThumbnail(WishItem item) {
-    const size = 56.0;
+  Widget _buildItemThumbnail(WishItem item, {double size = 56.0}) {
     if (item.imageUrl == null || item.imageUrl!.isEmpty) {
       final cs = Theme.of(context).colorScheme;
       return Container(
