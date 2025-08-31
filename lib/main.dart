@@ -21,7 +21,6 @@ import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:wishlist_app/services/analytics/analytics_service.dart';
 import 'package:wishlist_app/services/analytics/firebase_analytics_provider.dart';
-import 'smoke_test.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -99,15 +98,6 @@ void main() async {
     } catch (_) {
       // Non-fatal: ignore analytics bootstrap errors
     }
-  }
-
-  final smoke = const bool.fromEnvironment('SMOKE_TEST', defaultValue: false);
-  if (smoke) {
-    // Executar depois de microtask para não bloquear bootstrap UI.
-    scheduleMicrotask(() async {
-      appLog('SMOKE_TEST start', tag: 'SMOKE');
-      await runSmokeTest();
-    });
   }
 
   runApp(const MyApp());
