@@ -110,13 +110,15 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     });
 
     try {
-      final page = await _wishItemRepo.fetchPage(
+      final pageFuture = _wishItemRepo.fetchPage(
         wishlistId: widget.wishlistId,
         limit: _pageSize,
         category: _selectedCategory,
         sortOptions: _sortOption,
         startAfter: _lastDoc,
       );
+      // Não aguardar ainda: permite preparar contexto se necessário
+      final page = await pageFuture;
       final newItems = page.items;
 
       if (mounted) {
@@ -134,18 +136,16 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       // Precache fora de setState e proteger com mounted
   // Context usage abaixo após await é seguro pois verificamos mounted e apenas precache; ignorar aviso.
   // ignore: use_build_context_synchronously
-  if (mounted && _items.length == newItems.length && newItems.isNotEmpty) {
+      if (_items.length == newItems.length && newItems.isNotEmpty) {
         final firstWithImage = newItems.firstWhere(
           (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
           orElse: () => newItems.first,
         );
         final imageUrl = firstWithImage.imageUrl;
-        if (imageUrl != null) {
-          // Precaching post-frame para evitar uso de context imediatamente após async gap
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            precacheImage(NetworkImage(imageUrl), context).catchError((_) {});
-          });
+        if (imageUrl != null && mounted) {
+          // Use ImageConfiguration.empty para evitar dependência direta de contexto UI
+          // ignore: discarded_futures
+          precacheImage(NetworkImage(imageUrl), context).catchError((_) {});
         }
       }
     } catch (e) {
