@@ -302,11 +302,10 @@ class ProfileScreenState extends State<ProfileScreen> {
               if (needsReauth && !isDeleting)
                 TextButton(
                   onPressed: () async {
-                    // Simple reauth heuristic: if user has email show message to logout/login
                     Navigator.of(context).pop();
                     AppSnack.show(context, l10n.errorDeletingAccount('reauth'), type: SnackType.error);
                   },
-                  child: const Text('Reautenticar'),
+                  child: Text(l10n.reauthenticate),
                 ),
               TextButton(
                 onPressed: isDeleting

@@ -422,6 +422,12 @@ abstract class AppLocalizations {
   /// **'Error deleting account: {error}'**
   String errorDeletingAccount(String error);
 
+  /// Button label to re-authenticate user
+  ///
+  /// In en, this message translates to:
+  /// **'Re-authenticate'**
+  String get reauthenticate;
+
   /// Login page title
   ///
   /// In en, this message translates to:

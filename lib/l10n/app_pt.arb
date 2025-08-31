@@ -53,6 +53,8 @@
   "accountDeletedSuccessfully": "Conta apagada com sucesso.",
   "errorDeletingAccount": "Erro ao apagar conta: {error}",
 
+  "reauthenticate": "Reautenticar",
+
   "login": "Entrar",
   "register": "Registar",
   "welcome": "Bem-vindo",

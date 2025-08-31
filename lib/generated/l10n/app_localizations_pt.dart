@@ -178,6 +178,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get reauthenticate => 'Reautenticar';
+
+  @override
   String get login => 'Entrar';
 
   @override

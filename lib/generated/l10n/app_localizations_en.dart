@@ -176,6 +176,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reauthenticate => 'Re-authenticate';
+
+  @override
   String get login => 'Login';
 
   @override

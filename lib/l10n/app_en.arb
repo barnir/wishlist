@@ -250,6 +250,11 @@
     }
   },
 
+  "reauthenticate": "Re-authenticate",
+  "@reauthenticate": {
+    "description": "Button label to re-authenticate user"
+  },
+
   "login": "Login",
   "@login": {
     "description": "Login page title"
