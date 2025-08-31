@@ -1,15 +1,23 @@
-🚀 Wishlist App Beta v1.0.0
+🚀 Wishlist App Beta v1.0.1
 
-✨ New Features:
-- Push notifications system with 4 types of alerts
-- Modern harmonized UI with star ratings
-- Advanced web scraping (85% auto-fill)
-- FCM token management
+✨ Novidades:
+- Alternância de layout (lista | grelha) nas wishlists com persistência
+- Auto-complete de registo quando telefone já existe (eliminação do loop de verificação)
+- Fallback robusto de queries Firestore (multinível) para evitar listas vazias sem índice
+- Novos índices compostos para ordenação por nome, preço e categoria (melhor performance & sorting consistente)
+- Upload de imagem otimizado (Cloudinary singleton + precache)
 
-🔧 Technical:
-- 0 Flutter analyze issues
-- Firebase Cloud Messaging integration
-- Rating system with visual stars
-- Android-optimized performance
+� Melhorias Técnicas:
+- Logging estruturado (latência, warnings de índice, diagnóstico)
+- Redução de rebuilds e otimizações de scroll/paginação
+- Substituição de APIs deprecated (surfaceVariant → surfaceContainerHighest)
+- Zero issues em `dart analyze`
 
-Ready for beta testing! 🎯
+🐞 Correções:
+- Navegação incorreta para ecrã de verificação de telefone corrigida
+- Evita bloqueio do fluxo em falta de índice Firestore
+
+📌 Nota:
+Cria automaticamente novos índices; garantir propagação antes de testes intensivos de ordenação.
+
+Pronto para distribuição beta. 🎯
