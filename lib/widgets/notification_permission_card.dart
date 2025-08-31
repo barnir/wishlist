@@ -171,13 +171,8 @@ class _NotificationPermissionCardState extends State<NotificationPermissionCard>
   }
 
   void _openSettings() {
-    // TODO: Implementar abertura das configurações do sistema
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_notificationsSettingsPath),
-        duration: const Duration(seconds: 4),
-      ),
-    );
+  // Plataforma específica poderá usar app_settings package no futuro
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_notificationsSettingsPath)));
   }
 
   void _dismissCard() {

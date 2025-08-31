@@ -11,8 +11,6 @@ class MonitoringService {
   factory MonitoringService() => _instance;
   MonitoringService._internal();
 
-
-  // TODO: Inject analytics provider (e.g., Firebase Analytics) instead of direct DB writes
   final Map<String, DateTime> _operationStartTimes = {};
   final List<PerformanceMetric> _metrics = [];
   final List<ErrorLog> _errorLogs = [];

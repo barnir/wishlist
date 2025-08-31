@@ -246,10 +246,10 @@ class CloudinaryService {
       // Store cleanup request in Firestore for future processing
       await _storeCleanupRequest(publicId, imageType);
       
-      // TODO: In a production app, you would:
-      // 1. ✅ Store this cleanup request in a database (implemented above)
-      // 2. Have a server-side job/function that processes cleanup requests
-      // 3. Use Cloudinary Admin API to actually delete the image
+  // Cleanup flow:
+  // 1. Request stored (queue) ✅
+  // 2. Cloud Function scheduledImageCleanup (server) consome e chama Admin API ✅
+  // 3. Status atualizado (processed / failed) com retries ✅
       
       MonitoringService.logInfoStatic(
         'CloudinaryService',

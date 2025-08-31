@@ -94,7 +94,6 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          // TODO(l10n): Replace with generated getter errorLoadingWishlists when running gen-l10n
           SnackBar(content: Text((AppLocalizations.of(context)?.errorLoadingWishlists(e.toString())) ?? 'Erro ao carregar wishlists: $e')),
         );
       }
@@ -117,7 +116,6 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   // l10n placeholder (getters ainda não regenerados)
     return WishlistEmptyState(
       icon: Icons.card_giftcard_rounded,
-  // TODO(l10n): Replace with l10n.noWishlistsYetTitle / Subtitle
   title: AppLocalizations.of(context)?.noWishlistsYetTitle ?? 'Nenhuma wishlist por aqui',
   subtitle: AppLocalizations.of(context)?.noWishlistsYetSubtitle ?? 'Toque em "+" para criar a sua primeira!',
     );

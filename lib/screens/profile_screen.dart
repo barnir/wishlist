@@ -554,9 +554,8 @@ class ProfileScreenState extends State<ProfileScreen> {
   /// Open store for app rating
   Future<void> _openAppStore() async {
     try {
-      // For now, open a generic search since app is not published yet
-      // TODO: Replace with actual Play Store URL when published: 'https://play.google.com/store/apps/details?id=com.example.wishlist_app'
-      const fallbackUrl = 'https://play.google.com/store/search?q=wishlist+app';
+  // Generic search until published (update when store URL available)
+  const fallbackUrl = 'https://play.google.com/store/search?q=wishlist+app';
       
       final Uri url = Uri.parse(fallbackUrl);
       

@@ -5,7 +5,6 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy
 import 'package:wishlist_app/repositories/user_search_repository.dart';
 import 'package:wishlist_app/models/user_profile.dart';
 import '../widgets/ui_components.dart';
@@ -278,8 +277,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       final contactsWithPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
   logD('Contacts with phones', tag: 'UI', data: {'withPhones': contactsWithPhones.length});
       
-      // Por agora, todos os contactos vão para convites (implementação básica)
-      // TODO: Implementar descoberta real de utilizadores na app
+  // Implementação básica: todos os contactos ainda não mapeados na app são candidatos a convite
       final friends = <Map<String, dynamic>>[];
       final inviteContacts = contactsWithPhones;
 
