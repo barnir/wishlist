@@ -598,49 +598,147 @@ async function scrapeWithSanitization(url: string): Promise<ScrapedData> {
 }
 
 function extractDataFromHtml(html: string, baseUrl: string): ScrapedData {
-  // Import JSDOM for HTML parsing
   const jsdom = require("jsdom");
   const {JSDOM} = jsdom;
-  
   const dom = new JSDOM(html);
   const document = dom.window.document;
-  
-  // Extract title
-  let title = "";
-  const titleElement = document.querySelector("title");
-  if (titleElement) {
-    title = titleElement.textContent || "";
+
+  // ---------- TITLE ----------
+  let title = (document.querySelector('meta[property="og:title"]')?.getAttribute('content')
+    || document.querySelector('meta[name="twitter:title"]')?.getAttribute('content')
+    || document.querySelector('title')?.textContent || '').trim();
+
+  // ---------- STRUCTURED DATA (JSON-LD) ----------
+  let structuredPrice: string | undefined;
+  let structuredCurrency: string | undefined;
+  let structuredImage: string | undefined;
+  try {
+    const jsonLdNodes = Array.from(document.querySelectorAll('script[type="application/ld+json"]')) as Element[];
+    for (const node of jsonLdNodes) {
+      const txt = (node as HTMLElement).textContent?.trim();
+      if (!txt) continue;
+      // Some pages concatenate multiple JSON objects; attempt safe parse.
+      const candidates: any[] = [];
+      try {
+        candidates.push(JSON.parse(txt));
+      } catch {
+        // Try to split if multiple objects (very naive fallback)
+        const rawParts = txt.split(/}\s*{/);
+        const parts: string[] = rawParts.map((p: string, i: number, arr: string[]) => i===0 ? p + '}' : (i===arr.length-1? '{'+p : '{'+p+'}'));
+        for (const part of parts) { try { candidates.push(JSON.parse(part)); } catch { /* ignore parse error */ } }
+      }
+      for (const data of candidates) {
+        if (!data || typeof data !== 'object') continue;
+        // Product schema or Offer inside graph
+        const possibleNodes: any[] = [];
+        if (Array.isArray((data as any)['@graph'])) possibleNodes.push(...(data as any)['@graph']); else possibleNodes.push(data);
+        for (const nodeObj of possibleNodes) {
+          if (!nodeObj || typeof nodeObj !== 'object') continue;
+            // Price
+          const offers = nodeObj.offers || nodeObj.offer;
+          if (offers) {
+            const offerArray = Array.isArray(offers) ? offers : [offers];
+            for (const o of offerArray) {
+              if (!structuredPrice && (o.price || o.priceSpecification?.price)) {
+                structuredPrice = String(o.price || o.priceSpecification?.price);
+              }
+              if (!structuredCurrency && (o.priceCurrency || o.priceSpecification?.priceCurrency)) {
+                structuredCurrency = String(o.priceCurrency || o.priceSpecification?.priceCurrency);
+              }
+            }
+          }
+          if (!structuredImage) {
+            if (typeof nodeObj.image === 'string') structuredImage = nodeObj.image;
+            else if (Array.isArray(nodeObj.image) && nodeObj.image.length) structuredImage = nodeObj.image[0];
+          }
+        }
+      }
+      if (structuredPrice && structuredImage) break; // good enough
+    }
+  } catch { /* silent */ }
+
+  // ---------- META TAG PRICE ----------
+  const metaPrice = document.querySelector('meta[property="product:price:amount"]')?.getAttribute('content')
+    || document.querySelector('meta[property="og:price:amount"]')?.getAttribute('content')
+    || document.querySelector('meta[itemprop="price"]')?.getAttribute('content')
+    || undefined;
+  const metaCurrency = document.querySelector('meta[property="product:price:currency"]')?.getAttribute('content')
+    || document.querySelector('meta[property="og:price:currency"]')?.getAttribute('content')
+    || document.querySelector('meta[itemprop="priceCurrency"]')?.getAttribute('content')
+    || undefined;
+
+  // ---------- DOM ELEMENTS (Amazon etc.) ----------
+  const amazonPriceEl = document.querySelector('#priceblock_ourprice, #priceblock_dealprice, #priceblock_saleprice, span.a-price span.a-offscreen');
+  const amazonPriceText = amazonPriceEl?.textContent?.trim();
+
+  // ---------- REGEX FALLBACK (multi-currency) ----------
+  // Capture currencies: €, $, £, R$, US$ etc.
+  const currencySymbols = ['€', '$', '£'];
+  let regexPrice: { amount?: string; symbol?: string } = {};
+  const symbolPattern = /(€|£|US\$|R\$|\$)\s*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?)/i;
+  const symbolMatch = html.match(symbolPattern);
+  if (symbolMatch) {
+    regexPrice = {symbol: symbolMatch[1], amount: symbolMatch[2]};
   }
-  
-  // Extract price (simplified)
-  let price = "0.00";
-  let currency = "EUR";
-  const priceText = html.match(/€\s*(\d+[.,]\d{2})/);
-  if (priceText) {
-    price = priceText[1].replace(",", ".");
-  }
-  
-  // Extract image
-  let image = "";
-  const ogImage = document.querySelector('meta[property="og:image"]');
-  if (ogImage) {
-    image = ogImage.getAttribute("content") || "";
-    if (image.startsWith("//")) {
-      image = "https:" + image;
-    } else if (image.startsWith("/")) {
-      const base = new URL(baseUrl);
-      image = base.origin + image;
+
+  // ---------- DECISION LOGIC FOR PRICE ----------
+  let rawPrice = structuredPrice || metaPrice || amazonPriceText || regexPrice.amount;
+  let currency = (structuredCurrency || metaCurrency || (regexPrice.symbol === '€' ? 'EUR' : regexPrice.symbol === '£' ? 'GBP' : regexPrice.symbol ? 'USD' : undefined) || 'EUR').toUpperCase();
+  if (rawPrice) {
+    // Clean separators: if both comma and dot present, assume thousand separators
+    rawPrice = rawPrice.replace(/\s/g, '');
+    const commaCount = (rawPrice.match(/,/g) || []).length;
+    const dotCount = (rawPrice.match(/\./g) || []).length;
+    if (commaCount > 0 && dotCount > 0) {
+      // Remove thousand separators heuristically
+      if (rawPrice.indexOf(',') < rawPrice.lastIndexOf('.')) {
+        // e.g. 1,234.56 -> remove commas
+        rawPrice = rawPrice.replace(/,/g, '');
+      } else {
+        // e.g. 1.234,56 -> remove dots, replace comma with dot
+        rawPrice = rawPrice.replace(/\./g, '').replace(/,/g, '.');
+      }
+    } else if (commaCount === 1 && dotCount === 0) {
+      // European decimal
+      rawPrice = rawPrice.replace(/,/g, '.');
+    } else if (commaCount > 1 && dotCount === 0) {
+      // 1,234,567 -> remove commas
+      rawPrice = rawPrice.replace(/,/g, '');
     }
   }
-  
+  let price = '0.00';
+  if (rawPrice && /^\d+(?:\.\d+)?$/.test(rawPrice)) {
+    price = rawPrice;
+  }
+
+  // ---------- IMAGE EXTRACTION ----------
+  let image = structuredImage
+    || document.querySelector('meta[property="og:image"]')?.getAttribute('content')
+    || document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')
+    || document.querySelector('link[rel="image_src"]')?.getAttribute('href')
+    || '';
+
+  if (!image) {
+    // Try Amazon image container
+    const imgCandidate = document.querySelector('#landingImage, img#imgBlkFront, img.a-dynamic-image');
+    if (imgCandidate) image = imgCandidate.getAttribute('src') || '';
+  }
+
+  if (image) {
+    if (image.startsWith('//')) image = 'https:' + image;
+    else if (image.startsWith('/')) {
+      const base = new URL(baseUrl); image = base.origin + image;
+    }
+  }
+
   return {
-    title: title || "Título não encontrado",
-    price: price,
-    currency: currency,
-    image: image,
-    description: "",
-    category: "Outros",
-    availability: "Desconhecido"
+    title: title || 'Título não encontrado',
+    price,
+    currency,
+    image,
+    description: '',
+    category: 'Outros',
+    availability: 'Desconhecido'
   };
 }
 
