@@ -369,6 +369,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
                     ),
                     
                     const SizedBox(height: 24),
+
                   ],
                 ),
               ),
