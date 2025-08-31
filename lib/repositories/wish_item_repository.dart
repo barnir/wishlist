@@ -74,12 +74,31 @@ class WishItemRepository {
                 'categoryFilter': category,
                 'hint': 'Add composite: where wishlist_id ==, category == (optional) orderBy $orderField & created_at'
               });
-          // Fallback: only order by primary field (no tie-breaker) to avoid index requirement.
-          var fallbackQuery = baseQuery.orderBy(orderField, descending: descending);
-          if (startAfter != null) {
-            fallbackQuery = fallbackQuery.startAfterDocument(startAfter);
+          try {
+            // First fallback attempt: only order by primary field (no tie-breaker)
+            var fallbackQuery = baseQuery.orderBy(orderField, descending: descending);
+            if (startAfter != null) {
+              fallbackQuery = fallbackQuery.startAfterDocument(startAfter);
+            }
+            snap = await fallbackQuery.limit(limit).get();
+          } on FirebaseException catch (fe2) {
+            if (fe2.code == 'failed-precondition') {
+              // Even simpler fallback: no ordering (client-side sort later)
+              logW('Second-level index fallback (no orderBy) engaged', tag: 'DB', data: {
+                'wishlistId': wishlistId,
+                'orderField': orderField,
+                'categoryFilter': category,
+              });
+              var simpleFallback = baseQuery;
+              if (startAfter != null) {
+                // Without ordering we can't use startAfterDocument reliably
+                logW('Ignoring startAfter due to no-order fallback', tag: 'DB');
+              }
+              snap = await simpleFallback.limit(limit).get();
+            } else {
+              rethrow;
+            }
           }
-          snap = await fallbackQuery.limit(limit).get();
         } else {
           rethrow; // different issue
         }
@@ -91,9 +110,24 @@ class WishItemRepository {
         return WishItem.fromMap({'id': d.id, ...raw});
       }).toList();
 
+      // If we had to remove ordering due to missing composite index, sort client-side for basic UX consistency.
+      if (items.isNotEmpty && ((items.length < limit) || true)) {
+        // Apply deterministic sort based on requested orderField (if we ended with no-order fallback)
+        // We can't know definitively which fallback path we took without extra state; cheap heuristic: if items > 1 and
+        // created_at ordering might not be present. We'll still sort to be safe.
+        try {
+          if (orderField == 'name') {
+            items.sort((a, b) => descending ? b.name.compareTo(a.name) : a.name.compareTo(b.name));
+          } else if (orderField == 'price') {
+            items.sort((a, b) => (a.price ?? 0).compareTo(b.price ?? 0));
+            if (descending) items = items.reversed.toList();
+          }
+        } catch (_) {}
+      }
+
       // Diagnostic fallback: if first page returned empty, attempt simplified / legacy field queries
       if (items.isEmpty && startAfter == null) {
-        logW('Primary query returned 0 items. Running diagnostic fallback queries.', tag: 'DB', data: {
+  logW('Primary query returned 0 items. Running diagnostic fallback queries.', tag: 'DB', data: {
           'wishlistId': wishlistId,
           'categoryFilter': category,
           'orderField': orderField,

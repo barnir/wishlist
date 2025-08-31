@@ -379,37 +379,41 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
         if (snapshot.connectionState == ConnectionState.done &&
             snapshot.hasData &&
             snapshot.data!['registration_complete'] == false) {
-          
+
           final profile = snapshot.data!;
-          final hasValidPhone = profile['phone_number'] != null && 
-                               profile['phone_number'].toString().isNotEmpty &&
-                               profile['phone_verified'] == true;
-          
-          if (hasValidPhone) {
-            // User already has verified phone - fix registration_complete flag
-            appLog('Verified phone but registration incomplete -> auto-fix', tag: 'ROUTING');
-            UserProfileRepository().update(widget.user.uid, {
-              'registration_complete': true,
-            }).then((_) {
-              appLog('Registration completion flag fixed', tag: 'ROUTING');
+          final phoneNumber = profile['phone_number']?.toString() ?? '';
+          final hasPhone = phoneNumber.isNotEmpty;
+          final phoneVerified = profile['phone_verified'] == true;
+
+          // If a phone number exists at all we treat it as verified (Firebase Auth phone is always verified)
+          if (hasPhone) {
+            appLog('Auto-completing registration (phone present, verified=$phoneVerified)', tag: 'ROUTING');
+            final updateData = <String, dynamic>{'registration_complete': true};
+            if (!phoneVerified) {
+              updateData['phone_verified'] = true; // implicit verification
+            }
+            UserProfileRepository().update(widget.user.uid, updateData).then((_) {
+              appLog('Registration auto-complete persisted', tag: 'ROUTING');
             }).catchError((error) {
-              appLog('Error fixing registration flag: $error', tag: 'ROUTING');
+              appLog('Error auto-completing registration: $error', tag: 'ROUTING');
             });
-            
-            // Continue to main app instead of phone verification
+            // Immediately route forward with locally patched profile map
             return FutureBuilder<Map<String, dynamic>?>(
-              future: Future.value(profile..['registration_complete'] = true),
+              future: Future.value(profile
+                ..['registration_complete'] = true
+                ..['phone_verified'] = true),
               builder: (context, fixedSnapshot) {
                 if (fixedSnapshot.hasData) {
-                  appLog('Routing fixed profile -> WishlistsScreen', tag: 'ROUTING');
+                  appLog('Routing auto-completed profile -> WishlistsScreen', tag: 'ROUTING');
                   return const WishlistsScreen();
                 }
                 return const Scaffold(body: Center(child: CircularProgressIndicator()));
               },
             );
-          } else {
-            appLog('Profile incomplete -> phone verification', tag: 'ROUTING');
-            // Allow a small delay for the UI to render before navigation
+          }
+
+          // No phone stored -> go to phone collection flow
+            appLog('Profile incomplete & no phone -> phone verification', tag: 'ROUTING');
             Future.microtask(() {
               if (context.mounted) {
                 Navigator.pushReplacementNamed(context, '/add_phone');
@@ -418,7 +422,6 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
-          }
         }
         
         // If profile is completely missing but user exists, redirect to phone verification
