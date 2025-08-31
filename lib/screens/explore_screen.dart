@@ -11,6 +11,8 @@ import 'package:wishlist_app/models/user_profile.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:wishlist_app/repositories/favorites_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -24,7 +26,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   
-  // Tab controller
+  // Tab controller (search + contacts)
   late TabController _tabController;
   
   // Search state
@@ -39,16 +41,19 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   bool _hasMoreData = true;
   bool _isInitialLoading = false;
 
-  // Contacts state
-  List<Map<String, dynamic>> _friendsInApp = [];
+  // Contacts state (merged friends + invite)
+  List<Map<String, dynamic>> _friendsInApp = []; // items with 'user' + 'contact'
   List<Contact> _contactsToInvite = [];
   bool _isLoadingContacts = false;
   bool _hasContactsPermission = false;
+  final Set<String> _favoriteIds = {};
+
+  final FavoritesRepository _favoritesRepo = FavoritesRepository();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+  _tabController = TabController(length: 2, vsync: this);
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
     _checkContactsPermission();
@@ -134,12 +139,14 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         }
       }
     } catch (e) {
+    // Provide more precise feedback for common Firestore failure causes
+    final errorText = _mapSearchError(e);
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro na pesquisa: $e')),
+      SnackBar(content: Text(errorText)),
         );
       }
     }
@@ -365,18 +372,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(
-              icon: const Icon(Icons.search),
-              text: l10n.searchTab,
-            ),
-            Tab(
-              icon: const Icon(Icons.people),
-              text: l10n.friendsTab,
-            ),
-            Tab(
-              icon: const Icon(Icons.person_add),
-              text: l10n.inviteTab,
-            ),
+            Tab(icon: const Icon(Icons.search), text: l10n.searchTab),
+            Tab(icon: const Icon(Icons.people), text: l10n.friendsTab),
           ],
         ),
       ),
@@ -384,8 +381,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         controller: _tabController,
         children: [
           _buildSearchTab(),
-          _buildFriendsTab(),
-          _buildInviteTab(),
+          _buildContactsTab(),
         ],
       ),
     );
@@ -589,10 +585,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildFriendsTab() {
-    if (!_hasContactsPermission) {
-      return _buildPermissionRequest();
-    }
+  Widget _buildContactsTab() {
+    if (!_hasContactsPermission) return _buildPermissionRequest();
 
     if (_isLoadingContacts) {
       final l10n = AppLocalizations.of(context)!;
@@ -608,18 +602,19 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       );
     }
 
-    if (_friendsInApp.isEmpty) {
+    final total = _friendsInApp.length + _contactsToInvite.length;
+    if (total == 0) {
       final l10n = AppLocalizations.of(context)!;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+            const Icon(Icons.contacts, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(l10n.noFriendsFound),
             const SizedBox(height: 8),
             Text(
-              l10n.noFriendsFoundDescription,
+              '${l10n.noFriendsFoundDescription}\n(Quando os teus contactos entrarem vais vê-los aqui)',
               style: const TextStyle(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
@@ -632,60 +627,13 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       onRefresh: _loadContactsData,
       child: ListView.builder(
         padding: UIConstants.listPadding,
-        itemCount: _friendsInApp.length,
+        itemCount: total,
         itemBuilder: (context, index) {
-          return _buildFriendCard(_friendsInApp[index]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildInviteTab() {
-    if (!_hasContactsPermission) {
-      return _buildPermissionRequest();
-    }
-
-    if (_isLoadingContacts) {
-      final l10n = AppLocalizations.of(context)!;
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(l10n.loadingContacts),
-          ],
-        ),
-      );
-    }
-
-    if (_contactsToInvite.isEmpty) {
-      final l10n = AppLocalizations.of(context)!;
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(l10n.allFriendsUseApp),
-            const SizedBox(height: 8),
-            Text(
-              l10n.noContactsToInvite,
-              style: const TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadContactsData,
-      child: ListView.builder(
-        padding: UIConstants.listPadding,
-        itemCount: _contactsToInvite.length,
-        itemBuilder: (context, index) {
-          return _buildInviteCard(_contactsToInvite[index]);
+          if (index < _friendsInApp.length) {
+            return _buildFriendCard(_friendsInApp[index]);
+          }
+            final contact = _contactsToInvite[index - _friendsInApp.length];
+            return _buildInviteCard(contact);
         },
       ),
     );
@@ -745,7 +693,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     final userId = user['id'] as String;
     final contactName = contact['name'] as String? ?? displayName;
 
-    return Card(
+  final isFav = _favoriteIds.contains(userId);
+  return Card(
       margin: UIConstants.cardMargin,
       elevation: UIConstants.elevationM,
       shape: RoundedRectangleBorder(
@@ -831,32 +780,17 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                 ),
               ),
               
-              // Badge de amigo
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.people,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      AppLocalizations.of(context)!.friendBadge,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Actions (favorite toggle)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _toggleFavorite(userId, isFav),
+                    icon: Icon(isFav ? Icons.star : Icons.star_border, color: isFav ? Colors.amber : Theme.of(context).colorScheme.primary),
+                  ),
+                ],
+              )
             ],
           ),
         ),
@@ -943,4 +877,38 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   }
 
   // Loading indicator removido (substituído por padding simples no builder)
+
+  String _mapSearchError(Object e) {
+    final raw = e.toString();
+    // Common Firestore messages
+    if (raw.contains('PERMISSION_DENIED') || raw.contains('Missing or insufficient permissions')) {
+      return 'Sem permissões para ler utilizadores públicos (verifica regras do Firestore).';
+    }
+    if (raw.contains('FAILED_PRECONDITION') && raw.contains('index')) {
+      return 'Índice Firestore em falta para pesquisa. Cria o índice sugerido no console.';
+    }
+    if (raw.contains('unavailable') || raw.contains('UNAVAILABLE')) {
+      return 'Serviço temporariamente indisponível. Tenta novamente.';
+    }
+    if (raw.contains('network') || raw.contains('Network')) {
+      return 'Problema de rede ao pesquisar. Garante ligação à internet.';
+    }
+    return 'Erro na pesquisa: $raw';
+  }
+
+  Future<void> _toggleFavorite(String userId, bool currentlyFav) async {
+    try {
+      if (currentlyFav) {
+        await _favoritesRepo.remove(FirebaseAuth.instance.currentUser!.uid, userId);
+        setState(() { _favoriteIds.remove(userId); });
+      } else {
+        await _favoritesRepo.add(FirebaseAuth.instance.currentUser!.uid, userId);
+        setState(() { _favoriteIds.add(userId); });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao actualizar favorito: $e')));
+      }
+    }
+  }
 }

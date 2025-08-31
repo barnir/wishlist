@@ -59,8 +59,18 @@ class UserSearchRepository {
             if (matches.length >= limit) break;
         }
 
-        final lastDoc = matches.isNotEmpty ? docs[matches.length - 1] : (docs.isNotEmpty ? docs.last : null);
-        final hasMore = matches.length == limit && (lastDoc != null);
+        // Choose lastDoc based on the position of the final matched doc in the original docs
+        DocumentSnapshot? lastDoc;
+        if (matches.isNotEmpty) {
+          final lastMatchedId = matches.last.id;
+          final idx = docs.indexWhere((d) => d.id == lastMatchedId);
+          if (idx >= 0) {
+            lastDoc = docs[idx];
+          }
+        } else if (docs.isNotEmpty) {
+          lastDoc = docs.last; // still allow pagination attempts if there are more docs
+        }
+        final hasMore = matches.length == limit && lastDoc != null;
         logI('User search page', tag: 'SEARCH', data: {'query': q, 'returned': matches.length, 'hasMore': hasMore});
         return PageResult(items: matches, lastDoc: lastDoc, hasMore: hasMore);
       });

@@ -1,9 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only access their own data
+    // Users collection
+    // Allow authenticated users to read public profiles (is_private == false) OR their own profile.
+    // Write only permitted to the owner of the document.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow get, list: if request.auth != null && (
+        resource.data.is_private == false || request.auth.uid == userId
+      );
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
     
     // Wishlists - users can read public ones, but only modify their own
