@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wishlist_app/services/analytics/analytics_service.dart';
 
 class LanguageService extends ChangeNotifier {
   static final LanguageService _instance = LanguageService._internal();
@@ -89,6 +90,14 @@ class LanguageService extends ChangeNotifier {
     await prefs.setBool(_autoDetectKey, false);
     
     notifyListeners();
+
+    // Update analytics user properties
+    Future.microtask(() {
+      AnalyticsService().setUserProps({
+        'locale': locale.languageCode,
+        'language_auto_detect': false,
+      });
+    });
   }
 
   /// Enable auto-detect (uses system language)
@@ -102,6 +111,13 @@ class LanguageService extends ChangeNotifier {
     await prefs.remove(_languageKey);
     
     notifyListeners();
+
+    Future.microtask(() {
+      AnalyticsService().setUserProps({
+        'locale': currentLocale.languageCode,
+        'language_auto_detect': true,
+      });
+    });
   }
 
   /// Check if a locale is currently active

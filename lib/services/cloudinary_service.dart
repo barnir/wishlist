@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:wishlist_app/services/security_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:wishlist_app/services/analytics/analytics_service.dart';
 
 class CloudinaryService {
   late final CloudinaryPublic _cloudinary;
@@ -26,6 +27,8 @@ class CloudinaryService {
   /// Upload profile image
   Future<String?> uploadProfileImage(File imageFile, String userId, {String? oldImageUrl}) async {
     try {
+  final started = DateTime.now();
+  final fileSize = await imageFile.length();
       logD('Upload profile image start', tag: 'IMG', data: {'userId': userId, 'hasOld': oldImageUrl != null});
 
       // Security validation
@@ -64,9 +67,22 @@ class CloudinaryService {
         await _scheduleImageCleanup(oldPublicId, 'profile');
       }
 
+  // Analytics
+  final durationMs = DateTime.now().difference(started).inMilliseconds;
+  Future.microtask(() => AnalyticsService().log('image_upload_success', properties: {
+    'type': 'profile',
+    'bytes': fileSize,
+    'duration_ms': durationMs,
+    'public_id_suffix': result.publicId.split('/').last,
+      }));
+
       return result.secureUrl;
     } catch (e) {
       logE('Error uploading profile image', tag: 'IMG', error: e, data: {'userId': userId});
+  Future.microtask(() => AnalyticsService().log('image_upload_failure', properties: {
+    'type': 'profile',
+    'error': e.toString().substring(0, e.toString().length.clamp(0, 180)),
+      }));
       rethrow;
     }
   }
@@ -74,6 +90,8 @@ class CloudinaryService {
   /// Upload product/wishlist item image
   Future<String?> uploadProductImage(File imageFile, String itemId, {String? oldImageUrl}) async {
     try {
+  final started = DateTime.now();
+  final fileSize = await imageFile.length();
       logD('Upload product image start', tag: 'IMG', data: {'itemId': itemId, 'hasOld': oldImageUrl != null});
 
       // Security validation
@@ -112,9 +130,21 @@ class CloudinaryService {
         await _scheduleImageCleanup(oldPublicId, 'product');
       }
 
+  final durationMs = DateTime.now().difference(started).inMilliseconds;
+  Future.microtask(() => AnalyticsService().log('image_upload_success', properties: {
+    'type': 'product',
+    'bytes': fileSize,
+    'duration_ms': durationMs,
+    'public_id_suffix': result.publicId.split('/').last,
+      }));
+
       return result.secureUrl;
     } catch (e) {
       logE('Error uploading product image', tag: 'IMG', error: e, data: {'itemId': itemId});
+  Future.microtask(() => AnalyticsService().log('image_upload_failure', properties: {
+    'type': 'product',
+    'error': e.toString().substring(0, e.toString().length.clamp(0, 180)),
+      }));
       rethrow;
     }
   }
@@ -122,6 +152,8 @@ class CloudinaryService {
   /// Upload wishlist icon/cover image
   Future<String?> uploadWishlistImage(File imageFile, String wishlistId, {String? oldImageUrl}) async {
     try {
+  final started = DateTime.now();
+  final fileSize = await imageFile.length();
       logD('Upload wishlist image start', tag: 'IMG', data: {'wishlistId': wishlistId, 'hasOld': oldImageUrl != null});
 
       // Security validation
@@ -160,9 +192,21 @@ class CloudinaryService {
         await _scheduleImageCleanup(oldPublicId, 'wishlist');
       }
 
+  final durationMs = DateTime.now().difference(started).inMilliseconds;
+  Future.microtask(() => AnalyticsService().log('image_upload_success', properties: {
+    'type': 'wishlist',
+    'bytes': fileSize,
+    'duration_ms': durationMs,
+    'public_id_suffix': result.publicId.split('/').last,
+      }));
+
       return result.secureUrl;
     } catch (e) {
       logE('Error uploading wishlist image', tag: 'IMG', error: e, data: {'wishlistId': wishlistId});
+  Future.microtask(() => AnalyticsService().log('image_upload_failure', properties: {
+    'type': 'wishlist',
+    'error': e.toString().substring(0, e.toString().length.clamp(0, 180)),
+      }));
       rethrow;
     }
   }

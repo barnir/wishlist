@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/services/analytics/analytics_service.dart';
 
 /// Service to manage app theme (light/dark/system)
 class ThemeService extends ChangeNotifier {
@@ -61,6 +62,14 @@ class ThemeService extends ChangeNotifier {
         'ThemeService',
         'Theme changed to: ${_themeModeName(mode)}',
       );
+
+      // Update analytics user property (fire and forget)
+      // Using microtask to avoid blocking UI even slightly
+      Future.microtask(() {
+        AnalyticsService().setUserProps({
+          'theme_mode': _themeModeName(mode),
+        });
+      });
     } catch (e) {
       MonitoringService.logErrorStatic(
         'Failed to save theme preference',
@@ -135,6 +144,9 @@ class ThemeService extends ChangeNotifier {
         return 'system';
     }
   }
+
+  /// Public accessor for current theme mode name (for analytics bootstrap)
+  String get currentThemeModeName => _themeModeName(_themeMode);
 }
 
 /// Theme data configurations

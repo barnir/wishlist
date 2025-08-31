@@ -5,6 +5,7 @@ import 'package:wishlist_app/repositories/wishlist_repository.dart';
 import 'package:wishlist_app/repositories/wish_item_repository.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/services/cloudinary_service.dart';
 
 /// Simple prefetch of initial wishlist + item images to warm cache.
 class ImagePrefetchService {
@@ -23,19 +24,36 @@ class ImagePrefetchService {
       final userId = AuthService.getCurrentUserId();
       if (userId == null) return;
 
-      // Fetch first page of wishlists
+      CloudinaryService? cloudinary;
+      try {
+        cloudinary = CloudinaryService();
+      } catch (_) {
+        cloudinary = null; // Cloudinary config missing -> fallback to raw URLs
+      }
+
+      // Fetch first page of wishlists (optimize to icon size if cloudinary available)
       final wlPage = await _wishlistRepo.fetchUserWishlists(ownerId: userId, limit: wishlists);
       for (final w in wlPage.items) {
         final url = w.imageUrl;
-        if (url != null && _isNetworkUrl(url)) _prefetch(url);
+        if (url != null && _isNetworkUrl(url)) {
+          final effective = cloudinary != null
+              ? cloudinary.optimizeExistingUrl(url, ImageType.wishlistIcon)
+              : url;
+          _prefetch(effective);
+        }
       }
 
-      // For each wishlist, fetch a few items
+      // For each wishlist, fetch a few items (optimize to thumbnail size)
       for (final w in wlPage.items) {
         final itemPage = await _wishItemRepo.fetchPage(wishlistId: w.id, limit: itemsPerWishlist);
         for (final it in itemPage.items) {
           final url = it.imageUrl;
-          if (url != null && _isNetworkUrl(url)) _prefetch(url);
+          if (url != null && _isNetworkUrl(url)) {
+            final effective = cloudinary != null
+                ? cloudinary.optimizeExistingUrl(url, ImageType.productThumbnail)
+                : url;
+            _prefetch(effective);
+          }
         }
       }
       MonitoringService.logInfoStatic('ImagePrefetch', 'Warm-up concluído');

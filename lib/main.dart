@@ -75,6 +75,29 @@ void main() async {
   final existingUser = firebase_auth.FirebaseAuth.instance.currentUser;
   if (existingUser != null) {
     await AnalyticsService().identify(existingUser.uid);
+
+    // Bootstrap user properties (theme, locale, registration status) after identify
+    try {
+      final themeService = ThemeService();
+      final languageService = LanguageService();
+      final props = <String, Object?>{
+        'theme_mode': themeService.currentThemeModeName,
+        'locale': languageService.currentLocale.languageCode,
+        'language_auto_detect': languageService.isAutoDetect,
+      };
+      // Attempt to fetch registration_complete flag
+      try {
+        final profile = await UserProfileRepository().fetchById(existingUser.uid);
+        if (profile != null) {
+          props['registration_complete'] = profile.registrationComplete;
+        }
+      } catch (_) {
+        // Ignore profile fetch error for analytics bootstrap
+      }
+      await AnalyticsService().setUserProps(props);
+    } catch (_) {
+      // Non-fatal: ignore analytics bootstrap errors
+    }
   }
 
   runApp(const MyApp());
