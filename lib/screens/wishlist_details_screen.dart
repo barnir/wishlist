@@ -391,20 +391,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 visualDensity: VisualDensity.compact,
                 tooltip: AppLocalizations.of(context)?.view ?? 'Ver',
                 icon: const Icon(Icons.shopping_cart_outlined, size: 20),
-                onPressed: () async {
-                  final uri = Uri.tryParse(item.link!);
-                  if (uri == null) {
-                    _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
-                    return;
-                  }
-                  final can = await canLaunchUrl(uri);
-                  if (!mounted) return; // evita usar context após await se widget desmontado
-                  if (can) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
-                    _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
-                  }
-                },
+                onPressed: () => _openItemLink(item),
               ),
             IconButton(
               visualDensity: VisualDensity.compact,
@@ -530,6 +517,27 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     ).then((_) => _loadInitialData());
   }
 
+  Future<void> _openItemLink(WishItem item) async {
+    if (item.link == null || item.link!.isEmpty) return;
+    final raw = item.link!.trim();
+    final sanitized = ValidationUtils.sanitizeUrlForSave(raw);
+    final uri = Uri.tryParse(sanitized);
+    if (uri == null) {
+      if (mounted) _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+      return;
+    }
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && mounted) {
+        _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+      }
+    }
+  }
+
 
   Widget _buildGridItem(WishItem item) {
     final textTheme = Theme.of(context).textTheme;
@@ -597,30 +605,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                         borderRadius: BorderRadius.circular(20),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(20),
-                          onTap: () async {
-                            final raw = item.link!.trim();
-                            final sanitized = ValidationUtils.sanitizeUrlForSave(raw);
-                            final uri = Uri.tryParse(sanitized);
-                            if (uri == null) {
-                              if (mounted) _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
-                              return;
-                            }
-                            try {
-                              final can = await canLaunchUrl(uri);
-                              if (!mounted) return;
-                              if (can) {
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              } else {
-                                _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
-                              }
-                            } catch (_) {
-                              if (mounted) {
-                                _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
-                              }
-                            }
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(6.0),
+                          onTap: () => _openItemLink(item),
+                          child: const Padding(
+                            padding: EdgeInsets.all(6.0),
                             child: Icon(Icons.shopping_cart_outlined, size: 18, color: Colors.white),
                           ),
                         ),
