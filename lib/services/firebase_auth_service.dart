@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 /// Structured result for phone verification (Android only)
 /// success: phone linked / verified
@@ -29,20 +30,17 @@ class FirebaseAuthService {
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
   User? get currentUser => _firebaseAuth.currentUser;
 
-  // Unified Android-focused auth logging helper (used selectively)
-  void _log(String tag, String message) {
-    if (kDebugMode) debugPrint('[AUTH][$tag] $message');
-  }
+  // Legacy inline logger removed; using centralized appLog helpers.
 
   /// Google Sign-In with fallback for type casting errors
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      debugPrint('=== Firebase Google Sign-In Started ===');
+  logI('Google Sign-In started', tag: 'AUTH');
       
       // Android-only Google Sign-In
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        debugPrint('Google sign-in cancelled by user');
+  logI('Google sign-in cancelled by user', tag: 'AUTH');
         return null;
       }
 
@@ -55,37 +53,37 @@ class FirebaseAuthService {
       final userCredential = await _firebaseAuth.signInWithCredential(credential);
       
       if (userCredential.user != null) {
-        debugPrint('Google sign-in successful: ${userCredential.user!.email}');
-        debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
+  logI('Google sign-in successful: ${userCredential.user!.email}', tag: 'AUTH');
+  logW('Profile NOT created yet - waiting for phone number', tag: 'AUTH');
         
         // Clear any old OTP verification data for fresh start
         await _clearVerificationData();
-        debugPrint('🧹 Cleared old OTP verification data for fresh user');
+  logD('Cleared old OTP verification data for fresh user', tag: 'OTP');
       }
       
       return userCredential;
     } catch (e) {
-      debugPrint('Firebase Google sign-in error: $e');
-      debugPrint('Current user after error: ${_firebaseAuth.currentUser?.email}');
+  logE('Google sign-in error', tag: 'AUTH', error: e);
+  logD('Current user after error: ${_firebaseAuth.currentUser?.email}', tag: 'AUTH');
       
       // Check if user is actually logged in despite the error
       if (_firebaseAuth.currentUser != null) {
-        debugPrint('🎯 ERROR OCCURRED BUT USER IS LOGGED IN - Using fallback!');
+  logW('Error occurred but user is logged in - fallback path', tag: 'AUTH');
         final user = _firebaseAuth.currentUser!;
         
         try {
-          debugPrint('✅ Fallback: User authenticated successfully');
-          debugPrint('Fallback Google sign-in successful: ${user.email}');
-          debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
+          logI('Fallback: User authenticated successfully', tag: 'AUTH');
+          logI('Fallback Google sign-in successful: ${user.email}', tag: 'AUTH');
+          logW('Fallback: Profile NOT created yet - waiting for phone number', tag: 'AUTH');
           
           // Clear any old OTP verification data for fresh start
           await _clearVerificationData();
-          debugPrint('🧹 Cleared old OTP verification data for fresh user (fallback)');
+          logD('Cleared old OTP verification data (fallback)', tag: 'OTP');
           
           // Return null to indicate successful login, auth_service.dart will handle this
           return null;
         } catch (profileError) {
-          debugPrint('❌ Fallback: Profile creation failed: $profileError');
+          logE('Fallback profile creation failed', tag: 'AUTH', error: profileError);
           rethrow;
         }
       }
@@ -97,9 +95,8 @@ class FirebaseAuthService {
   /// Phone Authentication - Send OTP
   Future<void> sendPhoneOtp(String phoneNumber) async {
     try {
-      debugPrint('=== Firebase Phone OTP Send Started ===');
-      debugPrint('Phone number: $phoneNumber');
-      debugPrint('Phone number length: ${phoneNumber.length}');
+  logI('Phone OTP send started', tag: 'OTP');
+  logD('Phone number: $phoneNumber | len=${phoneNumber.length}', tag: 'OTP');
       if (_lastOtpSentAt != null) {
         final diff = DateTime.now().difference(_lastOtpSentAt!);
         if (diff < _otpResendMinInterval) {
@@ -111,42 +108,39 @@ class FirebaseAuthService {
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 40),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          debugPrint('📱 Phone verification completed automatically');
+          logI('Phone verification auto-complete', tag: 'OTP');
           try {
             final userCredential = await _firebaseAuth.signInWithCredential(credential);
             if (userCredential.user != null) {
-              debugPrint('✅ Auto-verification successful: ${userCredential.user!.uid}');
+              logI('Auto-verification success: ${userCredential.user!.uid}', tag: 'OTP');
               await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
               await _databaseService.updateUserProfile(userCredential.user!.uid, {'phone_verified': true});
               await _clearVerificationData();
             }
           } catch (e) {
-            debugPrint('❌ Error in verificationCompleted: $e');
+            logW('Error in verificationCompleted: $e', tag: 'OTP');
           }
         },
         verificationFailed: (FirebaseAuthException e) {
-          debugPrint('❌ Phone verification failed: ${e.code} - ${e.message}');
+          logE('Phone verification failed: ${e.code} - ${e.message}', tag: 'OTP');
           throw Exception('Verification failed: ${e.message}');
         },
         codeSent: (String verificationId, int? resendToken) async {
-          debugPrint('🎯 SMS code sent successfully!');
-          debugPrint('Verification ID: $verificationId');
-          debugPrint('Phone number: $phoneNumber');
-          debugPrint('Resend token: $resendToken');
+          logI('SMS code sent', tag: 'OTP');
+          logD('verificationId=$verificationId resendToken=$resendToken phone=$phoneNumber', tag: 'OTP');
           _resendToken = resendToken;
           _lastOtpSentAt = DateTime.now();
           _currentVerificationId = verificationId;
           await _storeVerificationId(verificationId, phoneNumber);
         },
         codeAutoRetrievalTimeout: (String verificationId) async {
-          debugPrint('⏰ Auto-retrieval timeout: $verificationId');
+          logW('Auto-retrieval timeout: $verificationId', tag: 'OTP');
           _currentVerificationId = verificationId;
           await _storeVerificationId(verificationId, phoneNumber);
         },
       );
     } catch (e) {
-      debugPrint('❌ Firebase phone OTP error: $e');
-      debugPrint('Error type: ${e.runtimeType}');
+  logE('Phone OTP send error (type ${e.runtimeType})', tag: 'OTP', error: e);
       rethrow;
     }
   }
@@ -161,106 +155,92 @@ class FirebaseAuthService {
   /// Phone Authentication - Verify OTP
   Future<UserCredential?> verifyPhoneOtp(String phoneNumber, String smsCode) async {
     try {
-      debugPrint('=== Firebase Phone OTP Verify Started ===');
-      debugPrint('Phone number: $phoneNumber');
-      debugPrint('SMS Code: $smsCode');
-      debugPrint('SMS Code length: ${smsCode.length}');
-      debugPrint('Verification ID: $_currentVerificationId');
+  logI('Phone OTP verify started', tag: 'OTP');
+  logD('phone=$phoneNumber codeLen=${smsCode.length} verId=$_currentVerificationId', tag: 'OTP');
 
       if (_currentVerificationId == null) {
         // Try to retrieve from persistent storage
         _currentVerificationId = await _getStoredVerificationId();
         if (_currentVerificationId == null) {
-          debugPrint('❌ ERROR: No verification ID found in memory or storage');
+          logE('No verification ID found (memory/storage)', tag: 'OTP');
           throw Exception('No verification ID found. Please request OTP again.');
         }
-        debugPrint('✅ Retrieved verification ID from storage: $_currentVerificationId');
+  logD('Retrieved verification ID from storage: $_currentVerificationId', tag: 'OTP');
       }
 
-      debugPrint('🔐 Creating PhoneAuthCredential...');
-      debugPrint('   - Verification ID: $_currentVerificationId');
-      debugPrint('   - SMS Code: $smsCode');
+  logD('Creating PhoneAuthCredential verId=$_currentVerificationId codeLen=${smsCode.length}', tag: 'OTP');
 
       final credential = PhoneAuthProvider.credential(
         verificationId: _currentVerificationId!,
         smsCode: smsCode,
       );
 
-      debugPrint('📱 Credential created...');
+  logD('Credential created', tag: 'OTP');
       
       final currentUser = _firebaseAuth.currentUser;
       UserCredential? userCredential;
       
       if (currentUser != null) {
-        debugPrint('🔗 Current user exists - attempting LINKING...');
-        debugPrint('   - Current User UID: ${currentUser.uid}');
-        debugPrint('   - Current User Email: ${currentUser.email}');
-        debugPrint('   - Current User Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
+  logD('Current user exists - attempting linking (uid=${currentUser.uid})', tag: 'OTP');
+  logD('Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}', tag: 'OTP');
         
     try {
           userCredential = await currentUser.linkWithCredential(credential);
-          debugPrint('✅ LINKING SUCCESSFUL!');
-          debugPrint('   - Same UID maintained: ${userCredential.user?.uid}');
-          debugPrint('   - Updated Providers: ${userCredential.user?.providerData.map((p) => p.providerId).join(", ")}');
-          debugPrint('   - Now has phone: ${userCredential.user?.phoneNumber}');
+          logI('Linking successful uid=${userCredential.user?.uid}', tag: 'OTP');
+          logD('Updated providers: ${userCredential.user?.providerData.map((p) => p.providerId).join(", ")}', tag: 'OTP');
         } catch (linkError) {
-          debugPrint('❌ LINKING FAILED: $linkError');
+          logW('Linking failed: $linkError', tag: 'OTP');
           
           if (linkError is FirebaseAuthException && linkError.code == 'provider-already-linked') {
-            debugPrint('🔍 Provider already linked - user probably already has phone number');
+            logI('Provider already linked (phone already present)', tag: 'OTP');
             // Continue with profile update using current user
             await _createOrUpdateUserProfile(currentUser, phoneNumber: phoneNumber);
       await _databaseService.updateUserProfile(currentUser.uid, {'phone_verified': true});
             await _clearVerificationData();
-            debugPrint('✅ Phone verification successful (already linked): ${currentUser.uid}');
+            logI('Phone verification success (already linked): ${currentUser.uid}', tag: 'OTP');
             return null;
           } else if (linkError is FirebaseAuthException && linkError.code == 'credential-already-in-use') {
-            debugPrint('🔍 Phone number already in use by another account');
-            debugPrint('   - This suggests there are multiple accounts that need merging');
+            logW('Phone number in use by another account (merge needed)', tag: 'OTP');
             throw Exception('Este número de telefone já está associado a outra conta. Por favor, use um número diferente ou faça login com a conta existente.');
           }
           
           // Check if linking actually succeeded despite the casting error
           final updatedUser = _firebaseAuth.currentUser;
           if (updatedUser != null && updatedUser.phoneNumber == phoneNumber) {
-            debugPrint('🎯 LINKING FALLBACK: Linking succeeded despite error');
-            debugPrint('   - User UID: ${updatedUser.uid}');
-            debugPrint('   - User phone: ${updatedUser.phoneNumber}');
-            debugPrint('   - Updated Providers: ${updatedUser.providerData.map((p) => p.providerId).join(", ")}');
+            logI('Linking fallback succeeded uid=${updatedUser.uid}', tag: 'OTP');
+            logD('Updated providers: ${updatedUser.providerData.map((p) => p.providerId).join(", ")}', tag: 'OTP');
             
             // Create user profile for successful linking
             await _createOrUpdateUserProfile(updatedUser, phoneNumber: phoneNumber);
             await _databaseService.updateUserProfile(updatedUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             
-            debugPrint('✅ Phone verification successful via linking fallback: ${updatedUser.uid}');
+            logI('Phone verification success via linking fallback: ${updatedUser.uid}', tag: 'OTP');
             return null; // Return null to indicate success via fallback
           }
           
           rethrow;
         }
       } else {
-        debugPrint('📱 No current user - attempting signInWithCredential...');
+  logD('No current user - signInWithCredential path', tag: 'OTP');
         
         try {
           userCredential = await _firebaseAuth.signInWithCredential(credential);
-          debugPrint('✅ Sign-in successful for phone-only user: ${userCredential.user?.uid}');
+          logI('Sign-in success phone-only uid=${userCredential.user?.uid}', tag: 'OTP');
         } catch (credentialError) {
-          debugPrint('🔍 signInWithCredential error: $credentialError');
+          logW('signInWithCredential error: $credentialError', tag: 'OTP');
           
           // Check if user is actually signed in despite the error (common Firebase plugin issue)
           final nowCurrentUser = _firebaseAuth.currentUser;
           if (nowCurrentUser != null) {
-            debugPrint('🎯 FALLBACK: User is signed in despite credential error');
-            debugPrint('User UID: ${nowCurrentUser.uid}');
-            debugPrint('User phone: ${nowCurrentUser.phoneNumber}');
+            logI('Fallback: user signed in despite credential error uid=${nowCurrentUser.uid}', tag: 'OTP');
             
             // Create user profile for successful linking
             await _createOrUpdateUserProfile(nowCurrentUser, phoneNumber: phoneNumber);
             await _databaseService.updateUserProfile(nowCurrentUser.uid, {'phone_verified': true});
             await _clearVerificationData();
             
-            debugPrint('✅ Phone verification successful via fallback: ${nowCurrentUser.uid}');
+            logI('Phone verification success via fallback: ${nowCurrentUser.uid}', tag: 'OTP');
             return null; // Return null to indicate success via fallback
           }
           
@@ -269,20 +249,20 @@ class FirebaseAuthService {
       }
       
       if (userCredential.user != null) {
-        debugPrint('✅ Phone verification successful: ${userCredential.user!.uid}');
+  logI('Phone verification success: ${userCredential.user!.uid}', tag: 'OTP');
         
         // Check if this is completing an email registration
         final profile = await _databaseService.getUserProfile(userCredential.user!.uid);
         if (profile != null && profile['registration_complete'] == false) {
-          debugPrint('📝 Completing email registration process by adding phone number');
+          logD('Completing email registration adding phone', tag: 'OTP');
           await _databaseService.updateUserProfile(userCredential.user!.uid, {
             'phone_number': phoneNumber,
             'registration_complete': true,
             'phone_verified': true,
           });
-          debugPrint('✅ Email registration completed successfully with phone number');
+          logI('Email registration completed (phone added)', tag: 'OTP');
         } else if (profile == null) {
-          debugPrint('⚠️ No profile found after phone verification, creating complete profile');
+          logW('No profile after phone verification – creating new', tag: 'OTP');
           // Create complete profile if missing entirely
           final profileData = {
             'email': userCredential.user!.email,
@@ -293,7 +273,7 @@ class FirebaseAuthService {
             'phone_verified': true,
           };
           await _databaseService.createUserProfile(userCredential.user!.uid, profileData);
-          debugPrint('✅ Created complete profile after phone verification');
+          logI('Created complete profile after phone verification', tag: 'OTP');
         } else {
           // Normal phone verification flow
           await _createOrUpdateUserProfile(userCredential.user!, phoneNumber: phoneNumber);
@@ -302,22 +282,18 @@ class FirebaseAuthService {
         
         await _clearVerificationData(); // Clear stored verification data after success
       } else {
-        debugPrint('⚠️ WARNING: User credential is null after successful verification');
+  logW('User credential null after verification', tag: 'OTP');
       }
 
       return userCredential;
     } catch (e) {
-      debugPrint('❌ Firebase phone verification error: $e');
-      debugPrint('Error type: ${e.runtimeType}');
+  logE('Phone verification error (type ${e.runtimeType})', tag: 'OTP', error: e);
       
       if (e is FirebaseAuthException) {
-        debugPrint('Firebase Auth Error Code: ${e.code}');
-        debugPrint('Firebase Auth Error Message: ${e.message}');
+  logD('Auth error code=${e.code} message=${e.message}', tag: 'OTP');
         
         if (e.code == 'invalid-verification-code') {
-          debugPrint('🔍 INVALID VERIFICATION CODE ERROR');
-          debugPrint('   - Please check the OTP code entered');
-          debugPrint('   - Verification code may have expired');
+          logW('Invalid verification code (possible expiry)', tag: 'OTP');
         }
       }
       
@@ -329,7 +305,7 @@ class FirebaseAuthService {
   Future<PhoneVerificationResult> verifyPhoneOtpEnhanced(String phoneNumber, String smsCode) async {
     try {
   await verifyPhoneOtp(phoneNumber, smsCode);
-  _log('OTP','Enhanced verification success');
+  logD('Enhanced verification success', tag: 'OTP');
   // Any non-exception path is success (including null fallback path)
       return PhoneVerificationResult.success;
     } catch (e) {
@@ -363,13 +339,13 @@ class FirebaseAuthService {
       }
     }
     try {
-      debugPrint('=== Firebase Phone OTP RESEND Started (forceResendingToken) ===');
+  logI('Phone OTP resend started (force token)', tag: 'OTP');
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         forceResendingToken: _resendToken,
         timeout: const Duration(seconds: 40),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          debugPrint('📱 Auto verification triggered on resend');
+          logI('Auto verification triggered on resend', tag: 'OTP');
           try {
             final userCredential = await _firebaseAuth.signInWithCredential(credential);
             if (userCredential.user != null) {
@@ -378,15 +354,15 @@ class FirebaseAuthService {
               await _clearVerificationData();
             }
           } catch (e) {
-            debugPrint('❌ Error in auto verification (resend): $e');
+            logW('Auto verification (resend) error: $e', tag: 'OTP');
           }
         },
         verificationFailed: (FirebaseAuthException e) {
-          debugPrint('❌ Phone verification resend failed: ${e.code} - ${e.message}');
+          logE('Phone verification resend failed: ${e.code} - ${e.message}', tag: 'OTP');
           throw Exception('Falha no reenvio: ${e.message}');
         },
         codeSent: (String verificationId, int? resendToken) async {
-          debugPrint('🎯 RESEND SMS code sent successfully!');
+          logI('Resend SMS code sent', tag: 'OTP');
           _currentVerificationId = verificationId;
           _resendToken = resendToken ?? _resendToken;
           _lastOtpSentAt = DateTime.now();
@@ -398,7 +374,7 @@ class FirebaseAuthService {
         },
       );
     } catch (e) {
-      debugPrint('❌ Firebase phone OTP resend error: $e');
+  logE('Phone OTP resend error', tag: 'OTP', error: e);
       rethrow;
     }
   }
@@ -410,8 +386,8 @@ class FirebaseAuthService {
     String displayName
   ) async {
     try {
-      debugPrint('=== Firebase Email Sign-Up Started ===');
-      debugPrint('Email: $email');
+  logI('Email Sign-Up started', tag: 'AUTH');
+  logD('Email: $email', tag: 'AUTH');
 
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
@@ -420,7 +396,7 @@ class FirebaseAuthService {
 
       if (userCredential.user != null) {
         await userCredential.user!.updateDisplayName(displayName);
-        debugPrint('Email sign-up successful: ${userCredential.user!.email}');
+  logI('Email sign-up success: ${userCredential.user!.email}', tag: 'AUTH');
         
         // Create a temporary minimal user profile to prevent orphaned account detection
         // This profile will be updated when phone verification is completed
@@ -436,18 +412,15 @@ class FirebaseAuthService {
           'updated_at': FieldValue.serverTimestamp(),
         });
         
-        debugPrint('✅ Temporary user profile created - waiting for phone verification');
+  logD('Temporary user profile created (awaiting phone)', tag: 'AUTH');
       }
 
       return userCredential;
     } catch (e, stackTrace) {
-      debugPrint('Firebase email sign-up error: $e');
-      debugPrint('Error type: ${e.runtimeType}');
-      debugPrint('Stack trace: $stackTrace');
+  logE('Email sign-up error (type ${e.runtimeType})', tag: 'AUTH', error: e, stackTrace: stackTrace);
       
       if (e is FirebaseAuthException) {
-        debugPrint('Firebase Auth Error Code: ${e.code}');
-        debugPrint('Firebase Auth Error Message: ${e.message}');
+  logD('Auth error code=${e.code} message=${e.message}', tag: 'AUTH');
       }
       
       rethrow;
@@ -457,8 +430,8 @@ class FirebaseAuthService {
   /// Email/Password Sign-In
   Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
     try {
-      debugPrint('=== Firebase Email Sign-In Started ===');
-      debugPrint('Email: $email');
+  logI('Email Sign-In started', tag: 'AUTH');
+  logD('Email: $email', tag: 'AUTH');
 
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
@@ -466,13 +439,13 @@ class FirebaseAuthService {
       );
 
       if (userCredential.user != null) {
-        debugPrint('Email sign-in successful: ${userCredential.user!.email}');
-        debugPrint('⚠️ Profile NOT created yet - waiting for phone number');
+  logI('Email sign-in success: ${userCredential.user!.email}', tag: 'AUTH');
+  logW('Profile NOT created yet - waiting for phone number', tag: 'AUTH');
       }
 
       return userCredential;
     } catch (e) {
-      debugPrint('Firebase email sign-in error: $e');
+  logE('Email sign-in error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -480,12 +453,12 @@ class FirebaseAuthService {
   /// Sign Out
   Future<void> signOut() async {
     try {
-      debugPrint('=== Firebase Sign Out Started ===');
+  logI('Firebase Sign Out started', tag: 'AUTH');
       await _googleSignIn.signOut();
       await _firebaseAuth.signOut();
-      debugPrint('Sign out successful');
+  logI('Firebase sign out success', tag: 'AUTH');
     } catch (e) {
-      debugPrint('Firebase sign out error: $e');
+  logE('Firebase sign out error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -497,17 +470,12 @@ class FirebaseAuthService {
     String? displayName,
   }) async {
     try {
-      debugPrint('=== 🔄 ENHANCED: Syncing Firebase User to Firebase Database ===');
-      debugPrint('Firebase UID: ${user.uid}');
-      debugPrint('Email: ${user.email}');
-      debugPrint('Display Name: ${user.displayName}');
-      debugPrint('Phone: ${user.phoneNumber ?? phoneNumber}');
-      debugPrint('Phone Number param: $phoneNumber');
-      debugPrint('User.phoneNumber: ${user.phoneNumber}');
+  logI('Sync user to DB (enhanced)', tag: 'PROFILE');
+  logD('uid=${user.uid} email=${user.email} phone=${user.phoneNumber ?? phoneNumber}', tag: 'PROFILE');
 
-      debugPrint('🔍 Step 1: Checking existing profile...');
+  logD('Check existing profile', tag: 'PROFILE');
       final existingProfile = await _databaseService.getUserProfile(user.uid);
-      debugPrint('Existing profile result: $existingProfile');
+  logD('Existing profile found=${existingProfile != null}', tag: 'PROFILE');
       
       final profileData = <String, dynamic>{
         'email': user.email,
@@ -516,10 +484,10 @@ class FirebaseAuthService {
         'is_private': false,  // Default to public profile
         'registration_complete': true,  // Mark registration as complete
       };
-      debugPrint('Profile data to sync: $profileData');
+  logD('Profile sync data prepared', tag: 'PROFILE');
 
       if (existingProfile != null) {
-        debugPrint('🔍 Step 2: Profile exists, updating...');
+  logD('Profile exists - evaluating updates', tag: 'PROFILE');
         // Update existing profile, preserving existing data
         final updateData = <String, dynamic>{};
         
@@ -534,31 +502,28 @@ class FirebaseAuthService {
           updateData['phone_number'] = profileData['phone_number'];
         }
         
-        debugPrint('Update data: $updateData');
+  logD('Update diff: $updateData', tag: 'PROFILE');
         
         if (updateData.isNotEmpty) {
-          debugPrint('📝 Calling updateUserProfile...');
+          logD('Calling updateUserProfile', tag: 'PROFILE');
           await _databaseService.updateUserProfile(user.uid, updateData);
-          debugPrint('✅ Updated existing profile with: $updateData');
+          logI('Profile updated', tag: 'PROFILE');
         } else {
-          debugPrint('ℹ️  No updates needed - profile is up to date');
+          logD('No profile changes needed', tag: 'PROFILE');
         }
       } else {
-        debugPrint('🔍 Step 2: No existing profile, creating new...');
-        debugPrint('📝 Calling createUserProfile...');
+  logD('No existing profile - creating new', tag: 'PROFILE');
         await _databaseService.createUserProfile(user.uid, profileData);
-        debugPrint('✅ Created new profile: $profileData');
+  logI('New profile created', tag: 'PROFILE');
       }
       
-      debugPrint('🎉 Profile sync completed successfully!');
+  logI('Profile sync complete', tag: 'PROFILE');
     } catch (e, stackTrace) {
-      debugPrint('❌ ERROR syncing user profile to database: $e');
-      debugPrint('Error type: ${e.runtimeType}');
-      debugPrint('Stack trace: $stackTrace');
+  logE('Profile sync error (type ${e.runtimeType})', tag: 'PROFILE', error: e, stackTrace: stackTrace);
       // Não voltamos a lançar a exceção para não quebrar o fluxo de OTP / login.
       // Se for necessário reativar comportamento anterior em debug:
       if (kDebugMode) {
-        debugPrint('ℹ️ (Debug mode) Erro ignorado para não interromper fluxo.');
+  logD('Erro ignorado para não interromper fluxo (debug mode)', tag: 'PROFILE');
       }
     }
   }
@@ -596,9 +561,9 @@ class FirebaseAuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_verificationIdKey, verificationId);
       await prefs.setString(_phoneNumberKey, phoneNumber);
-      debugPrint('Verification ID stored successfully');
+  logD('Verification ID stored', tag: 'OTP');
     } catch (e) {
-      debugPrint('Error storing verification ID: $e');
+  logW('Error storing verification ID: $e', tag: 'OTP');
     }
   }
 
@@ -608,7 +573,7 @@ class FirebaseAuthService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_verificationIdKey);
     } catch (e) {
-      debugPrint('Error retrieving verification ID: $e');
+  logW('Error retrieving verification ID: $e', tag: 'OTP');
       return null;
     }
   }
@@ -618,19 +583,18 @@ class FirebaseAuthService {
   Future<void> syncExistingUserProfile() async {
     final currentUser = _firebaseAuth.currentUser;
     if (currentUser == null) {
-      debugPrint('❌ No current Firebase user to sync');
+  logW('No current Firebase user to sync', tag: 'PROFILE');
       return;
     }
 
     try {
-      debugPrint('=== 🔄 Syncing Existing Firebase User to Firebase ===');
-      debugPrint('User UID: ${currentUser.uid}');
-      debugPrint('Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
+  logI('Sync existing Firebase user', tag: 'PROFILE');
+  logD('uid=${currentUser.uid} providers=${currentUser.providerData.map((p) => p.providerId).join(", ")}', tag: 'PROFILE');
       
       await _createOrUpdateUserProfile(currentUser);
-      debugPrint('✅ Existing user profile synced successfully');
+  logI('Existing user profile synced', tag: 'PROFILE');
     } catch (e) {
-      debugPrint('❌ Error syncing existing user profile: $e');
+  logE('Error syncing existing user profile', tag: 'PROFILE', error: e);
       rethrow;
     }
   }
@@ -641,7 +605,7 @@ class FirebaseAuthService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_phoneNumberKey);
     } catch (e) {
-      debugPrint('Error retrieving phone number: $e');
+  logW('Error retrieving stored phone number: $e', tag: 'OTP');
       return null;
     }
   }
@@ -655,9 +619,9 @@ class FirebaseAuthService {
       _currentVerificationId = null;
   _resendToken = null;
   _lastOtpSentAt = null;
-      debugPrint('Verification data cleared');
+  logD('Verification data cleared', tag: 'OTP');
     } catch (e) {
-      debugPrint('Error clearing verification data: $e');
+  logW('Error clearing verification data: $e', tag: 'OTP');
     }
   }
 
@@ -665,9 +629,9 @@ class FirebaseAuthService {
   Future<void> clearAllStoredData() async {
     try {
       await _clearVerificationData();
-      debugPrint('All stored authentication data cleared');
+  logD('All stored authentication data cleared', tag: 'OTP');
     } catch (e) {
-      debugPrint('Error clearing all stored data: $e');
+  logW('Error clearing all stored data: $e', tag: 'OTP');
     }
   }
 }

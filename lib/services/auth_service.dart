@@ -7,6 +7,7 @@ import 'package:wishlist_app/services/firebase_database_service.dart';
 import 'package:wishlist_app/services/firebase_functions_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/notification_service.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 enum GoogleSignInResult {
   success,
@@ -35,10 +36,10 @@ class AuthService {
   /// Email/Password Sign-In (Firebase)
   Future<firebase_auth.UserCredential> signInWithEmailAndPassword(String email, String password) async {
     try {
-      debugPrint('=== AuthService: Email Sign-In ===');
+  logI('Email Sign-In', tag: 'AUTH');
       return await _firebaseAuthService.signInWithEmailAndPassword(email, password);
     } catch (e) {
-      debugPrint('AuthService email sign-in error: $e');
+  logE('Email sign-in error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -67,7 +68,7 @@ class AuthService {
 
   Future<firebase_auth.UserCredential> createUserWithEmailAndPassword(String email, String password, String displayName) async {
     try {
-      debugPrint('=== AuthService: Email Registration ===');
+  logI('Email Registration', tag: 'AUTH');
       await _validatePassword(password);
       
       if (!_isValidEmail(email)) {
@@ -76,14 +77,14 @@ class AuthService {
       
       return await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);
     } catch (e) {
-      debugPrint('AuthService email registration error: $e');
+  logE('Email registration error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
 
   Future<void> signOut() async {
     try {
-      debugPrint('=== AuthService: Sign Out ===');
+  logI('Sign Out', tag: 'AUTH');
       
       final userId = currentUser?.uid;
       if (userId != null) {
@@ -93,7 +94,7 @@ class AuthService {
       
       await _firebaseAuthService.signOut();
     } catch (e) {
-      debugPrint('AuthService sign out error: $e');
+  logE('Sign out error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -106,7 +107,7 @@ class AuthService {
   /// Cancel registration - sign out and clear all stored data
   Future<void> cancelRegistration() async {
     try {
-      debugPrint('=== AuthService: Cancel Registration ===');
+  logI('Cancel Registration', tag: 'AUTH');
       
       // Clear stored data first
       await _firebaseAuthService.clearAllStoredData();
@@ -114,16 +115,16 @@ class AuthService {
       // Then sign out
       await signOut();
       
-      debugPrint('Registration cancelled successfully');
+  logI('Registration cancelled successfully', tag: 'AUTH');
     } catch (e) {
-      debugPrint('AuthService cancel registration error: $e');
+  logE('Cancel registration error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
 
   Future<GoogleSignInResult> signInWithGoogle() async {
     try {
-      debugPrint('=== AuthService: Google Sign-In ===');
+  logI('Google Sign-In', tag: 'AUTH');
       
       final userCredential = await _firebaseAuthService.signInWithGoogle();
       if (userCredential == null) {
@@ -160,7 +161,7 @@ class AuthService {
       await _updateFCMTokenOnSignIn(user.uid);
       return GoogleSignInResult.success;
     } catch (e) {
-      debugPrint('AuthService Google sign-in error: $e');
+  logE('Google sign-in error', tag: 'AUTH', error: e);
       return GoogleSignInResult.failed;
     }
   }
@@ -170,30 +171,30 @@ class AuthService {
       final fcmToken = await NotificationService().getDeviceToken();
       if (fcmToken != null) {
         await _databaseService.updateUserProfile(userId, {'fcm_token': fcmToken});
-        debugPrint('AuthService: FCM token updated on sign in');
+  logD('FCM token updated on sign in', tag: 'AUTH');
       }
     } catch (e) {
-      debugPrint('AuthService: FCM token update error: $e');
+  logW('FCM token update error: $e', tag: 'AUTH');
     }
   }
 
   Future<void> sendPhoneOtp(String phoneNumber) async {
     try {
-      debugPrint('=== AuthService: Send Phone OTP ===');
+  logI('Send Phone OTP', tag: 'AUTH');
       await _firebaseAuthService.sendPhoneOtp(phoneNumber);
     } catch (e) {
-      debugPrint('AuthService send phone OTP error: $e');
+  logE('Send phone OTP error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
 
   Future<firebase_auth.UserCredential?> verifyPhoneOtp(String phoneNumber, String otp) async {
     try {
-      debugPrint('=== AuthService: Verify Phone OTP ===');
+  logI('Verify Phone OTP', tag: 'AUTH');
       
       return await _firebaseAuthService.verifyPhoneOtp(phoneNumber, otp);
     } catch (e) {
-      debugPrint('AuthService verify phone OTP error: $e');
+  logE('Verify phone OTP error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -204,7 +205,7 @@ class AuthService {
       throw Exception('Nenhum usuário logado para vincular o email.');
     }
     try {
-      debugPrint('=== AuthService: Link Email/Password ===');
+  logI('Link Email/Password', tag: 'AUTH');
       
       final credential = firebase_auth.EmailAuthProvider.credential(
         email: email, 
@@ -214,7 +215,7 @@ class AuthService {
       await user.linkWithCredential(credential);
       await _databaseService.updateUserProfile(user.uid, {'email': email});
     } catch (e) {
-      debugPrint('AuthService link email/password error: $e');
+  logE('Link email/password error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -230,16 +231,16 @@ class AuthService {
     }
     
     try {
-      debugPrint('=== AuthService: Update Profile Picture ===');
+  logI('Update Profile Picture', tag: 'AUTH');
       
       // Get current photo URL before uploading new one for cleanup
       String? oldPhotoUrl;
       try {
         final userDoc = await _databaseService.getUserProfile(user.uid);
         oldPhotoUrl = userDoc?['photo_url'] as String?;
-        debugPrint('Current photo URL for cleanup: $oldPhotoUrl');
+  logD('Current photo URL for cleanup: $oldPhotoUrl', tag: 'AUTH');
       } catch (e) {
-        debugPrint('Could not retrieve current photo URL: $e');
+  logW('Could not retrieve current photo URL: $e', tag: 'AUTH');
       }
       
       final imageUrl = await _cloudinaryService.uploadProfileImage(
@@ -252,19 +253,19 @@ class AuthService {
         try {
           // Try to update Firebase Auth profile photo - catch any type cast errors
           await user.updatePhotoURL(imageUrl);
-          debugPrint('✅ Firebase Auth photo URL updated successfully');
+          logI('Firebase Auth photo URL updated successfully', tag: 'AUTH');
         } catch (authError) {
-          debugPrint('⚠️ Firebase Auth photo update failed (continuing anyway): $authError');
+          logW('Firebase Auth photo update failed (continuing anyway): $authError', tag: 'AUTH');
           // Continue execution even if Firebase Auth update fails
         }
         
         // Always update Firestore profile regardless of Firebase Auth result
         await _databaseService.updateUserProfile(user.uid, {'photo_url': imageUrl});
-        debugPrint('✅ Profile photo URL saved to Firestore');
-        debugPrint('🗑️ Old image scheduled for cleanup: $oldPhotoUrl');
+  logI('Profile photo URL saved to Firestore', tag: 'AUTH');
+  logD('Old image scheduled for cleanup: $oldPhotoUrl', tag: 'AUTH');
       }
     } catch (e) {
-      debugPrint('AuthService update profile picture error: $e');
+  logE('Update profile picture error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -276,7 +277,7 @@ class AuthService {
     }
     
     try {
-      debugPrint('=== AuthService: Update User ===');
+  logI('Update User', tag: 'AUTH');
       
       if (displayName != null) {
         await user.updateDisplayName(displayName);
@@ -294,7 +295,7 @@ class AuthService {
         await _databaseService.updateUserProfile(user.uid, updateData);
       }
     } catch (e) {
-      debugPrint('AuthService update user error: $e');
+  logE('Update user error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -305,7 +306,7 @@ class AuthService {
       throw Exception('Usuário não logado ou sem e-mail para reautenticação.');
     }
     try {
-      debugPrint('=== AuthService: Reauthenticate with Password ===');
+  logI('Reauthenticate with Password', tag: 'AUTH');
       
       final credential = firebase_auth.EmailAuthProvider.credential(
         email: user.email!,
@@ -314,7 +315,7 @@ class AuthService {
       
       await user.reauthenticateWithCredential(credential);
     } catch (e) {
-      debugPrint('AuthService reauthenticate with password error: $e');
+  logE('Reauthenticate with password error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -325,7 +326,7 @@ class AuthService {
       throw Exception('Nenhum usuário logado para reautenticação.');
     }
     try {
-      debugPrint('=== AuthService: Reauthenticate with Google ===');
+  logI('Reauthenticate with Google', tag: 'AUTH');
       
       // Android-only Google reauthentication
       final googleSignIn = GoogleSignIn();
@@ -342,7 +343,7 @@ class AuthService {
       
       await user.reauthenticateWithCredential(credential);
     } catch (e) {
-      debugPrint('AuthService reauthenticate with Google error: $e');
+  logE('Reauthenticate with Google error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -354,39 +355,39 @@ class AuthService {
     }
     
     try {
-      debugPrint('=== AuthService: Complete Account Deletion ===');
-      debugPrint('User ID: ${user.uid}');
+  logI('Complete Account Deletion', tag: 'AUTH');
+  logD('User ID: ${user.uid}', tag: 'AUTH');
       
       // Step 1: Log Cloudinary images that need cleanup (client-side can't delete)
       try {
         final cloudinaryResult = await _cloudinaryService.deleteUserImages(user.uid);
-        debugPrint('Cloudinary cleanup result: $cloudinaryResult');
+  logI('Cloudinary cleanup result: $cloudinaryResult', tag: 'AUTH');
       } catch (e) {
-        debugPrint('Warning: Cloudinary cleanup logging failed: $e');
+  logW('Cloudinary cleanup logging failed: $e', tag: 'AUTH');
         // Continue anyway
       }
       
       // Step 2: Delete all Firebase data using Cloud Function
       try {
         await _functionsService.deleteUserAccount();
-        debugPrint('Firebase data cleanup completed successfully');
+  logI('Firebase data cleanup completed successfully', tag: 'AUTH');
       } catch (e) {
-        debugPrint('Warning: Firebase data cleanup failed: $e');
+  logW('Firebase data cleanup failed: $e', tag: 'AUTH');
         // Fallback: try basic profile deletion
         try {
           await _databaseService.deleteUserProfile(user.uid);
         } catch (fallbackError) {
-          debugPrint('Fallback deletion also failed: $fallbackError');
+          logW('Fallback deletion also failed: $fallbackError', tag: 'AUTH');
         }
       }
       
       // Step 3: Finally delete Firebase user (this cannot be undone)
-      debugPrint('Deleting Firebase user...');
+  logI('Deleting Firebase user...', tag: 'AUTH');
       await user.delete();
       
-      debugPrint('Account deletion completed successfully');
+  logI('Account deletion completed successfully', tag: 'AUTH');
     } catch (e) {
-      debugPrint('AuthService delete account error: $e');
+  logE('Delete account error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -454,23 +455,23 @@ class AuthService {
         // If account was created less than 10 minutes ago and has email, 
         // it's likely in the registration flow (waiting for phone verification)
         if (accountAge.inMinutes < 10) {
-          debugPrint('📝 New email registration in progress (${accountAge.inMinutes}m old), not orphaned');
-          debugPrint('   - User ID: ${user.uid}');
-          debugPrint('   - Email: ${user.email}');
-          debugPrint('   - Created: ${user.metadata.creationTime}');
+              logD('New email registration in progress (${accountAge.inMinutes}m old), not orphaned', tag: 'AUTH');
+              logD('User ID: ${user.uid}', tag: 'AUTH');
+              logD('Email: ${user.email}', tag: 'AUTH');
+              logD('Created: ${user.metadata.creationTime}', tag: 'AUTH');
           return false;
         }
       }
       
       // Otherwise, truly orphaned
-      debugPrint('🚨 Orphaned account detected: Auth user exists but no Firestore profile');
-      debugPrint('   - User ID: ${user.uid}');
-      debugPrint('   - Email: ${user.email}');
-      debugPrint('   - Phone: ${user.phoneNumber}');
+  logW('Orphaned account detected: Auth user exists but no Firestore profile', tag: 'AUTH');
+  logD('User ID: ${user.uid}', tag: 'AUTH');
+  logD('Email: ${user.email}', tag: 'AUTH');
+  logD('Phone: ${user.phoneNumber}', tag: 'AUTH');
       
       return true;
     } catch (e) {
-      debugPrint('Error checking orphaned account: $e');
+  logE('Error checking orphaned account', tag: 'AUTH', error: e);
       return true; // Assume orphaned if we can't check
     }
   }
@@ -481,15 +482,15 @@ class AuthService {
     if (user == null) return;
     
     try {
-      debugPrint('=== Cleaning up orphaned Firebase Auth account ===');
-      debugPrint('User ID: ${user.uid}');
-      debugPrint('Email: ${user.email}');
+  logI('Cleaning up orphaned Firebase Auth account', tag: 'AUTH');
+  logD('User ID: ${user.uid}', tag: 'AUTH');
+  logD('Email: ${user.email}', tag: 'AUTH');
       
       await user.delete();
-      debugPrint('Orphaned Firebase Auth account deleted successfully');
+  logI('Orphaned Firebase Auth account deleted successfully', tag: 'AUTH');
       
     } catch (e) {
-      debugPrint('Error cleaning up orphaned account: $e');
+  logE('Error cleaning up orphaned account', tag: 'AUTH', error: e);
       rethrow;
     }
   }
