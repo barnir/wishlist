@@ -94,11 +94,21 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final sheetColor = scheme.surface; // Adapts automatically for dark / light
+    final onSheet = scheme.onSurface;
     
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: sheetColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -117,6 +127,7 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
                   l10n.editProfile,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: onSheet,
                   ),
                 ),
                 const Spacer(),
@@ -125,7 +136,7 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
                     HapticService.lightImpact();
                     Navigator.of(context).pop();
                   },
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: onSheet.withValues(alpha: 0.8)),
                 ),
               ],
             ),
@@ -241,11 +252,21 @@ class _PrivacySettingsBottomSheetState extends State<PrivacySettingsBottomSheet>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final sheetColor = scheme.surface;
+    final onSheet = scheme.onSurface;
     
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: sheetColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -259,6 +280,7 @@ class _PrivacySettingsBottomSheetState extends State<PrivacySettingsBottomSheet>
                   l10n.privacySettings,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: onSheet,
                   ),
                 ),
                 const Spacer(),
@@ -267,7 +289,7 @@ class _PrivacySettingsBottomSheetState extends State<PrivacySettingsBottomSheet>
                     HapticService.lightImpact();
                     Navigator.of(context).pop();
                   },
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: onSheet.withValues(alpha: 0.8)),
                 ),
               ],
             ),

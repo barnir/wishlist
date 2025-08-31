@@ -88,12 +88,12 @@ class CloudinaryService {
 
       return result.secureUrl;
     } catch (e) {
-      logE('Error uploading profile image', tag: 'IMG', error: e, data: {'userId': userId});
+  logE('Error uploading profile image', tag: 'IMG', error: e, data: {'userId': userId});
   Future.microtask(() => AnalyticsService().log('image_upload_failure', properties: {
     'type': 'profile',
     'error': e.toString().substring(0, e.toString().length.clamp(0, 180)),
       }));
-      rethrow;
+  throw Exception(_mapCloudinaryError(e));
     }
   }
 
@@ -155,7 +155,7 @@ class CloudinaryService {
     'type': 'product',
     'error': e.toString().substring(0, e.toString().length.clamp(0, 180)),
       }));
-      rethrow;
+  throw Exception(_mapCloudinaryError(e));
     }
   }
 
@@ -217,7 +217,7 @@ class CloudinaryService {
     'type': 'wishlist',
     'error': e.toString().substring(0, e.toString().length.clamp(0, 180)),
       }));
-      rethrow;
+  throw Exception(_mapCloudinaryError(e));
     }
   }
 
@@ -289,6 +289,23 @@ class CloudinaryService {
   logW('Failed to store cleanup request', tag: 'IMG', data: {'publicId': publicId, 'err': e.toString()});
       // Don't throw error - cleanup storage is not critical for main functionality
     }
+  }
+
+  String _mapCloudinaryError(Object e) {
+    final raw = e.toString();
+    if (raw.contains('401')) {
+      return 'Erro Cloudinary 401 (autenticação/credenciais). Verifica CLOUDINARY_CLOUD_NAME e CLOUDINARY_UPLOAD_PRESET (unsigned preset).';
+    }
+    if (raw.contains('upload_preset')) {
+      return 'Upload preset inválido ou não existe. Confirma CLOUDINARY_UPLOAD_PRESET e se está marcado como unsigned.';
+    }
+    if (raw.contains('ENOTFOUND')) {
+      return 'Não foi possível resolver o host Cloudinary (verifica ligação e nome do cloud).';
+    }
+    if (raw.contains('413') || raw.contains('Payload Too Large')) {
+      return 'Imagem demasiado grande. Reduz resolução/tamanho.';
+    }
+    return 'Falha no upload de imagem: $raw';
   }
 
   /// Get optimization transformation
