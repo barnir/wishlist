@@ -1,5 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Canonical WishItem model.
+// Duplicates (wish_item_fixed.dart / wish_item_corrected.dart) were removed after
+// confirming identical structure. Future changes must happen ONLY here to avoid
+// divergence. Firestore expected fields: name, link, description, price, image_url,
+// category, rating, created_at (Timestamp or ISO8601 String).
+
 class WishItem {
   final String id;
   final String name;
