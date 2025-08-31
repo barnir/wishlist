@@ -9,20 +9,29 @@ import 'package:wishlist_app/utils/app_logger.dart';
 import 'package:wishlist_app/services/analytics/analytics_service.dart';
 
 class CloudinaryService {
+  // Singleton instance
+  static final CloudinaryService _instance = CloudinaryService._internal();
+  static bool _configured = false;
+
   late final CloudinaryPublic _cloudinary;
   final _securityService = SecurityService();
-  
-  CloudinaryService() {
+
+  /// Factory returns the shared instance (prevents multiple init + log spam)
+  factory CloudinaryService() => _instance;
+
+  CloudinaryService._internal() {
+    if (_configured) return; // Already configured
+
     final cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME'];
     final uploadPreset = dotenv.env['CLOUDINARY_UPLOAD_PRESET'];
-    
+
     if (cloudName == null || uploadPreset == null) {
       throw Exception('Cloudinary configuration missing in .env');
     }
-    
+
     _cloudinary = CloudinaryPublic(cloudName, uploadPreset);
-  // Log only once (constructor). Avoid multiple "Service initialized" spam.
-  logD('Cloudinary configured', tag: 'IMG', data: {'cloudName': cloudName});
+    _configured = true;
+    logD('Cloudinary configured', tag: 'IMG', data: {'cloudName': cloudName});
   }
 
   /// Upload profile image

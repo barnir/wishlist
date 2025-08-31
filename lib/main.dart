@@ -287,7 +287,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
         return map;
       }
       
-      // If no profile found and we have retries left, wait and retry
+  // If no profile found and we have retries left, wait and retry
       if (_retryCount < _maxRetries - 1) {
         _retryCount++;
   appLog('Profile not found, retry in ${_retryDelay.inMilliseconds}ms (attempt ${_retryCount + 1}/$_maxRetries)', tag: 'ROUTING');
@@ -311,20 +311,41 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
       } else {
   appLog('Account not orphaned - registration in progress (return null)', tag: 'ROUTING');
         
-        // If this is an email registration in progress (no profile yet), create a temporary profile now
-        if (widget.user.email != null && 
-            widget.user.metadata.creationTime != null && 
-            DateTime.now().difference(widget.user.metadata.creationTime!).inMinutes < 10) {
-          appLog('Creating temporary profile (email registration in progress)', tag: 'ROUTING');
+        // If user already has a verified/auth phone number, create a COMPLETE profile immediately (skip registration flow)
+        if (widget.user.phoneNumber != null && widget.user.phoneNumber!.isNotEmpty) {
+          appLog('No profile but auth has phone -> creating complete profile', tag: 'ROUTING');
           try {
-            await _userProfileRepo.ensureTemporaryProfile(
-              widget.user.uid,
-              email: widget.user.email,
-              displayName: widget.user.displayName ?? widget.user.email!.split('@')[0],
-            );
-            appLog('Temporary profile created', tag: 'ROUTING');
+            await _userProfileRepo.create(widget.user.uid, {
+              'phone_number': widget.user.phoneNumber,
+              'phone_verified': true,
+              'display_name': widget.user.displayName ?? widget.user.email?.split('@').first,
+              'email': widget.user.email,
+              'registration_complete': true,
+              'is_private': false,
+            });
+            appLog('Complete profile created from auth phone', tag: 'ROUTING');
+            // Fetch it back
+            final created = await _userProfileRepo.fetchById(widget.user.uid);
+            return created?.toMap();
           } catch (e) {
-            appLog('Error creating temporary profile: $e', tag: 'ROUTING');
+            appLog('Error creating complete profile from auth phone: $e', tag: 'ROUTING');
+          }
+        } else {
+          // If this is an email registration in progress (no profile yet), create a temporary profile now
+          if (widget.user.email != null && 
+              widget.user.metadata.creationTime != null && 
+              DateTime.now().difference(widget.user.metadata.creationTime!).inMinutes < 10) {
+            appLog('Creating temporary profile (email registration in progress)', tag: 'ROUTING');
+            try {
+              await _userProfileRepo.ensureTemporaryProfile(
+                widget.user.uid,
+                email: widget.user.email,
+                displayName: widget.user.displayName ?? widget.user.email!.split('@')[0],
+              );
+              appLog('Temporary profile created', tag: 'ROUTING');
+            } catch (e) {
+              appLog('Error creating temporary profile: $e', tag: 'ROUTING');
+            }
           }
         }
       }
@@ -448,16 +469,47 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
           return const AddPhoneScreen();
         }
         
-        final phoneNumber = profile['phone_number'];
+        // Phone detection (profile or legacy or auth)
+        final phoneNumber = profile['phone_number'] ?? profile['phone'] ?? widget.user.phoneNumber;
         if (phoneNumber == null || phoneNumber.toString().isEmpty) {
           appLog('Routing: missing phone number', tag: 'ROUTING');
           return const AddPhoneScreen();
+        } else {
+          // Auto fix if stored only under legacy key 'phone' or missing verification flags
+          if (profile['phone_number'] == null) {
+            appLog('Auto-fixing missing phone_number field in profile', tag: 'ROUTING');
+            UserProfileRepository().update(widget.user.uid, {
+              'phone_number': phoneNumber,
+              'phone_verified': true,
+              if (profile['registration_complete'] == false) 'registration_complete': true,
+            }).catchError((e){ appLog('Phone auto-fix failed: $e', tag: 'ROUTING'); return false; });
+          } else if (profile['registration_complete'] == false) {
+            appLog('Auto-fixing registration_complete (phone present)', tag: 'ROUTING');
+            UserProfileRepository().update(widget.user.uid, {
+              'registration_complete': true,
+              if (profile['phone_verified'] != true) 'phone_verified': true,
+            }).catchError((e){ appLog('Reg flag auto-fix failed: $e', tag: 'ROUTING'); return false; });
+          }
         }
         
-        final displayName = profile['display_name'];
+        final displayName = profile['display_name'] ?? profile['name'];
         if (displayName == null || displayName.toString().isEmpty) {
-          appLog('Routing: missing display name', tag: 'ROUTING');
-          return const SetupNameScreen();
+          // Attempt auto-fix using Firebase Auth displayName or email prefix
+          final autoName = widget.user.displayName ?? widget.user.email?.split('@').first;
+          if (autoName != null && autoName.isNotEmpty) {
+            appLog('Auto-fixing missing display_name with derived "$autoName"', tag: 'ROUTING');
+            UserProfileRepository().update(widget.user.uid, {
+              'display_name': autoName,
+              'registration_complete': true,
+            }).catchError((e){
+              appLog('Auto-fix display_name update failed: $e', tag: 'ROUTING');
+              return false; // satisfy bool return
+            });
+            appLog('Routing: auto-fixed profile -> HomeScreen', tag: 'ROUTING');
+          } else {
+            appLog('Routing: missing display name (no auto-fix) -> SetupNameScreen', tag: 'ROUTING');
+            return const SetupNameScreen();
+          }
         }
         
   appLog('Routing: complete profile -> HomeScreen', tag: 'ROUTING');

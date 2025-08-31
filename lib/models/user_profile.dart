@@ -38,7 +38,8 @@ class UserProfile {
     }
     return UserProfile(
       id: map['id'] as String,
-      displayName: map['display_name'] as String?,
+  // Fallback to legacy 'name' field if 'display_name' absent
+  displayName: (map['display_name'] ?? map['name']) as String?,
       email: map['email'] as String?,
       phoneNumber: (map['phone_number'] ?? map['phone']) as String?,
       photoUrl: map['photo_url'] as String?,
