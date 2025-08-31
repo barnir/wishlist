@@ -618,7 +618,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
             borderRadius: BorderRadius.circular(UIConstants.radiusM),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: const Color(0x00000000).withValues(alpha: 0.05, red: 0, green: 0, blue: 0),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
