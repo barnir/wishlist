@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+// Migrated from legacy FirebaseDatabaseService to WishlistRepository
+import 'package:wishlist_app/repositories/wishlist_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
@@ -26,7 +28,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _authService = AuthService();
-  final _databaseService = FirebaseDatabaseService();
+  final _wishlistRepo = WishlistRepository();
   final _cloudinaryService = CloudinaryService();
 
   bool _isPrivate = false;
@@ -47,15 +49,12 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   Future<void> _loadWishlistData() async {
     setState(() => _isLoading = true);
     try {
-      final wishlistData = await _databaseService.getWishlist(
-        widget.wishlistId!,
-      );
-      if (wishlistData != null) {
+      final wishlist = await _wishlistRepo.fetchById(widget.wishlistId!);
+      if (wishlist != null) {
         setState(() {
-          _nameController.text = wishlistData['name'] ?? '';
-          _isPrivate = wishlistData['is_private'] ?? false;
-          _existingImageUrl =
-              wishlistData['image_url']; // Store original image URL
+          _nameController.text = wishlist.name;
+          _isPrivate = wishlist.isPrivate;
+          _existingImageUrl = wishlist.imageUrl;
           if (_existingImageUrl != null) {
             _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
           }
@@ -106,14 +105,16 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
       if (widget.wishlistId == null) {
         // CREATE FLOW
         // 1. Create wishlist without image (so we get Firestore ID)
-        final created = await _databaseService.saveWishlist({
+        // Direct create via Firestore to obtain ID then update (repository lacks create helper yet)
+        final docRef = FirebaseFirestore.instance.collection('wishlists').doc();
+        final newId = docRef.id;
+        await docRef.set({
           'name': ValidationUtils.sanitizeTextInput(_nameController.text),
           'is_private': _isPrivate,
-          'image_url': null, // placeholder, updated after upload
-          'user_id': _authService.currentUser?.uid,
+          'image_url': null,
+          'owner_id': _authService.currentUser?.uid,
+          'created_at': FieldValue.serverTimestamp(),
         });
-
-        final newId = created['id'] as String;
 
         // 2. If we have a new image, upload it then update wishlist
         if (tempFileForUpload != null) {
@@ -124,9 +125,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
               oldImageUrl: null, // New wishlist, no old image
             );
             if (uploadedImageUrl != null) {
-              await _databaseService.updateWishlist(newId, {
-                'image_url': uploadedImageUrl,
-              });
+              await docRef.update({'image_url': uploadedImageUrl});
               _existingImageUrl = uploadedImageUrl;
               await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
               setState(() {
@@ -161,10 +160,11 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
             }
         }
 
-        await _databaseService.updateWishlist(id, {
+        await FirebaseFirestore.instance.collection('wishlists').doc(id).update({
           'name': ValidationUtils.sanitizeTextInput(_nameController.text),
           'is_private': _isPrivate,
           'image_url': uploadedImageUrl ?? _existingImageUrl,
+          'updated_at': FieldValue.serverTimestamp(),
         });
 
         if (uploadedImageUrl != null) {

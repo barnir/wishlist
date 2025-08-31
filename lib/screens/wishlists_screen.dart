@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+// Legacy FirebaseDatabaseService removed in favor of typed repository
+import 'package:wishlist_app/repositories/wishlist_repository.dart';
+import 'package:wishlist_app/models/wishlist.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import '../widgets/wishlist_total.dart';
@@ -18,16 +21,16 @@ class WishlistsScreen extends StatefulWidget {
 
 class _WishlistsScreenState extends State<WishlistsScreen> {
   final _authService = AuthService();
-  final _databaseService = FirebaseDatabaseService();
+  final _wishlistRepo = WishlistRepository();
   final _scrollController = ScrollController();
 
   // Paginação
   static const int _pageSize = 10;
-  final List<Map<String, dynamic>> _wishlists = [];
-  int _currentPage = 0;
+  final List<Wishlist> _wishlists = [];
   bool _isLoading = false;
   bool _hasMoreData = true;
   bool _isInitialLoading = true;
+  DocumentSnapshot? _lastDoc;
 
   @override
   void initState() {
@@ -48,8 +51,8 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
 
     setState(() {
       _isInitialLoading = true;
-      _wishlists.clear();
-      _currentPage = 0;
+  _wishlists.clear();
+  _lastDoc = null;
       _hasMoreData = true;
     });
 
@@ -73,22 +76,18 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     });
 
     try {
-      final newWishlists = await _databaseService.getWishlistsPaginated(
-        user.uid,
+      final page = await _wishlistRepo.fetchUserWishlists(
+        ownerId: user.uid,
         limit: _pageSize,
-        offset: _currentPage * _pageSize,
+        startAfter: _lastDoc,
       );
-
-      if (mounted) {
-        setState(() {
-          if (newWishlists.length < _pageSize) {
-            _hasMoreData = false;
-          }
-          _wishlists.addAll(newWishlists);
-          _currentPage++;
-          _isLoading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _wishlists.addAll(page.items);
+        _lastDoc = page.lastDoc;
+        _hasMoreData = page.hasMore;
+        _isLoading = false;
+      });
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -127,12 +126,12 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   // Widget para construir cada card da wishlist - Modernizado
   Widget _buildWishlistCard(
     BuildContext context,
-    Map<String, dynamic> wishlist,
+  Wishlist wishlist,
   ) {
   // l10n placeholder (getters ainda não regenerados)
-  final name = wishlist['name'] ?? (AppLocalizations.of(context)?.noName ?? 'Sem nome');
-    final isPrivate = wishlist['is_private'] ?? false;
-    final imageUrl = wishlist['image_url'];
+  final name = wishlist.name;
+  final isPrivate = wishlist.isPrivate;
+  final imageUrl = wishlist.imageUrl;
 
     return Card(
       margin: UIConstants.cardMargin,
@@ -145,7 +144,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
           Navigator.pushNamed(
             context,
             '/wishlist_details',
-            arguments: wishlist['id'],
+            arguments: wishlist.id,
           );
         },
         borderRadius: BorderRadius.circular(UIConstants.radiusM),
@@ -218,7 +217,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: WishlistTotal(wishlistId: wishlist['id']),
+                            child: WishlistTotal(wishlistId: wishlist.id),
                           ),
                           
                           Icon(

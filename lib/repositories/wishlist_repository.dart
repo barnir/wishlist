@@ -58,4 +58,40 @@ class WishlistRepository {
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
   });
+
+  Future<String?> create({
+    required String name,
+    required String ownerId,
+    bool isPrivate = false,
+    String? imageUrl,
+  }) async => _withLatency('create', () async {
+        try {
+          final doc = _firestore.collection('wishlists').doc();
+          await doc.set({
+            'name': name,
+            'owner_id': ownerId,
+            'is_private': isPrivate,
+            'image_url': imageUrl,
+            'created_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+          return doc.id;
+        } catch (e) {
+          logE('Wishlist create error', tag: 'DB', error: e, data: {'ownerId': ownerId});
+          return null;
+        }
+      });
+
+  Future<bool> update(String id, Map<String, dynamic> data) async => _withLatency('update', () async {
+        try {
+          await _firestore.collection('wishlists').doc(id).update({
+            ...data,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+          return true;
+        } catch (e) {
+          logE('Wishlist update error', tag: 'DB', error: e, data: {'id': id});
+          return false;
+        }
+      });
 }

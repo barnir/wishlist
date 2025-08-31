@@ -3,7 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+// Migrated from legacy FirebaseDatabaseService to repositories
+import 'package:wishlist_app/repositories/wish_item_repository.dart';
+import 'package:wishlist_app/repositories/wishlist_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wishlist_app/models/wishlist.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
@@ -36,7 +40,8 @@ class AddEditItemScreen extends StatefulWidget {
 
 class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _databaseService = FirebaseDatabaseService();
+  final _wishItemRepo = WishItemRepository();
+  final _wishlistRepo = WishlistRepository();
   final _webScraperService = WebScraperServiceSecure();
 
   late TextEditingController _nameController;
@@ -59,7 +64,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   String? _erro;
 
   String? _selectedWishlistId;
-  List<Map<String, dynamic>> _wishlists = [];
+  List<Wishlist> _wishlists = [];
   bool _isLoadingWishlists = false;
   bool _isCreatingWishlist = false;
   bool _showCreateWishlistForm = false;
@@ -212,13 +217,16 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _isLoadingWishlists = true;
     });
     try {
-    final wishlists = await _databaseService
-      .getWishlistsForCurrentUser();
+  final userId = AuthService.getCurrentUserId();
+  if (userId == null) return;
+  // Simple first page fetch (could paginate later)
+  final page = await _wishlistRepo.fetchUserWishlists(ownerId: userId, limit: 50);
+  final wishlists = page.items;
     if (!mounted) return; // Guard after async
       setState(() {
         _wishlists = wishlists;
         if (_wishlists.isNotEmpty) {
-          _selectedWishlistId = _wishlists.first['id'];
+          _selectedWishlistId = _wishlists.first.id;
         }
       });
     } catch (e) {
@@ -241,17 +249,28 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     });
     try {
       final userId = AuthService.getCurrentUserId()!;
-      final newWishlist = await _databaseService.saveWishlist({
+      final doc = FirebaseFirestore.instance.collection('wishlists').doc();
+      final id = doc.id;
+    final name = _newWishlistNameController.text.trim();
+    await doc.set({
         'name': _newWishlistNameController.text.trim(),
-        'is_private': false, // Default to public for quick add
-        'user_id': userId,
+        'is_private': false,
+        'image_url': null,
+        'owner_id': userId,
+        'created_at': FieldValue.serverTimestamp(),
       });
       _newWishlistNameController.clear();
-      // No need to call _loadWishlists() again, just add the new one to the list  
       setState(() {
-        _wishlists.add(newWishlist);
-        _selectedWishlistId = newWishlist['id'];
-        _showCreateWishlistForm = false; // Hide the form after creation
+        _wishlists.insert(0, Wishlist(
+          id: id,
+      name: name,
+          ownerId: userId,
+          isPrivate: false,
+          createdAt: DateTime.now(),
+          imageUrl: null,
+        ));
+        _selectedWishlistId = id;
+        _showCreateWishlistForm = false;
       });
     } catch (e) {
       setState(() {
@@ -267,16 +286,16 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _loadItemData() async {
     setState(() => _isSaving = true);
     try {
-  final itemData = await _databaseService.getWishItem(widget.itemId!);
+  final item = await _wishItemRepo.fetchById(widget.itemId!);
   if (!mounted) return; // Guard after async
 
-      if (itemData != null) {
-        _nameController.text = itemData['name'] ?? '';
-        _descriptionController.text = itemData['description'] ?? '';
-        _linkController.text = itemData['link'] ?? '';
-        _priceController.text = (itemData['price'] ?? '0').toString();
-        _selectedCategory = itemData['category'] ?? categories.first.name;
-        _existingImageUrl = itemData['image_url'];
+      if (item != null) {
+        _nameController.text = item.name;
+        _descriptionController.text = item.description ?? '';
+        _linkController.text = item.link ?? '';
+        _priceController.text = (item.price ?? 0).toString();
+        _selectedCategory = item.category.isNotEmpty ? item.category : categories.first.name;
+        _existingImageUrl = item.imageUrl;
         if (_existingImageUrl != null) {
           _imageFuture = ImageCacheService.getFile(_existingImageUrl!);
         }
@@ -363,20 +382,22 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       }
     }
 
-    await _databaseService.saveWishItem({
+    final data = {
       'wishlist_id': finalWishlistId,
       'name': ValidationUtils.sanitizeTextInput(_nameController.text),
       'description': _descriptionController.text.trim().isNotEmpty 
           ? ValidationUtils.sanitizeTextInput(_descriptionController.text) : null,
-      'price': double.tryParse(
-            _priceController.text.trim().replaceAll(',', '.'),
-          ) ?? 0.0,
+      'price': double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
       'category': _selectedCategory!,
       'rating': _rating,
-  'link': _linkController.text.trim(), // kept raw (URL validated); could further normalize
+      'link': _linkController.text.trim(),
       'image_url': uploadedUrl ?? _existingImageUrl,
-      if (widget.itemId != null) 'id': widget.itemId,
-    });
+    };
+    if (widget.itemId == null) {
+      await _wishItemRepo.create(data);
+    } else {
+      await _wishItemRepo.update(widget.itemId!, data);
+    }
 
     if (!mounted) return;
     Navigator.of(context).pop(true);
@@ -493,12 +514,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                   ),
                                   filled: true,
                                 ),
-                                items: _wishlists.map((wishlist) {
-                                  return DropdownMenuItem<String>(
-                                    value: wishlist['id'],
-                                    child: Text(wishlist['name']),
-                                  );
-                                }).toList(),
+                                items: _wishlists.map((wishlist) => DropdownMenuItem<String>(
+                                      value: wishlist.id,
+                                      child: Text(wishlist.name),
+                                    ))
+                                    .toList(),
                                 onChanged: (newValue) {
                                   setState(() {
                                     _selectedWishlistId = newValue;

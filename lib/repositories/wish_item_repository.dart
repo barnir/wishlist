@@ -82,4 +82,43 @@ class WishItemRepository {
           return false;
         }
       });
+
+  Future<String?> create(Map<String, dynamic> data) async => _withLatency('create', () async {
+        try {
+          final doc = _firestore.collection('wish_items').doc();
+          await doc.set({
+            ...data,
+            'created_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+          return doc.id;
+        } catch (e) {
+          logE('WishItem create error', tag: 'DB', error: e, data: {'data': data});
+          return null;
+        }
+      });
+
+  Future<bool> update(String id, Map<String, dynamic> data) async => _withLatency('update', () async {
+        try {
+          await _firestore.collection('wish_items').doc(id).update({
+            ...data,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+          return true;
+        } catch (e) {
+          logE('WishItem update error', tag: 'DB', error: e, data: {'itemId': id});
+          return false;
+        }
+      });
+
+  Future<WishItem?> fetchById(String id) async => _withLatency('fetchById', () async {
+        try {
+          final doc = await _firestore.collection('wish_items').doc(id).get();
+          if (!doc.exists) return null;
+            return WishItem.fromMap({'id': doc.id, ...doc.data()!});
+        } catch (e) {
+          logE('WishItem fetch error', tag: 'DB', error: e, data: {'itemId': id});
+          return null;
+        }
+      });
 }
