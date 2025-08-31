@@ -21,7 +21,8 @@ class CloudinaryService {
     }
     
     _cloudinary = CloudinaryPublic(cloudName, uploadPreset);
-  logI('Service initialized', tag: 'IMG', data: {'cloudName': cloudName, 'preset': uploadPreset});
+  // Log only once (constructor). Avoid multiple "Service initialized" spam.
+  logD('Cloudinary configured', tag: 'IMG', data: {'cloudName': cloudName});
   }
 
   /// Upload profile image

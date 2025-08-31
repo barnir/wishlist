@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../theme_extensions.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -246,6 +247,7 @@ class ProfileScreenState extends State<ProfileScreen> {
   Future<void> _confirmDeleteAccount() async {
     final confirmationController = TextEditingController();
     bool isDeleting = false; // To manage loading state within the dialog
+  bool needsReauth = false; // Flag when recent login required
 
     // Unfocus any active text fields before showing the dialog
     FocusScope.of(context).unfocus();
@@ -266,6 +268,14 @@ class ProfileScreenState extends State<ProfileScreen> {
                 children: <Widget>[
                   Text(l10n.deleteAccountWarning.replaceAll('"DELETE"', '"$requiredWord"')),
                   const SizedBox(height: 16),
+                  if (needsReauth)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Text(
+                        l10n.errorDeletingAccount('reauth'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
                   if (isDeleting)
                     const Center(
                       child: Padding(
@@ -289,6 +299,15 @@ class ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             actions: [
+              if (needsReauth && !isDeleting)
+                TextButton(
+                  onPressed: () async {
+                    // Simple reauth heuristic: if user has email show message to logout/login
+                    Navigator.of(context).pop();
+                    AppSnack.show(context, l10n.errorDeletingAccount('reauth'), type: SnackType.error);
+                  },
+                  child: const Text('Reautenticar'),
+                ),
               TextButton(
                 onPressed: isDeleting
                     ? null
@@ -296,13 +315,18 @@ class ProfileScreenState extends State<ProfileScreen> {
                 child: Text(l10n.cancel),
               ),
               ElevatedButton(
-                onPressed:
-                    (confirmationController.text.trim().toUpperCase() == requiredWord && !isDeleting)
+                onPressed: (confirmationController.text.trim().toUpperCase() == requiredWord && !isDeleting)
                     ? () async {
                         setDialogState(() => isDeleting = true);
-                        await _deleteAccount();
-                        // The dialog will be closed by navigation changes in _deleteAccount if successful,
-                        // or manually on error.
+                        final success = await _deleteAccount();
+                        // If failed, revert loading so user can retry; success path closes dialog internally
+                        if (!success && context.mounted) {
+                          setDialogState(() {
+                            isDeleting = false;
+                            // Detect reauth requirement by last error marker stored in state var? Using snack text param
+                            needsReauth = true; // conservative: show reauth path after any failure
+                          });
+                        }
                       }
                     : null,
                 style: ButtonStyle(
@@ -324,59 +348,56 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _deleteAccount() async {
-    if (!mounted) return;
-
+  Future<bool> _deleteAccount() async {
+    if (!mounted) return false;
     try {
       logI('Deleting user account', tag: 'UI');
-      
-      await _authService.deleteAccount();
 
-      if (!mounted) return;
+      // Timeout to avoid indefinite spinner
+      await _authService.deleteAccount().timeout(const Duration(seconds: 25));
 
-      // Close the dialog first before showing success message and navigating
+      if (!mounted) return true;
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
-
-  final l10n = AppLocalizations.of(context)!;
-  AppSnack.show(context, l10n.accountDeletedSuccessfully, type: SnackType.success);
-
-      // Navigate to login
+      final l10n = AppLocalizations.of(context)!;
+      AppSnack.show(context, l10n.accountDeletedSuccessfully, type: SnackType.success);
       if (mounted) {
-  Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushReplacementNamed('/login');
       }
+      return true;
+    } on TimeoutException catch (e) {
+      logE('Delete account timeout', tag: 'UI', error: e);
+      if (!mounted) return false;
+      final l10n = AppLocalizations.of(context)!;
+      AppSnack.show(context, l10n.errorDeletingAccount('timeout'), type: SnackType.error);
+      return false;
     } catch (e) {
+      if (!mounted) return false;
       logE('Delete account error', tag: 'UI', error: e);
-      if (!mounted) return;
-      
-      // Only show user-friendly errors, not technical Firebase auth errors
-      if (e.toString().contains('[firebase_auth/user-not-found]')) {
-        // This is expected when Cloud Function already deleted the user - SUCCESS!
-        
-        // Close the dialog first
+      final l10n = AppLocalizations.of(context)!;
+      final errorStr = e.toString();
+
+      // Treat user-not-found as success (already deleted)
+      if (errorStr.contains('[firebase_auth/user-not-found]')) {
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
-        
-  final l10n = AppLocalizations.of(context)!;
-  AppSnack.show(context, l10n.accountDeletedSuccessfully, type: SnackType.success);
-        
-        // Navigate to login as the account was successfully deleted
+        AppSnack.show(context, l10n.accountDeletedSuccessfully, type: SnackType.success);
         if (mounted) {
           Navigator.of(context).pushReplacementNamed('/login');
         }
-      } else {
-        // Show actual errors to user
-        
-        // Close the dialog first
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        }
-        
-  final l10n = AppLocalizations.of(context)!;
-  AppSnack.show(context, l10n.errorDeletingAccount(''), type: SnackType.error);
+        return true;
       }
+
+      // Requires recent login -> inform user
+      if (errorStr.contains('requires-recent-login')) {
+        AppSnack.show(context, l10n.errorDeletingAccount('reauth'), type: SnackType.error);
+        return false; // dialog keeps open, flag triggers reauth UI
+      }
+
+      AppSnack.show(context, l10n.errorDeletingAccount(errorStr), type: SnackType.error);
+      return false;
     }
   }
 

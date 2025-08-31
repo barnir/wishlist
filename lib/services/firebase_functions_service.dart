@@ -13,7 +13,8 @@ class FirebaseFunctionsService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Delete current user account
-  Future<void> deleteUserAccount() async {
+  Future<void> deleteUserAccount({int retry = 0}) async {
+    const maxRetries = 3;
     try {
       final user = _auth.currentUser;
       if (user == null) {
@@ -39,6 +40,13 @@ class FirebaseFunctionsService {
           case 'unauthenticated':
             throw Exception('Utilizador não autenticado. Por favor, faça login novamente.');
           case 'permission-denied':
+            // Occasionally transient if security rules just changed; retry with backoff
+            if (retry < maxRetries) {
+              final delay = Duration(milliseconds: 400 * (retry + 1));
+              debugPrint('🔁 permission-denied retry #${retry + 1} in ${delay.inMilliseconds}ms');
+              await Future.delayed(delay);
+              return deleteUserAccount(retry: retry + 1);
+            }
             throw Exception('Não tem permissão para apagar esta conta.');
           case 'resource-exhausted':
             throw Exception('Limite diário de operações atingido. Tente novamente amanhã.');
