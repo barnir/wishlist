@@ -1,7 +1,7 @@
 name: wishlist_app
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.1.1
+version: 0.1.1+2
 
 environment:
   sdk: ^3.8.1
@@ -48,7 +48,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.4.9
   flutter_launcher_icons: ^0.13.1
-  flutter_native_splash: ^2.3.10
+  flutter_native_splash: ^2.4.1
   
 
 flutter:
@@ -75,9 +75,7 @@ flutter_native_splash:
   android: true
   ios: false
   web: false
-  windows: false
-  macos: false
-  linux: false
   android_12:
     image: assets/images/app_icon.jpg
     color: "#FF6B9D"
+  fullscreen: true

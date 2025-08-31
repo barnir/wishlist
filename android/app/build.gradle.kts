@@ -1,11 +1,16 @@
 import org.gradle.api.JavaVersion
 import java.util.Properties
+import java.io.FileInputStream
 
-// Read local properties
-val localProperties = Properties()
-val localPropertiesFile = rootProject.file("android/local.properties")
-if (localPropertiesFile.exists()) {
-    localProperties.load(localPropertiesFile.inputStream())
+// Load local.properties (Flutter paths) and key.properties (signing) if present
+val localProperties = Properties().apply {
+    val f = rootProject.file("android/local.properties")
+    if (f.exists()) load(FileInputStream(f))
+}
+
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("android/key.properties")
+    if (f.exists()) load(FileInputStream(f))
 }
 
 plugins {
@@ -39,16 +44,32 @@ android {
     versionName = "0.1.1"
     }
 
+    signingConfigs {
+        // Release signing will be configured via android/key.properties (NOT committed)
+        create("release") {
+            if (keystoreProps.isNotEmpty()) {
+                storeFile = keystoreProps["storeFile"]?.let { file(it as String) }
+                storePassword = keystoreProps["storePassword"] as String?
+                keyAlias = keystoreProps["keyAlias"] as String?
+                keyPassword = keystoreProps["keyPassword"] as String?
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Quando keystore existir, assinar com release; fallback para debug se vazio (evita quebra CI local)
+            signingConfig = if (keystoreProps.isNotEmpty()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            // Habilitar otimizações gradualmente: primeiro só minify sem shrink para validar crash-free
+            isMinifyEnabled = false // (ajustar para true depois de validar)
+            isShrinkResources = false // (ativar após minify funcionar)
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Temporary: use debug signing for internal distribution (replace with a proper release keystore before public release)
-            signingConfig = signingConfigs.getByName("debug")
+        }
+        debug {
+            // Garantir identicação clara em logs se necessário (placeholder para possivel applicationIdSuffix)
         }
     }
 }

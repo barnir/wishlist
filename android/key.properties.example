@@ -1,0 +1,6 @@
+## Example key.properties (DO NOT COMMIT real credentials)
+# Copy to key.properties and fill values:
+# storeFile=wishlist_release.keystore
+# storePassword=CHANGE_ME
+# keyAlias=wishlist
+# keyPassword=CHANGE_ME
