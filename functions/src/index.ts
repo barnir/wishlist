@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import {onCall, CallableRequest} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 import {logger} from "firebase-functions";
 import {v2 as cloudinary} from "cloudinary";
 // NOTE: For runtime config values set via `firebase functions:config:set`,
@@ -44,6 +45,137 @@ function configureCloudinary() {
 }
 
 const cloudinaryAvailable = configureCloudinary();
+
+// =============================
+// Image Cleanup Scheduler
+// Processes queued cleanup requests generated on the client.
+// =============================
+
+interface CleanupDoc {
+  id: string;
+  public_id: string;
+  image_type: string;
+  status: string;
+  attempts?: number;
+}
+
+interface BulkCleanupDoc {
+  id: string;
+  user_id: string;
+  cleanup_type: string;
+  status: string;
+  pattern?: string;
+  folders_to_clean?: string[];
+  attempts?: number;
+}
+
+const MAX_ATTEMPTS = 5;
+
+async function processSingleCleanup(db: FirebaseFirestore.Firestore, doc: CleanupDoc) {
+  if (!cloudinaryAvailable) return;
+  const attempts = (doc.attempts || 0) + 1;
+  try {
+    await cloudinary.api.delete_resources([doc.public_id], {resource_type: "image"});
+    await db.collection("image_cleanup_queue").doc(doc.id).update({status: "processed", processed_at: admin.firestore.FieldValue.serverTimestamp(), attempts});
+    logger.info(`[cleanup] deleted ${doc.public_id}`);
+  } catch (e:any) {
+    const permanent = e?.http_code === 404; // treat not found as success-equivalent
+    if (permanent) {
+      await db.collection("image_cleanup_queue").doc(doc.id).update({status: "processed", note: "not_found", attempts});
+      logger.warn(`[cleanup] not found ${doc.public_id}`);
+    } else if (attempts >= MAX_ATTEMPTS) {
+      await db.collection("image_cleanup_queue").doc(doc.id).update({status: "failed", attempts, last_error: String(e)});
+      logger.error(`[cleanup] failed ${doc.public_id} attempts=${attempts}`, e);
+    } else {
+      await db.collection("image_cleanup_queue").doc(doc.id).update({status: "pending", attempts, last_error: String(e)});
+      logger.warn(`[cleanup] retry scheduled ${doc.public_id} attempts=${attempts}`);
+    }
+  }
+}
+
+async function processBulkCleanup(db: FirebaseFirestore.Firestore, doc: BulkCleanupDoc) {
+  if (!cloudinaryAvailable) return;
+  const attempts = (doc.attempts || 0) + 1;
+  try {
+    // If explicit pattern present, attempt delete by prefix (requires listing)
+    const folders = doc.folders_to_clean || [];
+    let totalDeleted = 0;
+    for (const folder of folders) {
+      // List with prefix using Admin API (paginated)
+      let nextCursor: string | undefined = undefined;
+      let guard = 0;
+      const prefix = doc.pattern ? `${folder}/${doc.pattern.replace(/\*/g, "")}` : folder;
+      do {
+        const res:any = await cloudinary.api.resources({
+          type: "upload",
+          resource_type: "image",
+          prefix,
+          max_results: 100,
+          next_cursor: nextCursor,
+        });
+        const ids: string[] = (res.resources || []).map((r:any) => r.public_id);
+        if (ids.length) {
+          const delRes:any = await cloudinary.api.delete_resources(ids, {resource_type: "image"});
+          const deletedCount = Object.values(delRes.deleted || {}).filter((v:any) => v === "deleted").length;
+          totalDeleted += deletedCount;
+        }
+        nextCursor = res.next_cursor;
+        guard++;
+      } while (nextCursor && guard < 20);
+    }
+    await db.collection("bulk_cleanup_queue").doc(doc.id).update({status: "processed", processed_at: admin.firestore.FieldValue.serverTimestamp(), attempts, total_deleted: totalDeleted});
+    logger.info(`[bulk_cleanup] processed id=${doc.id} deleted=${totalDeleted}`);
+  } catch (e:any) {
+    if (attempts >= MAX_ATTEMPTS) {
+      await db.collection("bulk_cleanup_queue").doc(doc.id).update({status: "failed", attempts, last_error: String(e)});
+      logger.error(`[bulk_cleanup] failed id=${doc.id} attempts=${attempts}`, e);
+    } else {
+      await db.collection("bulk_cleanup_queue").doc(doc.id).update({status: "pending", attempts, last_error: String(e)});
+      logger.warn(`[bulk_cleanup] retry id=${doc.id} attempts=${attempts}`);
+    }
+  }
+}
+
+export const scheduledImageCleanup = onSchedule({schedule: "every 5 minutes"}, async () => {
+  if (!cloudinaryAvailable) {
+    logger.warn("[scheduler] Cloudinary not configured; skipping cleanup run");
+    return;
+  }
+  const db = admin.firestore();
+  const start = Date.now();
+  const perRunLimit = 40; // total docs processed per run (split between queues)
+  try {
+    // Process individual cleanup queue
+    const singleSnap = await db.collection("image_cleanup_queue")
+      .where("status", "in", ["pending", "error"]) // legacy status 'error'
+      .orderBy("created_at", "asc")
+      .limit(perRunLimit)
+      .get();
+    let processedSingles = 0;
+    for (const doc of singleSnap.docs) {
+      if (processedSingles >= perRunLimit) break;
+      await processSingleCleanup(db, {id: doc.id, ...(doc.data() as any)});
+      processedSingles++;
+    }
+
+    // Process bulk cleanup queue (remaining budget)
+    const remaining = perRunLimit - processedSingles;
+    if (remaining > 0) {
+      const bulkSnap = await db.collection("bulk_cleanup_queue")
+        .where("status", "in", ["pending", "error"]) // legacy status 'error'
+        .orderBy("created_at", "asc")
+        .limit(remaining)
+        .get();
+      for (const doc of bulkSnap.docs) {
+        await processBulkCleanup(db, {id: doc.id, ...(doc.data() as any)});
+      }
+    }
+    const dur = Date.now() - start;
+    logger.info(`[scheduler] image cleanup run completed in ${dur}ms singles=${processedSingles}`);
+  } catch (e) {
+    logger.error("[scheduler] cleanup run failed", e);
+  }
+});
 
 // Simple rate limiting without persistent storage
 const rateLimiter = new Map<string, number>();
