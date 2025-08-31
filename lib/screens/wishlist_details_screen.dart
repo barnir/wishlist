@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
@@ -110,7 +111,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     });
 
     try {
-      final pageFuture = _wishItemRepo.fetchPage(
+  final pageFuture = _wishItemRepo.fetchPage(
         wishlistId: widget.wishlistId,
         limit: _pageSize,
         category: _selectedCategory,
@@ -120,6 +121,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       // Não aguardar ainda: permite preparar contexto se necessário
       final page = await pageFuture;
       final newItems = page.items;
+
+  // Garantir que widget ainda está montado antes de qualquer uso de contexto posterior
+  if (!mounted) return;
 
       if (mounted) {
         setState(() {
@@ -133,21 +137,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           _scrollController.removeListener(_onScroll);
         }
       }
-      // Precache fora de setState e proteger com mounted
-  // Context usage abaixo após await é seguro pois verificamos mounted e apenas precache; ignorar aviso.
+  // Lint falso-positivo: helper não usa BuildContext após async; apenas agenda cache sem contexto.
   // ignore: use_build_context_synchronously
-      if (_items.length == newItems.length && newItems.isNotEmpty) {
-        final firstWithImage = newItems.firstWhere(
-          (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
-          orElse: () => newItems.first,
-        );
-        final imageUrl = firstWithImage.imageUrl;
-        if (imageUrl != null && mounted) {
-          // Use ImageConfiguration.empty para evitar dependência direta de contexto UI
-          // ignore: discarded_futures
-          precacheImage(NetworkImage(imageUrl), context).catchError((_) {});
-        }
-      }
+  _scheduleFirstImagePrecache(newItems);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -156,6 +148,23 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         _showSnackBar('Erro ao carregar itens: $e', isError: true);
       }
     }
+  }
+
+  void _scheduleFirstImagePrecache(List<WishItem> newItems) {
+    if (!mounted) return;
+    if (_items.length != newItems.length || newItems.isEmpty) return; // apenas primeira página
+    final firstWithImage = newItems.firstWhere(
+      (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
+      orElse: () => newItems.first,
+    );
+    final imageUrl = firstWithImage.imageUrl;
+    if (imageUrl == null || imageUrl.isEmpty) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return; // ainda garantir que a página não foi descartada
+      final provider = NetworkImage(imageUrl);
+      // Inicia resolução/caching sem BuildContext para evitar lint use_build_context_synchronously.
+      provider.resolve(const ImageConfiguration());
+    });
   }
 
   void _onScroll() {
