@@ -19,6 +19,7 @@ import '../widgets/filter_bottom_sheet.dart';
 import '../constants/ui_constants.dart';
 import '../services/filter_preferences_service.dart';
 import '../widgets/app_snack.dart';
+import '../utils/validation_utils.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -552,38 +553,82 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(UIConstants.radiusM),
-                    topRight: Radius.circular(UIConstants.radiusM),
-                  ),
-                  child: OptimizedCloudinaryImage(
-                    originalUrl: item.imageUrl!,
-                    transformationType: ImageType.productLarge,
-                    width: double.infinity,
-                    height: 120,
-                    fit: BoxFit.cover,
-                    fallbackIcon: Icon(
-                      Icons.broken_image,
-                      color: colorScheme.error,
-                      size: 32,
+              // Image + optional link action overlay
+              Stack(
+                children: [
+                  if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(UIConstants.radiusM),
+                        topRight: Radius.circular(UIConstants.radiusM),
+                      ),
+                      child: OptimizedCloudinaryImage(
+                        originalUrl: item.imageUrl!,
+                        transformationType: ImageType.productLarge,
+                        width: double.infinity,
+                        height: 120,
+                        fit: BoxFit.cover,
+                        fallbackIcon: Icon(
+                          Icons.broken_image,
+                          color: colorScheme.error,
+                          size: 32,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(UIConstants.radiusM),
+                          topRight: Radius.circular(UIConstants.radiusM),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(Icons.image_not_supported, color: colorScheme.onSurfaceVariant),
                     ),
-                  ),
-                )
-              else
-                Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(UIConstants.radiusM),
-                      topRight: Radius.circular(UIConstants.radiusM),
+                  if (item.link != null && item.link!.isNotEmpty)
+                    Positioned(
+                      right: 4,
+                      top: 4,
+                      child: Material(
+                        color: Colors.black.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(20),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () async {
+                            final raw = item.link!.trim();
+                            final sanitized = ValidationUtils.sanitizeUrlForSave(raw);
+                            final uri = Uri.tryParse(sanitized);
+                            if (uri == null) {
+                              if (mounted) _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+                              return;
+                            }
+                            try {
+                              final can = await canLaunchUrl(uri);
+                              if (!mounted) return;
+                              if (can) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } else {
+                                _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+                              }
+                            } catch (_) {
+                              if (mounted) {
+                                _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+                              }
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: Icon(Icons.shopping_cart_outlined, size: 18, color: Colors.white),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(Icons.image_not_supported, color: colorScheme.onSurfaceVariant),
-                ),
+                ],
+              ),
+              // Textual details
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(

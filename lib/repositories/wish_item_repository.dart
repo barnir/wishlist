@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category; // Avoid clash with our domain Category
 import 'package:wishlist_app/models/wish_item.dart';
+import 'package:wishlist_app/models/category.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/repositories/page.dart';
 import 'package:wishlist_app/utils/app_logger.dart';
@@ -61,7 +62,14 @@ class WishItemRepository {
   // Legacy support: if first page & no startAfter we will later optionally try 'wishlistId' field name.
 
       if (category != null && category.isNotEmpty) {
-        baseQuery = baseQuery.where('category', isEqualTo: category);
+        // Expand to possible legacy stored variants (alias vs new label)
+        final candidates = Category.storageCandidates(category);
+        if (candidates.length == 1) {
+          baseQuery = baseQuery.where('category', isEqualTo: candidates.first);
+        } else if (candidates.isNotEmpty) {
+          // Firestore whereIn max 10; our list is tiny (<=3)
+          baseQuery = baseQuery.where('category', whereIn: candidates.take(10).toList());
+        }
       }
 
       // Determine order field from SortOptions
@@ -216,6 +224,7 @@ class WishItemRepository {
           final doc = _firestore.collection('wish_items').doc();
           await doc.set({
             ...data,
+            if (!data.containsKey('owner_id')) 'owner_id': data['owner_id'] ?? data['user_id'] ?? 'UNKNOWN',
             'created_at': FieldValue.serverTimestamp(),
             'updated_at': FieldValue.serverTimestamp(),
           });
@@ -230,6 +239,7 @@ class WishItemRepository {
         try {
           await _firestore.collection('wish_items').doc(id).update({
             ...data,
+            if (!data.containsKey('owner_id')) 'owner_id': data['owner_id'] ?? data['user_id'] ?? 'UNKNOWN',
             'updated_at': FieldValue.serverTimestamp(),
           });
           return true;

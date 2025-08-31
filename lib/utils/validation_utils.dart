@@ -170,6 +170,17 @@ class ValidationUtils {
     }
   }
 
+  // Pure helper to sanitize (NOT validate) a URL for saving; keeps logic consistent with validator.
+  static String sanitizeUrlForSave(String? value) {
+    if (value == null) return '';
+    var url = value.trim();
+    if (url.isEmpty) return '';
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
+    return url;
+  }
+
   // Sanitize URL for safe use
   static String sanitizeUrl(String url) {
     if (!url.startsWith('http://') && !url.startsWith('https://')) {

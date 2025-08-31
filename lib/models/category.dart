@@ -20,6 +20,22 @@ class Category {
     );
   }
 
+  /// Returns possible stored raw values for a selected category label.
+  /// This is used so that filtering can match both legacy short alias values
+  /// (e.g. 'Saúde') and the newer expanded label ('Saúde & Fitness').
+  /// Order is: primary name, alias (if different), original input (if unknown).
+  static List<String> storageCandidates(String? selected) {
+    if (selected == null || selected.isEmpty) return const [];
+    final c = find(selected);
+    if (c == null) return [selected];
+    final set = <String>{};
+    set.add(c.name);
+    if (c.alias != null && c.alias!.isNotEmpty) set.add(c.alias!);
+    // If user selected the alias directly (legacy persisted preference), ensure it's included.
+    set.add(selected);
+    return set.toList();
+  }
+
   /// Returns a localized label for UI given the stored category name.
   /// Falls back to the original stored `name` if no translation key exists.
   static String localizedLabel(String storedName, AppLocalizations? l10n) {

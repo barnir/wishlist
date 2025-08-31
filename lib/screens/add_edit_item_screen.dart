@@ -382,14 +382,26 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       'price': double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
       'category': _selectedCategory!,
       'rating': _rating,
-      'link': _linkController.text.trim(),
+  'link': (() { final s = ValidationUtils.sanitizeUrlForSave(_linkController.text); return s.isEmpty ? null : s; })(),
       'image_url': uploadedUrl ?? _existingImageUrl,
   'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
+      'owner_id': AuthService.getCurrentUserId(), // ensure always present to satisfy rules & backfill legacy docs
     };
+    bool ok = true;
     if (widget.itemId == null) {
-      await _wishItemRepo.create(data);
+      final id = await _wishItemRepo.create(data);
+      ok = id != null;
     } else {
-      await _wishItemRepo.update(widget.itemId!, data);
+      ok = await _wishItemRepo.update(widget.itemId!, data);
+    }
+
+    if (!ok) {
+      if (!mounted) return;
+      setState(() {
+        _erro = 'Falha ao guardar alterações';
+        _isSaving = false;
+      });
+      return; // do not pop
     }
 
     // Record local usage of the chosen category (best effort, non-blocking)
