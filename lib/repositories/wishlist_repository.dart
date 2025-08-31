@@ -42,8 +42,15 @@ class WishlistRepository {
     try {
       var query = _firestore
           .collection('wishlists')
-          .where('owner_id', isEqualTo: ownerId)
-          .orderBy(sortField, descending: descending);
+          .where('owner_id', isEqualTo: ownerId);
+
+      // Only add orderBy if not total_value or index expected. total_value might be missing initially.
+      if (sortField != 'total_value') {
+        query = query.orderBy(sortField, descending: descending);
+      } else {
+        // Fallback: order by created_at for pagination stability, then client sort.
+        query = query.orderBy('created_at', descending: true);
+      }
 
       if (isPrivateFilter != null) {
         query = query.where('is_private', isEqualTo: isPrivateFilter);

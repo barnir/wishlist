@@ -39,7 +39,7 @@ class Wishlist {
       isPrivate: data['is_private'] as bool,
       createdAt: createdAt,
       imageUrl: data['image_url'] as String?,
-  // Firestore docs currently do not store aggregate; ignore if absent
+  // Firestore trigger may maintain total_value aggregate
   totalValue: (data['total_value'] as num?)?.toDouble(),
     );
   }

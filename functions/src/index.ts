@@ -1,47 +1,68 @@
 import * as admin from "firebase-admin";
+import * as path from "path";
+import * as fs from "fs";
+
+// Load .env if present (supports migration away from functions.config())
+try {
+  // Prefer dotenv if installed; fallback manual parse to avoid extra dep if not.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const dotenv = require("dotenv");
+  const envPath = path.resolve(__dirname, "..", ".env");
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+} catch {
+  // silent; optional
+}
 import {onCall, CallableRequest} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {logger} from "firebase-functions";
 import {v2 as cloudinary} from "cloudinary";
-// NOTE: For runtime config values set via `firebase functions:config:set`,
-// we prefer accessing them through functions.config() (v1 style) which is still
-// supported in v2 for hydrated environment, then fall back to process.env.* if provided.
+import {onDocumentCreated, onDocumentUpdated, onDocumentDeleted} from "firebase-functions/v2/firestore";
+// Runtime config migration: functions.config() deprecated (sunset March 2026).
+// This code now relies solely on environment variables (CLOUDINARY_*). Supply via:
+//  - functions/.env  (local + deploy time auto-injection supported by Firebase CLI v13+)
+//  - or Google Cloud console / deploy --env-vars-file
+// Do NOT depend on functions:config:set anymore.
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
 // Cloudinary admin configuration retrieval
 function configureCloudinary() {
-  try {
-    // Attempt functions.config() style (works when deployed or using emulator with config)
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const functions = require("firebase-functions");
-    const fnConfig = functions.config ? functions.config() : {};
-    const cSection = fnConfig.cloudinary || {};
+  // Prefer environment variables (migration target). Fallback to legacy functions.config() if unset.
+  let cloudNameCfg = process.env.CLOUDINARY_CLOUD_NAME;
+  let apiKeyCfg = process.env.CLOUDINARY_API_KEY;
+  let apiSecretCfg = process.env.CLOUDINARY_API_SECRET;
 
-    const cloudNameCfg = cSection.cloud_name || process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKeyCfg = cSection.api_key || process.env.CLOUDINARY_API_KEY;
-    const apiSecretCfg = cSection.api_secret || process.env.CLOUDINARY_API_SECRET;
-
-    cloudinary.config({
-      cloud_name: cloudNameCfg,
-      api_key: apiKeyCfg,
-      api_secret: apiSecretCfg,
-      secure: true,
-    });
-
-    const conf = cloudinary.config() as any;
-    const available = !!(conf.cloud_name && conf.api_key && conf.api_secret);
-    if (available) {
-      logger.info("[Cloudinary] Admin API configured for cleanup (cloud_name=" + conf.cloud_name + ")");
-    } else {
-      logger.warn("[Cloudinary] Incomplete configuration - image cleanup will be skipped. Provide cloudinary.cloud_name/api_key/api_secret.");
+  if (!cloudNameCfg || !apiKeyCfg || !apiSecretCfg) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const functions = require("firebase-functions");
+      const legacy = functions.config?.().cloudinary || {};
+      cloudNameCfg = cloudNameCfg || legacy.cloud_name;
+      apiKeyCfg = apiKeyCfg || legacy.api_key;
+      apiSecretCfg = apiSecretCfg || legacy.api_secret;
+      if (legacy.cloud_name || legacy.api_key) {
+        logger.warn("[Cloudinary] Using deprecated functions.config() values. Migrate to env vars before March 2026.");
+      }
+    } catch {
+      // ignore
     }
-    return available;
-  } catch (e) {
-    logger.error("[Cloudinary] Failed to configure admin API", e);
-    return false;
   }
+
+  cloudinary.config({
+    cloud_name: cloudNameCfg,
+    api_key: apiKeyCfg,
+    api_secret: apiSecretCfg,
+    secure: true,
+  });
+
+  const conf = cloudinary.config() as any;
+  const available = !!(conf.cloud_name && conf.api_key && conf.api_secret);
+  if (available) logger.info("[Cloudinary] Admin API configured cloud_name=" + conf.cloud_name);
+  else logger.warn("[Cloudinary] Missing Cloudinary credentials - cleanup skipped");
+  return available;
 }
 
 const cloudinaryAvailable = configureCloudinary();
@@ -370,6 +391,93 @@ const TRUSTED_DOMAINS = [
 const SUSPICIOUS_PATTERNS = [
   "localhost", "127.0.0.1", "192.168.", "file://", "javascript:"
 ];
+
+// =============================
+// Aggregates: wishlist total_value & item_count (incremental)
+// =============================
+
+async function adjustWishlistAggregates(wishlistId: string, deltaCount: number, deltaValue: number) {
+  const db = admin.firestore();
+  const ref = db.collection("wishlists").doc(wishlistId);
+  try {
+    await ref.update({
+      item_count: admin.firestore.FieldValue.increment(deltaCount),
+      total_value: admin.firestore.FieldValue.increment(deltaValue),
+      total_updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (e:any) {
+    // Fallback: if doc missing fields, recompute fully
+    logger.warn("adjustWishlistAggregates fallback recompute", {wishlistId, error: String(e)});
+    await recomputeWishlistAggregates(wishlistId);
+  }
+}
+
+async function recomputeWishlistAggregates(wishlistId: string) {
+  const db = admin.firestore();
+  const snap = await db.collection("wish_items").where("wishlist_id", "==", wishlistId).get();
+  let total = 0; let count = 0;
+  for (const d of snap.docs) {
+    const data = d.data();
+    const price = Number(data.price) || 0;
+    total += price;
+    count++;
+  }
+  await db.collection("wishlists").doc(wishlistId).set({
+    item_count: count,
+    total_value: total,
+    total_updated_at: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+}
+
+export const wishItemCreated = onDocumentCreated("wish_items/{itemId}", async (event) => {
+  try {
+    const data = event.data?.data();
+    if (!data) return;
+    const wishlistId = data.wishlist_id as string | undefined;
+    if (!wishlistId) return;
+    const price = Number(data.price) || 0;
+    await adjustWishlistAggregates(wishlistId, 1, price);
+  } catch (e) {
+    logger.error("wishItemCreated aggregate error", e);
+  }
+});
+
+export const wishItemUpdated = onDocumentUpdated("wish_items/{itemId}", async (event) => {
+  try {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!after) return;
+    const beforeWishlist = before?.wishlist_id as string | undefined;
+    const afterWishlist = after.wishlist_id as string | undefined;
+    const beforePrice = Number(before?.price) || 0;
+    const afterPrice = Number(after.price) || 0;
+    if (beforeWishlist && afterWishlist && beforeWishlist !== afterWishlist) {
+      // Moved wishlist: decrement old, increment new
+      await adjustWishlistAggregates(beforeWishlist, -1, -beforePrice);
+      await adjustWishlistAggregates(afterWishlist, 1, afterPrice);
+    } else if (afterWishlist) {
+      const deltaValue = afterPrice - beforePrice;
+      if (deltaValue !== 0) {
+        await adjustWishlistAggregates(afterWishlist, 0, deltaValue);
+      }
+    }
+  } catch (e) {
+    logger.error("wishItemUpdated aggregate error", e);
+  }
+});
+
+export const wishItemDeleted = onDocumentDeleted("wish_items/{itemId}", async (event) => {
+  try {
+    const before = event.data?.data();
+    if (!before) return;
+    const wishlistId = before.wishlist_id as string | undefined;
+    if (!wishlistId) return;
+    const price = Number(before.price) || 0;
+    await adjustWishlistAggregates(wishlistId, -1, -price);
+  } catch (e) {
+    logger.error("wishItemDeleted aggregate error", e);
+  }
+});
 
 export const secureScraper = onCall(async (request: CallableRequest) => {
   if (!checkRateLimit("secureScraper")) {

@@ -19,22 +19,38 @@ class StatsRepository {
 
   Future<({int wishlists, int items, int shared})> loadUserStats(String userId) async => _withLatency('loadUserStats', () async {
     try {
-      final wishlistsSnap = await _firestore
-          .collection('wishlists')
-          .where('user_id', isEqualTo: userId)
-          .get();
+    // Correct field name is owner_id (was user_id in legacy code)
+    final wishlistsSnap = await _firestore
+      .collection('wishlists')
+      .where('owner_id', isEqualTo: userId)
+      .get();
       final wishlists = wishlistsSnap.docs;
       int itemsCount = 0;
       int shared = 0;
       if (wishlists.isNotEmpty) {
-  // Iterate wishlists and aggregate counts
+        // Efficient aggregation: rely on optional item_count field if present to avoid N queries.
+        // Fallback: count items with a lightweight aggregate query if item_count missing.
+        final List<String> missingItemCount = [];
         for (final w in wishlists) {
-          if ((w.data()['is_public'] as bool?) == true) shared++;
-          final itemsSnap = await _firestore
-              .collection('wish_items')
-              .where('wishlist_id', isEqualTo: w.id)
-              .get();
-          itemsCount += itemsSnap.size;
+          final data = w.data();
+          final isPrivate = (data['is_private'] as bool?) ?? false;
+          if (!isPrivate) shared++;
+          final ic = (data['item_count'] as num?)?.toInt();
+          if (ic != null) {
+            itemsCount += ic;
+          } else {
+            missingItemCount.add(w.id);
+          }
+        }
+        // Fallback counting for wishlists without pre-aggregated item_count (batched sequential). Could be optimized later.
+        for (final wid in missingItemCount) {
+          final cntSnap = await _firestore.collection('wish_items').where('wishlist_id', isEqualTo: wid).count().get();
+          final c = (cntSnap.count ?? 0).toInt();
+          itemsCount += c;
+          // Optionally persist back item_count for future fast loads
+          try {
+            await _firestore.collection('wishlists').doc(wid).update({'item_count': cntSnap.count});
+          } catch (_) {}
         }
       }
       return (wishlists: wishlists.length, items: itemsCount, shared: shared);
