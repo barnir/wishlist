@@ -18,6 +18,9 @@ import 'package:wishlist_app/services/notification_service.dart';
 import 'package:wishlist_app/services/image_prefetch_service.dart';
 import 'package:wishlist_app/firebase_background_handler.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:wishlist_app/services/analytics/analytics_service.dart';
+import 'package:wishlist_app/services/analytics/firebase_analytics_provider.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -65,6 +68,14 @@ void main() async {
 
   // Initialize notification service
   await NotificationService().initialize();
+
+  // Configure analytics provider
+  AnalyticsService().configure(FirebaseAnalyticsProvider(analytics: FirebaseAnalytics.instance));
+  // Identify current user if already authenticated (cold start with persisted session)
+  final existingUser = firebase_auth.FirebaseAuth.instance.currentUser;
+  if (existingUser != null) {
+    await AnalyticsService().identify(existingUser.uid);
+  }
 
   runApp(const MyApp());
 }

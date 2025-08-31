@@ -8,16 +8,9 @@ import 'package:wishlist_app/services/firebase_functions_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/notification_service.dart';
 import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:wishlist_app/services/analytics/analytics_service.dart';
 
-enum GoogleSignInResult {
-  success,
-  missingPhoneNumber,
-      final cred = await _firebaseAuthService.signInWithEmailAndPassword(email, password);
-      await AnalyticsService().identify(cred.user?.uid);
-      await AnalyticsService().log('login', properties: {'method': 'password'});
-      return cred;
-  failed,
-}
+enum GoogleSignInResult { success, missingPhoneNumber, cancelled, failed }
 
 /// Firebase-only Auth Service
 /// Firebase for Auth, Database, and Cloud Functions, Cloudinary for Images
@@ -25,15 +18,11 @@ class AuthService {
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
   final UserProfileRepository _userProfileRepo = UserProfileRepository();
   final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
-      await _validatePassword(password);
   final CloudinaryService _cloudinaryService = CloudinaryService();
 
   Stream<firebase_auth.User?> get authStateChanges => _firebaseAuthService.authStateChanges;
 
-      final cred = await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);
-      await AnalyticsService().identify(cred.user?.uid);
-      await AnalyticsService().log('signup', properties: {'method': 'password'});
-      return cred;
+  firebase_auth.User? get currentUser => _firebaseAuthService.currentUser;
 
   /// Helper method to get current Firebase user ID (for other services)
   static String? getCurrentUserId() {
@@ -43,20 +32,20 @@ class AuthService {
   /// Email/Password Sign-In (Firebase)
   Future<firebase_auth.UserCredential> signInWithEmailAndPassword(String email, String password) async {
     try {
-      await _firebaseAuthService.signOut();
-      await AnalyticsService().identify(null);
-      await AnalyticsService().log('logout');
-      return await _firebaseAuthService.signInWithEmailAndPassword(email, password);
+      logI('Email Sign-In', tag: 'AUTH');
+      final cred = await _firebaseAuthService.signInWithEmailAndPassword(email, password);
+      await AnalyticsService().identify(cred.user?.uid);
+      await AnalyticsService().log('login', properties: {'method': 'password'});
+      return cred;
     } catch (e) {
-  logE('Email sign-in error', tag: 'AUTH', error: e);
+      logE('Email sign-in error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
 
   Future<void> _validatePassword(String password) async {
     if (password.length < 6) {
-      logI('Registration cancelled successfully', tag: 'AUTH');
-      await AnalyticsService().log('registration_cancelled');
+      throw Exception('A senha deve ter no mínimo 6 caracteres.');
     }
     if (!password.contains(RegExp(r'[a-z]'))) {
       throw Exception('A senha deve conter pelo menos uma letra minúscula.');
@@ -78,35 +67,34 @@ class AuthService {
 
   Future<firebase_auth.UserCredential> createUserWithEmailAndPassword(String email, String password, String displayName) async {
     try {
-  logI('Email Registration', tag: 'AUTH');
+      logI('Email Registration', tag: 'AUTH');
       await _validatePassword(password);
-      
       if (!_isValidEmail(email)) {
         throw Exception('Formato de email inválido.');
       }
-      
-      return await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);
+      final cred = await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);
+      await AnalyticsService().identify(cred.user?.uid);
+      await AnalyticsService().log('signup', properties: {'method': 'password'});
+      return cred;
     } catch (e) {
-  logE('Email registration error', tag: 'AUTH', error: e);
+      logE('Email registration error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
 
   Future<void> signOut() async {
     try {
-  logI('Sign Out', tag: 'AUTH');
-      
+      logI('Sign Out', tag: 'AUTH');
       final userId = currentUser?.uid;
       if (userId != null) {
-  await _userProfileRepo.update(userId, {'fcm_token': null});
+        await _userProfileRepo.update(userId, {'fcm_token': null});
         await NotificationService().unsubscribeFromUserTopic(userId);
-      await AnalyticsService().identify(user.uid);
-      await AnalyticsService().log('login', properties: {'method': 'google'});
       }
-      
       await _firebaseAuthService.signOut();
+      await AnalyticsService().identify(null);
+      await AnalyticsService().log('logout');
     } catch (e) {
-  logE('Sign out error', tag: 'AUTH', error: e);
+      logE('Sign out error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -119,18 +107,13 @@ class AuthService {
   /// Cancel registration - sign out and clear all stored data
   Future<void> cancelRegistration() async {
     try {
-  logI('Cancel Registration', tag: 'AUTH');
-      
-      // Clear stored data first
+      logI('Cancel Registration', tag: 'AUTH');
       await _firebaseAuthService.clearAllStoredData();
-      
-      await AnalyticsService().log('link_email');
-      // Then sign out
       await signOut();
-      
-  logI('Registration cancelled successfully', tag: 'AUTH');
+      logI('Registration cancelled successfully', tag: 'AUTH');
+      await AnalyticsService().log('registration_cancelled');
     } catch (e) {
-  logE('Cancel registration error', tag: 'AUTH', error: e);
+      logE('Cancel registration error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -164,13 +147,12 @@ class AuthService {
         return GoogleSignInResult.failed;
       }
       
-    final profile = await _userProfileRepo.fetchById(user.uid);
-    if (profile == null || 
-      profile.phoneNumber == null || 
-      profile.phoneNumber!.isEmpty) {
+      final profile = await _userProfileRepo.fetchById(user.uid);
+      if (profile == null || profile.phoneNumber == null || profile.phoneNumber!.isEmpty) {
         return GoogleSignInResult.missingPhoneNumber;
       }
-        await AnalyticsService().log('profile_photo_updated');
+      await AnalyticsService().identify(user.uid);
+      await AnalyticsService().log('login', properties: {'method': 'google'});
       
       await _updateFCMTokenOnSignIn(user.uid);
       return GoogleSignInResult.success;
@@ -201,7 +183,7 @@ class AuthService {
       rethrow;
     }
   }
-        await AnalyticsService().log('profile_name_updated');
+  
 
   Future<firebase_auth.UserCredential?> verifyPhoneOtp(String phoneNumber, String otp) async {
     try {
@@ -229,6 +211,7 @@ class AuthService {
       
       await user.linkWithCredential(credential);
   await _userProfileRepo.update(user.uid, {'email': email});
+  await AnalyticsService().log('link_email');
     } catch (e) {
   logE('Link email/password error', tag: 'AUTH', error: e);
       rethrow;
