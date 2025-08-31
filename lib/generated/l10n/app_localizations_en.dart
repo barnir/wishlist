@@ -719,6 +719,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryLabel => 'Category';
 
   @override
+  String get categoryLivro => 'Book';
+
+  @override
+  String get categoryEletronico => 'Electronics';
+
+  @override
+  String get categoryViagem => 'Travel';
+
+  @override
+  String get categoryModa => 'Fashion';
+
+  @override
+  String get categoryCasa => 'Home';
+
+  @override
+  String get categoryOutros => 'Other';
+
+  @override
+  String get categoryBeleza => 'Beauty';
+
+  @override
+  String get categorySaudeFitness => 'Health & Fitness';
+
+  @override
+  String get categoryBrinquedos => 'Toys';
+
+  @override
+  String get categoryGourmet => 'Gourmet';
+
+  @override
+  String get categoryGaming => 'Gaming';
+
+  @override
+  String get categoryMusica => 'Music';
+
+  @override
+  String get categoryArteDIY => 'Art & DIY';
+
+  @override
+  String get categoryFotografia => 'Photography';
+
+  @override
+  String get categoryEducacao => 'Education';
+
+  @override
+  String get categoryJardim => 'Garden';
+
+  @override
+  String get categoryBebe => 'Baby';
+
+  @override
+  String get categoryExperiencia => 'Experience';
+
+  @override
+  String get categoryEco => 'Eco';
+
+  @override
+  String get categoryPet => 'Pet';
+
+  @override
   String get itemDescriptionLabel => 'Description';
 
   @override

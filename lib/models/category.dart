@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
 /// Domain category with icon mapping.
 /// Names are persisted as strings in Firestore so existing labels MUST remain stable.
@@ -17,6 +18,36 @@ class Category {
       (c) => c.name == name || (c.alias != null && c.alias == name),
       orElse: () => const Category(name: 'Outros', icon: Icons.more_horiz),
     );
+  }
+
+  /// Returns a localized label for UI given the stored category name.
+  /// Falls back to the original stored `name` if no translation key exists.
+  static String localizedLabel(String storedName, AppLocalizations? l10n) {
+    if (l10n == null) return storedName;
+    // Map storage name to translation getter suffix
+    final map = <String, String>{
+      'Livro': l10n.categoryLivro,
+      'Eletrónico': l10n.categoryEletronico,
+      'Viagem': l10n.categoryViagem,
+      'Moda': l10n.categoryModa,
+      'Casa': l10n.categoryCasa,
+      'Outros': l10n.categoryOutros,
+      'Beleza': l10n.categoryBeleza,
+      'Saúde & Fitness': l10n.categorySaudeFitness,
+      'Brinquedos': l10n.categoryBrinquedos,
+      'Gourmet': l10n.categoryGourmet,
+      'Gaming': l10n.categoryGaming,
+      'Música': l10n.categoryMusica,
+      'Arte & DIY': l10n.categoryArteDIY,
+      'Fotografia': l10n.categoryFotografia,
+      'Educação': l10n.categoryEducacao,
+      'Jardim': l10n.categoryJardim,
+      'Bebé': l10n.categoryBebe,
+      'Experiência': l10n.categoryExperiencia,
+      'Eco': l10n.categoryEco,
+      'Pet': l10n.categoryPet,
+    };
+    return map[storedName] ?? storedName;
   }
 }
 

@@ -1436,6 +1436,126 @@ abstract class AppLocalizations {
   /// **'Category'**
   String get categoryLabel;
 
+  /// Category: Book
+  ///
+  /// In en, this message translates to:
+  /// **'Book'**
+  String get categoryLivro;
+
+  /// Category: Electronics
+  ///
+  /// In en, this message translates to:
+  /// **'Electronics'**
+  String get categoryEletronico;
+
+  /// Category: Travel
+  ///
+  /// In en, this message translates to:
+  /// **'Travel'**
+  String get categoryViagem;
+
+  /// Category: Fashion
+  ///
+  /// In en, this message translates to:
+  /// **'Fashion'**
+  String get categoryModa;
+
+  /// Category: Home
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get categoryCasa;
+
+  /// Category: Other (fallback)
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get categoryOutros;
+
+  /// Category: Beauty
+  ///
+  /// In en, this message translates to:
+  /// **'Beauty'**
+  String get categoryBeleza;
+
+  /// Category: Health & Fitness
+  ///
+  /// In en, this message translates to:
+  /// **'Health & Fitness'**
+  String get categorySaudeFitness;
+
+  /// Category: Toys
+  ///
+  /// In en, this message translates to:
+  /// **'Toys'**
+  String get categoryBrinquedos;
+
+  /// Category: Gourmet / Cooking
+  ///
+  /// In en, this message translates to:
+  /// **'Gourmet'**
+  String get categoryGourmet;
+
+  /// Category: Gaming
+  ///
+  /// In en, this message translates to:
+  /// **'Gaming'**
+  String get categoryGaming;
+
+  /// Category: Music
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get categoryMusica;
+
+  /// Category: Art & DIY
+  ///
+  /// In en, this message translates to:
+  /// **'Art & DIY'**
+  String get categoryArteDIY;
+
+  /// Category: Photography
+  ///
+  /// In en, this message translates to:
+  /// **'Photography'**
+  String get categoryFotografia;
+
+  /// Category: Education
+  ///
+  /// In en, this message translates to:
+  /// **'Education'**
+  String get categoryEducacao;
+
+  /// Category: Garden
+  ///
+  /// In en, this message translates to:
+  /// **'Garden'**
+  String get categoryJardim;
+
+  /// Category: Baby
+  ///
+  /// In en, this message translates to:
+  /// **'Baby'**
+  String get categoryBebe;
+
+  /// Category: Experience
+  ///
+  /// In en, this message translates to:
+  /// **'Experience'**
+  String get categoryExperiencia;
+
+  /// Category: Eco / Sustainable
+  ///
+  /// In en, this message translates to:
+  /// **'Eco'**
+  String get categoryEco;
+
+  /// Category: Pet / Animals
+  ///
+  /// In en, this message translates to:
+  /// **'Pet'**
+  String get categoryPet;
+
   /// Label for item description field
   ///
   /// In en, this message translates to:
