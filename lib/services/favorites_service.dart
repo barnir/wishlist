@@ -1,13 +1,14 @@
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart'; // still used for favorites but legacy search removed
 import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/repositories/favorites_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Service for managing user favorites system.
 /// 
 /// Simple unidirectional system where users can mark other users as favorites
 /// without approval process. Replaces the complex friendship system.
 class FavoritesService {
-  final _database = FirebaseDatabaseService();
+  final FavoritesRepository _favoritesRepo = FavoritesRepository();
 
   // ============================================================================
   // CRUD OPERATIONS
@@ -16,7 +17,9 @@ class FavoritesService {
   /// Add a user to favorites
   Future<bool> addFavorite(String favoriteUserId) async {
     try {
-      await _database.addFavorite(favoriteUserId);
+  final currentUserId = AuthService.getCurrentUserId();
+  if (currentUserId == null) throw Exception('User not authenticated');
+  await _favoritesRepo.add(currentUserId, favoriteUserId);
       return true;
     } catch (e) {
       MonitoringService.logErrorStatic('add_favorite', e, stackTrace: StackTrace.current);
@@ -40,7 +43,9 @@ class FavoritesService {
   /// Remove a user from favorites
   Future<bool> removeFavorite(String favoriteUserId) async {
     try {
-      await _database.removeFavorite(favoriteUserId);
+  final currentUserId = AuthService.getCurrentUserId();
+  if (currentUserId == null) throw Exception('User not authenticated');
+  await _favoritesRepo.remove(currentUserId, favoriteUserId);
       return true;
     } catch (e) {
       MonitoringService.logErrorStatic('remove_favorite', e, stackTrace: StackTrace.current);
@@ -51,7 +56,9 @@ class FavoritesService {
   /// Check if a user is in favorites
   Future<bool> isFavorite(String userId) async {
     try {
-      return await _database.isFavorite(userId);
+  final currentUserId = AuthService.getCurrentUserId();
+  if (currentUserId == null) return false;
+  return await _favoritesRepo.isFavorite(currentUserId, userId);
     } catch (e) {
       MonitoringService.logErrorStatic('is_favorite', e, stackTrace: StackTrace.current);
       return false;
@@ -65,7 +72,23 @@ class FavoritesService {
   /// Get all favorites for current user with profile data
   Future<List<Map<String, dynamic>>> getFavorites() async {
     try {
-      return await _database.getFavorites();
+      final currentUserId = AuthService.getCurrentUserId();
+      if (currentUserId == null) return [];
+      final ids = await _favoritesRepo.listIds(currentUserId);
+      // Batch fetch profiles (respect whereIn 10 limit)
+      final profiles = <Map<String, dynamic>>[];
+      const batch = 10;
+      for (int i = 0; i < ids.length; i += batch) {
+        final slice = ids.skip(i).take(batch).toList();
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: slice)
+            .get();
+        for (final doc in snap.docs) {
+          profiles.add({'id': doc.id, ...doc.data()});
+        }
+      }
+      return profiles;
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorites', e, stackTrace: StackTrace.current);
       return [];
@@ -78,7 +101,12 @@ class FavoritesService {
     int offset = 0,
   }) async {
     try {
-      return await _database.getFavoritesPaginated(limit: limit, offset: offset);
+  // Offset-based pagination replaced by cursor in repos; emulate simple slicing
+  final all = await getFavorites();
+  final start = offset;
+  final end = (offset + limit).clamp(0, all.length);
+  if (start >= all.length) return [];
+  return all.sublist(start, end);
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorites_paginated', e, stackTrace: StackTrace.current);
       return [];
@@ -115,8 +143,21 @@ class FavoritesService {
       if (cleanedNumbers.isEmpty) return [];
 
       // Usar o novo método do FirebaseDatabaseService para buscar utilizadores por números de telefone
-      final databaseService = FirebaseDatabaseService();
-      return databaseService.getUsersByPhoneNumbers(cleanedNumbers);
+      // Query users by phone numbers (batched whereIn)
+      final results = <Map<String, dynamic>>[];
+      const batchSize = 10;
+      for (int i = 0; i < cleanedNumbers.length; i += batchSize) {
+        final slice = cleanedNumbers.skip(i).take(batchSize).toList();
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where('phone_number', whereIn: slice)
+            .where('is_private', isEqualTo: false)
+            .get();
+        for (final doc in snap.docs) {
+          results.add({'id': doc.id, ...doc.data()});
+        }
+      }
+      return results;
     } catch (e) {
       MonitoringService.logErrorStatic('get_contacts_with_accounts', e, stackTrace: StackTrace.current);
       return [];
@@ -140,7 +181,13 @@ class FavoritesService {
       }
 
       // Get only public wishlists using the method from FirebaseDatabaseService
-      return await _database.getPublicWishlistsForUser(favoriteUserId);
+    // Fetch public wishlists for given user
+    final snap = await FirebaseFirestore.instance
+      .collection('wishlists')
+      .where('owner_id', isEqualTo: favoriteUserId)
+      .where('is_private', isEqualTo: false)
+      .get();
+    return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorite_wishlists', e, stackTrace: StackTrace.current);
       return [];
@@ -170,8 +217,10 @@ class FavoritesService {
   /// Get count of favorites for current user
   Future<int> getFavoritesCount() async {
     try {
-      final favorites = await getFavorites();
-      return favorites.length;
+  final currentUserId = AuthService.getCurrentUserId();
+  if (currentUserId == null) return 0;
+  final ids = await _favoritesRepo.listIds(currentUserId);
+  return ids.length;
     } catch (e) {
       MonitoringService.logErrorStatic('get_favorites_count', e, stackTrace: StackTrace.current);
       return 0;
@@ -193,7 +242,7 @@ class FavoritesService {
       int successCount = 0;
       for (final userId in validUserIds) {
         try {
-          await addFavorite(userId);
+          await addFavorite(userId); // uses repository internally
           successCount++;
         } catch (e) {
           // Continue with next user if one fails

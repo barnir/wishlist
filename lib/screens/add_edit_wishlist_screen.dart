@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 // Migrated from legacy FirebaseDatabaseService to WishlistRepository
 import 'package:wishlist_app/repositories/wishlist_repository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
@@ -103,29 +102,30 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
       }
 
       if (widget.wishlistId == null) {
-        // CREATE FLOW
-        // 1. Create wishlist without image (so we get Firestore ID)
-        // Direct create via Firestore to obtain ID then update (repository lacks create helper yet)
-        final docRef = FirebaseFirestore.instance.collection('wishlists').doc();
-        final newId = docRef.id;
-        await docRef.set({
-          'name': ValidationUtils.sanitizeTextInput(_nameController.text),
-          'is_private': _isPrivate,
-          'image_url': null,
-          'owner_id': _authService.currentUser?.uid,
-          'created_at': FieldValue.serverTimestamp(),
-        });
+        // CREATE FLOW via repository
+        final name = ValidationUtils.sanitizeTextInput(_nameController.text);
+        final ownerId = _authService.currentUser?.uid;
+        if (ownerId == null) throw Exception('Utilizador não autenticado');
 
-        // 2. If we have a new image, upload it then update wishlist
+        // Create wishlist first without image to get ID
+        final newId = await _wishlistRepo.create(
+          name: name,
+          ownerId: ownerId,
+          isPrivate: _isPrivate,
+          imageUrl: null,
+        );
+        if (newId == null) throw Exception('Falha ao criar wishlist');
+
+        // Upload image if selected then update
         if (tempFileForUpload != null) {
           try {
             uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(
-              tempFileForUpload, 
+              tempFileForUpload,
               newId,
-              oldImageUrl: null, // New wishlist, no old image
+              oldImageUrl: null,
             );
             if (uploadedImageUrl != null) {
-              await docRef.update({'image_url': uploadedImageUrl});
+              await _wishlistRepo.update(newId, {'image_url': uploadedImageUrl});
               _existingImageUrl = uploadedImageUrl;
               await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
               setState(() {
@@ -160,11 +160,10 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
             }
         }
 
-        await FirebaseFirestore.instance.collection('wishlists').doc(id).update({
+        await _wishlistRepo.update(id, {
           'name': ValidationUtils.sanitizeTextInput(_nameController.text),
           'is_private': _isPrivate,
           'image_url': uploadedImageUrl ?? _existingImageUrl,
-          'updated_at': FieldValue.serverTimestamp(),
         });
 
         if (uploadedImageUrl != null) {

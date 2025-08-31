@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 // Migrated from legacy FirebaseDatabaseService to repositories
 import 'package:wishlist_app/repositories/wish_item_repository.dart';
 import 'package:wishlist_app/repositories/wishlist_repository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/models/wishlist.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
@@ -249,16 +248,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     });
     try {
       final userId = AuthService.getCurrentUserId()!;
-      final doc = FirebaseFirestore.instance.collection('wishlists').doc();
-      final id = doc.id;
-    final name = _newWishlistNameController.text.trim();
-    await doc.set({
-        'name': _newWishlistNameController.text.trim(),
-        'is_private': false,
-        'image_url': null,
-        'owner_id': userId,
-        'created_at': FieldValue.serverTimestamp(),
-      });
+      final name = _newWishlistNameController.text.trim();
+      final id = await _wishlistRepo.create(
+        name: name,
+        ownerId: userId,
+        isPrivate: false,
+        imageUrl: null,
+      );
+      if (id == null) throw Exception('Falha ao criar wishlist');
       _newWishlistNameController.clear();
       setState(() {
         _wishlists.insert(0, Wishlist(

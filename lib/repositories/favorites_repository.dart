@@ -26,6 +26,76 @@ class FavoritesRepository {
 
   String? get _currentUserId => _auth.currentUser?.uid;
 
+  // ---------------------------------------------------------------------------
+  // Basic operations (add, remove, check, list)
+  // ---------------------------------------------------------------------------
+
+  Future<void> add(String userId, String favoriteUserId) async => _withLatency('add', () async {
+        if (userId == favoriteUserId) {
+          throw Exception('Cannot favorite yourself');
+        }
+
+        // Ensure target user exists and is not private
+        final targetDoc = await _firestore.collection('users').doc(favoriteUserId).get();
+        if (!targetDoc.exists) {
+          throw Exception('User not found');
+        }
+        final data = targetDoc.data();
+        if (data == null || (data['is_private'] as bool? ?? false)) {
+          throw Exception('Cannot favorite private users');
+        }
+
+        // Check if already favorited
+        final existing = await _firestore
+            .collection('user_favorites')
+            .where('user_id', isEqualTo: userId)
+            .where('favorite_user_id', isEqualTo: favoriteUserId)
+            .limit(1)
+            .get();
+        if (existing.docs.isNotEmpty) {
+          return; // idempotent
+        }
+
+        await _firestore.collection('user_favorites').add({
+          'user_id': userId,
+          'favorite_user_id': favoriteUserId,
+          'created_at': FieldValue.serverTimestamp(),
+        });
+      });
+
+  Future<void> remove(String userId, String favoriteUserId) async => _withLatency('remove', () async {
+        final existing = await _firestore
+            .collection('user_favorites')
+            .where('user_id', isEqualTo: userId)
+            .where('favorite_user_id', isEqualTo: favoriteUserId)
+            .limit(1)
+            .get();
+        if (existing.docs.isEmpty) return; // nothing to remove
+        await _firestore.collection('user_favorites').doc(existing.docs.first.id).delete();
+      });
+
+  Future<bool> isFavorite(String userId, String favoriteUserId) async => _withLatency('isFavorite', () async {
+        final snap = await _firestore
+            .collection('user_favorites')
+            .where('user_id', isEqualTo: userId)
+            .where('favorite_user_id', isEqualTo: favoriteUserId)
+            .limit(1)
+            .get();
+        return snap.docs.isNotEmpty;
+      });
+
+  Future<List<String>> listIds(String userId) async => _withLatency('listIds', () async {
+        final snap = await _firestore
+            .collection('user_favorites')
+            .where('user_id', isEqualTo: userId)
+            .orderBy('created_at', descending: true)
+            .get();
+        return snap.docs
+            .map((d) => d.data()['favorite_user_id'] as String?)
+            .whereType<String>()
+            .toList();
+      });
+
   Future<PageResult<UserFavoriteWithProfile>> fetchPage({
     int limit = 20,
     DocumentSnapshot? startAfter,
