@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:wishlist_app/widgets/accessible_icon_button.dart';
 import '../theme_extensions.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/services/image_cache_service.dart';
@@ -155,49 +156,37 @@ class WishItemTile extends StatelessWidget {
                           children: [
                             // Link button
                             if (item.link != null && item.link!.isNotEmpty)
-                              IconButton(
-                                icon: Icon(
-                                  Icons.open_in_new,
-                                  size: 20,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                onPressed: () => _openLink(item.link!),
+                              AccessibleIconButton(
+                                icon: Icons.open_in_new,
+                                color: Theme.of(context).colorScheme.primary,
+                                semanticLabel: 'Abrir link do item',
                                 tooltip: 'Abrir link',
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                padding: EdgeInsets.zero,
+                                onPressed: () => _openLink(item.link!),
                               ),
                             
                             // Edit button
                             if (onEdit != null)
-                              IconButton(
-                                icon: Icon(
-                                  Icons.edit_outlined,
-                                  size: 20,
-                                  color: Theme.of(context).colorScheme.outline,
-                                ),
+                              AccessibleIconButton(
+                                icon: Icons.edit_outlined,
+                                color: Theme.of(context).colorScheme.outline,
+                                semanticLabel: 'Editar item',
+                                tooltip: 'Editar',
                                 onPressed: () {
                                   HapticService.lightImpact();
                                   onEdit!();
                                 },
-                                tooltip: 'Editar',
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                padding: EdgeInsets.zero,
                               ),
                             
                             // Delete button
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                size: 20,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
+                            AccessibleIconButton(
+                              icon: Icons.delete_outline,
+                              color: Theme.of(context).colorScheme.error,
+                              semanticLabel: 'Eliminar item',
+                              tooltip: 'Eliminar',
                               onPressed: () {
                                 HapticService.mediumImpact();
                                 onDelete();
                               },
-                              tooltip: 'Eliminar',
-                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                              padding: EdgeInsets.zero,
                             ),
                           ],
                         ),
