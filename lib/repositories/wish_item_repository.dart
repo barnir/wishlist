@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:wishlist_app/models/wish_item.dart';
 import 'package:wishlist_app/models/sort_options.dart';
 import 'package:wishlist_app/repositories/page.dart';
@@ -8,6 +9,31 @@ import 'package:wishlist_app/utils/app_logger.dart';
 class WishItemRepository {
   final FirebaseFirestore _firestore;
   WishItemRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  /// Executa até três tentativas hierárquicas capturando FirebaseException code=failed-precondition.
+  /// Usado para fallback de índices (composite → single → simple). Testável isoladamente.
+  @visibleForTesting
+  static Future<T> runWithFirestoreFallback<T>({
+    required Future<T> Function() primary,
+    required Future<T> Function() firstFallback,
+    required Future<T> Function() secondFallback,
+    void Function()? onPrimaryFailed,
+    void Function()? onFirstFallbackFailed,
+  }) async {
+    try {
+      return await primary();
+    } on FirebaseException catch (fe) {
+      if (fe.code != 'failed-precondition') rethrow;
+      onPrimaryFailed?.call();
+      try {
+        return await firstFallback();
+      } on FirebaseException catch (fe2) {
+        if (fe2.code != 'failed-precondition') rethrow;
+        onFirstFallbackFailed?.call();
+        return await secondFallback();
+      }
+    }
+  }
 
   Future<T> _withLatency<T>(String op, Future<T> Function() fn) async {
     final sw = Stopwatch()..start();
@@ -59,50 +85,38 @@ class WishItemRepository {
         queryWithOrdering = queryWithOrdering.startAfterDocument(startAfter);
       }
 
-      QuerySnapshot snap;
-      try {
-        // First attempt: full ordering (may require composite index)
-        snap = await queryWithOrdering.limit(limit).get();
-      } on FirebaseException catch (fe) {
-        if (fe.code == 'failed-precondition') {
-          // Likely missing composite index. Fallback to single ordering to avoid empty UI.
-          logW('Missing Firestore composite index for wish_items. Falling back to single order. Create index for better sorting.',
+  final QuerySnapshot snap = await WishItemRepository.runWithFirestoreFallback<QuerySnapshot>(
+        primary: () => queryWithOrdering.limit(limit).get(),
+        firstFallback: () async {
+          logW('Missing Firestore composite index for wish_items. Falling back to single order.',
               tag: 'DB',
               data: {
                 'wishlistId': wishlistId,
                 'orderField': orderField,
                 'categoryFilter': category,
-                'hint': 'Add composite: where wishlist_id ==, category == (optional) orderBy $orderField & created_at'
+                'hint': 'Add composite index: wishlist_id + category(optional) orderBy $orderField & created_at'
               });
-          try {
-            // First fallback attempt: only order by primary field (no tie-breaker)
-            var fallbackQuery = baseQuery.orderBy(orderField, descending: descending);
+          var fallbackQuery = baseQuery.orderBy(orderField, descending: descending);
             if (startAfter != null) {
               fallbackQuery = fallbackQuery.startAfterDocument(startAfter);
             }
-            snap = await fallbackQuery.limit(limit).get();
-          } on FirebaseException catch (fe2) {
-            if (fe2.code == 'failed-precondition') {
-              // Even simpler fallback: no ordering (client-side sort later)
-              logW('Second-level index fallback (no orderBy) engaged', tag: 'DB', data: {
-                'wishlistId': wishlistId,
-                'orderField': orderField,
-                'categoryFilter': category,
-              });
-              var simpleFallback = baseQuery;
-              if (startAfter != null) {
-                // Without ordering we can't use startAfterDocument reliably
-                logW('Ignoring startAfter due to no-order fallback', tag: 'DB');
-              }
-              snap = await simpleFallback.limit(limit).get();
-            } else {
-              rethrow;
-            }
+          return fallbackQuery.limit(limit).get();
+        },
+        secondFallback: () async {
+          logW('Second-level index fallback (no orderBy) engaged', tag: 'DB', data: {
+            'wishlistId': wishlistId,
+            'orderField': orderField,
+            'categoryFilter': category,
+          });
+          var simpleFallback = baseQuery;
+          if (startAfter != null) {
+            logW('Ignoring startAfter due to no-order fallback', tag: 'DB');
           }
-        } else {
-          rethrow; // different issue
-        }
-      }
+          return simpleFallback.limit(limit).get();
+        },
+        onPrimaryFailed: () {},
+        onFirstFallbackFailed: () {},
+      );
 
       var docs = snap.docs;
       var items = docs.map((d) {

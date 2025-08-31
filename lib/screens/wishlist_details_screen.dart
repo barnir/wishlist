@@ -339,9 +339,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               padding: UIConstants.listPadding,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 12,
+                mainAxisSpacing: 6, // reduzido para maior densidade
                 crossAxisSpacing: 12,
-                childAspectRatio: 0.68,
+                childAspectRatio: 0.74, // ligeiramente mais compacto vertical
               ),
               itemCount: _items.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
@@ -357,13 +357,15 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   Widget _buildCompactRow(WishItem item) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    return InkWell(
+  return InkWell(
       onTap: () => _editItem(item),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Row(
+    child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+      _buildItemThumbnail(item),
+      const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,6 +410,43 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               onPressed: () => _showDeleteConfirmation(item),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemThumbnail(WishItem item) {
+    final size = 56.0;
+    if (item.imageUrl == null || item.imageUrl!.isEmpty) {
+      final cs = Theme.of(context).colorScheme;
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Icon(Icons.image_outlined, color: cs.onSurfaceVariant, size: 28),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: Image.network(
+          item.imageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            final cs = Theme.of(context).colorScheme;
+            return Container(
+              color: cs.surfaceContainerHighest,
+              alignment: Alignment.center,
+              child: Icon(Icons.broken_image_outlined, color: cs.onSurfaceVariant, size: 24),
+            );
+          },
         ),
       ),
     );

@@ -84,6 +84,10 @@ class NotificationService {
         onDidReceiveBackgroundNotificationResponse: _onBackgroundNotificationTap,
       );
 
+  // NOTE (v19 upgrade): If targeting Android 13+ and needing to proactively request
+  // POST_NOTIFICATIONS permission, delegate to FCMService.requestNotificationPermission()
+  // which already handles runtime permission via firebase_messaging.
+
       await _createNotificationChannels();
   logI('Local notifications initialized', tag: 'NOTIF');
     } catch (e) {

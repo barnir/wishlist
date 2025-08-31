@@ -326,16 +326,29 @@ class AuthService {
     try {
   logI('Reauthenticate with Google', tag: 'AUTH');
       
-      // Android-only Google reauthentication
-      final googleSignIn = GoogleSignIn();
-      final googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        throw Exception('A reautenticação com o Google foi cancelada.');
+      final gs = GoogleSignIn.instance;
+      try { await gs.initialize(); } catch (_) {}
+      GoogleSignInAccount? googleUser;
+      try {
+        if (gs.supportsAuthenticate()) {
+          googleUser = await gs.authenticate();
+        } else {
+          final attempt = gs.attemptLightweightAuthentication();
+          if (attempt is Future<GoogleSignInAccount?>) {
+            googleUser = await attempt;
+          }
+        }
+      } on GoogleSignInException catch (e) {
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          throw Exception('A reautenticação com o Google foi cancelada.');
+        }
+        rethrow;
       }
-      
-      final googleAuth = await googleUser.authentication;
+      if (googleUser == null) {
+        throw Exception('Falha ao obter usuário Google para reautenticação.');
+      }
+      final googleAuth = googleUser.authentication; // idToken only
       final credential = firebase_auth.GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       
