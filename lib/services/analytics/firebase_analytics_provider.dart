@@ -31,7 +31,7 @@ class FirebaseAnalyticsProvider implements AnalyticsProvider {
     // Firebase Analytics SDK batches automatically; no explicit flush.
   }
 
-  /// Normaliza propriedades removendo valores nulos e garantindo Map<String,Object>.
+  /// Normaliza propriedades removendo valores nulos e garantindo um mapa de chaves string para valores Object (tipagem genérica).
   @visibleForTesting
   static Map<String, Object> cleanParameters(Map<String, Object?> input) {
     final out = <String, Object>{};

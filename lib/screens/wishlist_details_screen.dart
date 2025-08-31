@@ -390,7 +390,13 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                 icon: const Icon(Icons.shopping_cart_outlined, size: 20),
                 onPressed: () async {
                   final uri = Uri.tryParse(item.link!);
-                  if (uri != null && await canLaunchUrl(uri)) {
+                  if (uri == null) {
+                    _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+                    return;
+                  }
+                  final can = await canLaunchUrl(uri);
+                  if (!mounted) return; // evita usar context após await se widget desmontado
+                  if (can) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   } else {
                     _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
@@ -416,7 +422,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   }
 
   Widget _buildItemThumbnail(WishItem item) {
-    final size = 56.0;
+    const size = 56.0;
     if (item.imageUrl == null || item.imageUrl!.isEmpty) {
       final cs = Theme.of(context).colorScheme;
       return Container(
@@ -439,7 +445,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
+          errorBuilder: (context, error, stack) {
             final cs = Theme.of(context).colorScheme;
             return Container(
               color: cs.surfaceContainerHighest,
