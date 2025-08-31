@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 
@@ -314,12 +315,14 @@ class AnimatedProfileImage extends StatefulWidget {
   final String? profileImageUrl;
   final bool isUploading;
   final VoidCallback onImageTap;
+  final String? localPreviewPath; // path do ficheiro local para preview imediato
 
   const AnimatedProfileImage({
     super.key,
     this.profileImageUrl,
     required this.isUploading,
     required this.onImageTap,
+    this.localPreviewPath,
   });
 
   @override
@@ -333,6 +336,8 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
   String? _currentImageUrl;
   String? _cachedImageUrlWithTimestamp;
   String? _newImageUrl;
+  ImageProvider? _preloadedNext;
+  ImageProvider? _localPreviewProvider;
 
   @override
   bool get wantKeepAlive => true;
@@ -341,7 +346,7 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 200), // mais rápido
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -350,6 +355,15 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
     _currentImageUrl = widget.profileImageUrl;
     _updateCachedUrl();
     _animationController.value = 1.0;
+    _initLocalPreview();
+  }
+
+  void _initLocalPreview() {
+    if (widget.localPreviewPath != null) {
+      try {
+        _localPreviewProvider = FileImage(File(widget.localPreviewPath!));
+      } catch (_) {}
+    }
   }
 
   void _updateCachedUrl() {
@@ -382,14 +396,35 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
     setState(() {
       _newImageUrl = newUrl;
     });
-    
-    _animationController.reverse().then((_) {
-      setState(() {
-        _currentImageUrl = _newImageUrl;
-        _updateCachedUrl();
+    _preloadedNext = CachedNetworkImageProvider(newUrl);
+    final stream = _preloadedNext!.resolve(const ImageConfiguration());
+    late ImageStreamListener l;
+  l = ImageStreamListener((_, imageChunk) {
+      stream.removeListener(l);
+      if (!mounted) return;
+      _animationController.reverse().then((_) {
+        if (!mounted) return;
+        setState(() {
+          _currentImageUrl = _newImageUrl;
+          _updateCachedUrl();
+          _preloadedNext = null;
+        });
+        _animationController.forward();
       });
-      _animationController.forward();
+  }, onError: (_, error) {
+      stream.removeListener(l);
+      if (!mounted) return;
+      _animationController.reverse().then((_) {
+        if (!mounted) return;
+        setState(() {
+          _currentImageUrl = _newImageUrl;
+          _updateCachedUrl();
+          _preloadedNext = null;
+        });
+        _animationController.forward();
+      });
     });
+    stream.addListener(l);
   }
 
   @override
@@ -410,29 +445,50 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
           AnimatedBuilder(
             animation: _fadeAnimation,
             builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  backgroundImage: _cachedImageUrlWithTimestamp != null
-                      ? CachedNetworkImageProvider(_cachedImageUrlWithTimestamp!)
-                      : null,
-                  child: _currentImageUrl == null && !widget.isUploading
-                      ? const Icon(
-                          Icons.person, 
-                          size: 40, 
-                          color: Colors.white,
-                        )
-                      : null,
+              final effectiveProvider = _localPreviewProvider ?? (_cachedImageUrlWithTimestamp != null
+                  ? CachedNetworkImageProvider(_cachedImageUrlWithTimestamp!)
+                  : null);
+              return ClipOval(
+                child: Stack(
+                  children: [
+                    Opacity(
+                      opacity: _fadeAnimation.value,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                        foregroundDecoration: widget.isUploading
+                            ? BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withValues(alpha: 0.25),
+                              )
+                            : null,
+                        child: effectiveProvider != null
+                            ? Ink.image(image: effectiveProvider, fit: BoxFit.cover)
+                            : Icon(Icons.person, size: 40, color: Colors.white.withValues(alpha: 0.9)),
+                      ),
+                    ),
+                    if (widget.isUploading)
+                      Positioned.fill(
+                        child: Center(
+                          child: SizedBox(
+                            width: 26,
+                            height: 26,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               );
             },
           ),
-          if (widget.isUploading)
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
           Positioned(
             bottom: 0,
             right: 0,

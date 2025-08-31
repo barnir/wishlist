@@ -168,13 +168,15 @@ class ProfileScreenState extends State<ProfileScreen> {
       });
 
       try {
-        await _authService.updateProfilePicture(tempFile);
-        // Force reload user data to get updated photo URL
-        await _loadProfileData();
-        
-        // Force clear cached image if exists
-        if (_profileImageUrl != null) {
-          await CachedNetworkImage.evictFromCache(_profileImageUrl!);
+        final newUrl = await _authService.updateProfilePicture(tempFile);
+        if (newUrl != null) {
+          // Evict old image from cache first so next build fetches new one
+          if (_profileImageUrl != null) {
+            await CachedNetworkImage.evictFromCache(_profileImageUrl!);
+          }
+          setState(() {
+            _profileImageUrl = newUrl;
+          });
         }
       } catch (e) {
         // Handle error

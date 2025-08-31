@@ -222,7 +222,9 @@ class AuthService {
     throw UnimplementedError('Linking Google is a complex operation that typically requires server-side logic for proper account merging.');
   }
 
-  Future<void> updateProfilePicture(File image) async {
+  /// Uploads a new profile picture and updates Firebase Auth + Firestore.
+  /// Returns the new image URL (or null if upload failed silently).
+  Future<String?> updateProfilePicture(File image) async {
     final user = currentUser;
     if (user == null) {
       throw Exception('Nenhum usuário logado para atualizar foto de perfil.');
@@ -262,6 +264,7 @@ class AuthService {
   logI('Profile photo URL saved to Firestore', tag: 'AUTH');
   logD('Old image scheduled for cleanup: $oldPhotoUrl', tag: 'AUTH');
       }
+      return imageUrl;
     } catch (e) {
   logE('Update profile picture error', tag: 'AUTH', error: e);
       rethrow;
