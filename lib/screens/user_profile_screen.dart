@@ -6,7 +6,8 @@ import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
-import '../services/firebase_database_service.dart';
+import '../services/firebase_database_service.dart'; // legacy for wishlists
+import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
@@ -22,6 +23,7 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final _databaseService = FirebaseDatabaseService();
+  final _userProfileRepo = UserProfileRepository();
   final _favoritesService = FavoritesService();
 
   Map<String, dynamic>? _userProfile;
@@ -38,13 +40,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadUserProfile() async {
     try {
-      final profile = await _databaseService.getUserProfile(widget.userId);
+      final profile = await _userProfileRepo.fetchById(widget.userId);
       if (mounted) {
         setState(() {
-          _userProfile = profile;
+          _userProfile = profile?.toMap();
           _isLoading = false;
         });
-  _trackProfileView();
+        _trackProfileView();
       }
     } catch (e) {
       if (mounted) {

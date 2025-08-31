@@ -7,6 +7,7 @@ import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/firebase_database_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -160,7 +161,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         }
       }
     } catch (e) {
-      debugPrint('Error checking contacts permission: $e');
+      logE('Contacts permission check error', tag: 'UI', error: e);
       if (mounted) {
         setState(() {
           _hasContactsPermission = false;
@@ -242,7 +243,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   Future<void> _loadContactsData() async {
     // Verificação dupla de segurança
     if (!_hasContactsPermission) {
-      debugPrint('Tentativa de carregar contactos sem permissão');
+      logW('Load contacts without permission attempt', tag: 'UI');
       return;
     }
 
@@ -251,7 +252,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         _isLoadingContacts = true;
       });
 
-      debugPrint('=== Iniciando carregamento de contactos ===');
+  logD('Start contacts load', tag: 'UI');
       
       // Verifica permissão novamente antes de prosseguir
       final stillHasPermission = await FlutterContacts.requestPermission(readonly: true);
@@ -271,11 +272,11 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         withPhoto: false, // Não precisamos de fotos para descoberta
       );
       
-      debugPrint('Carregados ${contacts.length} contactos');
+  logD('Contacts fetched', tag: 'UI', data: {'contacts': contacts.length});
       
       // Filtra contactos que têm números de telefone
       final contactsWithPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
-      debugPrint('${contactsWithPhones.length} contactos com números de telefone');
+  logD('Contacts with phones', tag: 'UI', data: {'withPhones': contactsWithPhones.length});
       
       // Por agora, todos os contactos vão para convites (implementação básica)
       // TODO: Implementar descoberta real de utilizadores na app
@@ -289,10 +290,10 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           _isLoadingContacts = false;
         });
         
-        debugPrint('Estado atualizado: ${friends.length} amigos, ${inviteContacts.length} para convidar');
+        logD('Contacts state updated', tag: 'UI', data: {'friends': friends.length, 'invite': inviteContacts.length});
       }
     } catch (e) {
-      debugPrint('Erro ao carregar contactos: $e');
+      logE('Error loading contacts', tag: 'UI', error: e);
       if (mounted) {
         setState(() {
           _isLoadingContacts = false;

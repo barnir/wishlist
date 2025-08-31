@@ -66,6 +66,8 @@ class UserFavoriteWithProfile extends UserFavorite {
   final String? displayName;
   final String? phoneNumber;
   final bool isPrivate;
+  final String? email;
+  final String? bio;
 
   UserFavoriteWithProfile({
     required super.id,
@@ -75,6 +77,8 @@ class UserFavoriteWithProfile extends UserFavorite {
     this.displayName,
     this.phoneNumber,
     this.isPrivate = false,
+  this.email,
+  this.bio,
   });
 
   factory UserFavoriteWithProfile.fromMap(Map<String, dynamic> map) {
@@ -97,6 +101,8 @@ class UserFavoriteWithProfile extends UserFavorite {
       displayName: map['display_name'] as String?,
       phoneNumber: map['phone_number'] as String?,
       isPrivate: map['is_private'] as bool? ?? false,
+  email: map['email'] as String?,
+  bio: map['bio'] as String?,
     );
   }
 
@@ -107,6 +113,8 @@ class UserFavoriteWithProfile extends UserFavorite {
       'display_name': displayName,
       'phone_number': phoneNumber,
       'is_private': isPrivate,
+  'email': email,
+  'bio': bio,
     });
     return map;
   }

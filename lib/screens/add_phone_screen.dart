@@ -4,6 +4,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/screens/otp_screen.dart';
 import '../widgets/app_snack.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 class AddPhoneScreen extends StatefulWidget {
   const AddPhoneScreen({super.key});
@@ -28,11 +29,12 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
   
   void _loadUserInfo() {
     final user = _authService.currentUser;
-    debugPrint('=== AddPhoneScreen Debug ===');
-    debugPrint('Current user: $user');
-    debugPrint('User email: ${user?.email}');
-    debugPrint('User display name: ${user?.displayName}');
-    debugPrint('User phone: ${user?.phoneNumber}');
+    logD('Init user snapshot', tag: 'UI', data: {
+      'uid': user?.uid,
+      'email': user?.email,
+      'displayName': user?.displayName,
+      'phone': user?.phoneNumber,
+    });
     
     // Check for invalid state: user with phone only (shouldn't happen)
     if (user != null && 
@@ -41,8 +43,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
         (user.email == null || user.email!.isEmpty) &&
         (user.displayName == null || user.displayName!.isEmpty)) {
       
-      debugPrint('⚠️ INVALID STATE: User authenticated with phone only - this should not happen!');
-      debugPrint('   - Signing out and redirecting to login');
+  logW('Invalid phone-only state; forcing sign out', tag: 'UI');
       _authService.signOut();
       if (mounted) {
   Navigator.of(context).pushReplacementNamed('/login');
@@ -58,7 +59,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
               ? user!.displayName!
               : 'Utilizador em processo de registo';
     });
-    debugPrint('Set _userEmail to: $_userEmail');
+  logD('Resolved userEmail', tag: 'UI', data: {'userEmail': _userEmail});
   }
 
   Future<void> _cancelRegistration() async {

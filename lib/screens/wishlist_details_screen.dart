@@ -5,7 +5,9 @@ import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart'; // retained for legacy calls (delete)
+import 'package:wishlist_app/repositories/wishlist_repository.dart';
+import 'package:wishlist_app/repositories/wish_item_repository.dart';
 import 'package:wishlist_app/widgets/swipe_action_widget.dart';
 import 'package:wishlist_app/widgets/safe_navigation_wrapper.dart';
 import 'package:wishlist_app/models/sort_options.dart';
@@ -27,7 +29,9 @@ class WishlistDetailsScreen extends StatefulWidget {
 }
 
 class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
-  final _databaseService = FirebaseDatabaseService();
+  final _databaseService = FirebaseDatabaseService(); // legacy usage (delete + misc)
+  final _wishlistRepo = WishlistRepository();
+  final _wishItemRepo = WishItemRepository();
   final _scrollController = ScrollController();
 
   String _wishlistName = 'Carregando...';
@@ -80,13 +84,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _loadWishlistDetails() async {
     try {
-      final wishlistData = await _databaseService.getWishlist(
-        widget.wishlistId,
-      );
-      if (mounted && wishlistData != null) {
+    final wishlist = await _wishlistRepo.fetchById(widget.wishlistId);
+    if (mounted && wishlist != null) {
         setState(() {
-          _wishlistName = wishlistData['name'] ?? (AppLocalizations.of(context)?.noName ?? 'Sem nome');
-          _isPrivate = wishlistData['is_private'] ?? false;
+      _wishlistName = wishlist.name;
+      _isPrivate = wishlist.isPrivate;
         });
       }
     } catch (e) {
@@ -122,28 +124,25 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     });
 
     try {
-  final pageResult = await _databaseService.getWishItemsPageCursor(
-        widget.wishlistId,
+      final page = await _wishItemRepo.fetchPage(
+        wishlistId: widget.wishlistId,
         limit: _pageSize,
         category: _selectedCategory,
-        sortOption: _sortOption,
+        sortOptions: _sortOption,
         startAfter: _lastDoc,
       );
-  final (pageItems, pageLastDoc) = pageResult;
-  final newItems = pageItems.map((m) => WishItem.fromMap(m)).toList();
+      final newItems = page.items;
 
       if (mounted) {
         setState(() {
-          _lastDoc = pageLastDoc;
-          if (newItems.length < _pageSize || pageLastDoc == null) {
-            _hasMoreData = false;
-          }
+          _lastDoc = page.lastDoc;
+          _hasMoreData = page.hasMore;
           _items.addAll(newItems);
           _isLoading = false;
         });
 
         // Precache first image of newly loaded first page for smoother UX
-        if (_items.length == newItems.length && newItems.isNotEmpty) {
+          if (_items.length == newItems.length && newItems.isNotEmpty) {
           final firstWithImage = newItems.firstWhere(
             (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
             orElse: () => newItems.first,
@@ -196,7 +195,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Future<void> _deleteItem(String itemId) async {
     try {
-      await _databaseService.deleteWishItemFromWishlist(widget.wishlistId, itemId);
+      // Use repository delete (legacy service kept for other flows if needed)
+      await _wishItemRepo.deleteItem(itemId);
       if (!mounted) return;
       _showSnackBar('Item eliminado com sucesso!');
       

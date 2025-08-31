@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 enum NotificationPermissionResult {
   granted,
@@ -20,31 +20,31 @@ class FCMService {
 
   Future<void> initialize() async {
     try {
-      debugPrint('=== FCMService: Initialize ===');
+      logI('Initialize', tag: 'FCM');
       
       // Código otimizado apenas para Android - verificação de plataforma removida
 
       final permissionResult = await _requestPermissions();
-      debugPrint('FCMService: Permission result: $permissionResult');
+  logD('Permission result', tag: 'FCM', data: {'result': permissionResult.name});
       
       if (permissionResult == NotificationPermissionResult.granted || 
           permissionResult == NotificationPermissionResult.provisional) {
         await _configureMessageHandling();
         await _getAndCacheToken();
         _setupTokenRefreshListener();
-        debugPrint('FCMService: Initialization completed successfully');
+        logI('Initialization completed', tag: 'FCM');
       } else {
-        debugPrint('FCMService: ⚠️ Notifications not permitted, limited functionality available');
+        logW('Notifications not permitted', tag: 'FCM');
       }
     } catch (e) {
-      debugPrint('FCMService initialization error: $e');
+      logE('Initialization error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_initialize', e);
     }
   }
 
   Future<NotificationPermissionResult> _requestPermissions() async {
     try {
-      debugPrint('FCMService: Requesting permissions');
+      logD('Requesting permissions', tag: 'FCM');
       
       final settings = await _messaging.requestPermission(
         alert: true,
@@ -56,27 +56,27 @@ class FCMService {
         sound: true,
       );
 
-      debugPrint('FCMService: Permission status: ${settings.authorizationStatus}');
+  logD('Permission status', tag: 'FCM', data: {'status': settings.authorizationStatus.name});
       
       switch (settings.authorizationStatus) {
         case AuthorizationStatus.authorized:
-          debugPrint('FCMService: ✅ Notifications permission granted');
+          logI('Permission granted', tag: 'FCM');
           return NotificationPermissionResult.granted;
           
         case AuthorizationStatus.denied:
-          debugPrint('FCMService: ❌ Notifications permission denied');
+          logW('Permission denied', tag: 'FCM');
           return NotificationPermissionResult.denied;
           
         case AuthorizationStatus.notDetermined:
-          debugPrint('FCMService: ⚠️ Notifications permission not determined');
+          logW('Permission not determined', tag: 'FCM');
           return NotificationPermissionResult.notDetermined;
           
         case AuthorizationStatus.provisional:
-          debugPrint('FCMService: 🔔 Notifications permission provisional');
+      logI('Permission provisional', tag: 'FCM');
           return NotificationPermissionResult.provisional;
       }
     } catch (e) {
-      debugPrint('FCMService permission request error: $e');
+    logE('Permission request error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_requestPermissions', e);
       return NotificationPermissionResult.error;
     }
@@ -84,7 +84,7 @@ class FCMService {
 
   Future<void> _configureMessageHandling() async {
     try {
-      debugPrint('FCMService: Configuring message handling');
+      logD('Configuring message handling', tag: 'FCM');
 
       await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true,
@@ -92,9 +92,9 @@ class FCMService {
         sound: true,
       );
 
-      debugPrint('FCMService: Message handling configured');
+  logI('Message handling configured', tag: 'FCM');
     } catch (e) {
-      debugPrint('FCMService message handling error: $e');
+  logE('Message handling error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_configureMessageHandling', e);
       rethrow;
     }
@@ -102,20 +102,19 @@ class FCMService {
 
   Future<String?> _getAndCacheToken() async {
     try {
-      debugPrint('FCMService: Getting FCM token');
+      logD('Getting FCM token', tag: 'FCM');
       
       _cachedToken = await _messaging.getToken();
       
       if (_cachedToken != null) {
-        debugPrint('FCMService: Token obtained successfully');
-        debugPrint('FCMService: Token: ${_cachedToken!.substring(0, 20)}...');
+  logI('Token obtained', tag: 'FCM');
       } else {
-        debugPrint('FCMService: Failed to obtain token');
+  logW('Failed to obtain token', tag: 'FCM');
       }
       
       return _cachedToken;
     } catch (e) {
-      debugPrint('FCMService token error: $e');
+  logE('Token error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_getAndCacheToken', e);
       return null;
     }
@@ -123,38 +122,37 @@ class FCMService {
 
   void _setupTokenRefreshListener() {
     try {
-      debugPrint('FCMService: Setting up token refresh listener');
+      logD('Setting up token refresh listener', tag: 'FCM');
       
       _messaging.onTokenRefresh.listen((newToken) {
-        debugPrint('FCMService: Token refreshed');
+        logI('Token refreshed', tag: 'FCM');
         _cachedToken = newToken;
         _handleTokenRefresh(newToken);
       }, onError: (e) {
-        debugPrint('FCMService token refresh error: $e');
+        logE('Token refresh error', tag: 'FCM', error: e);
         MonitoringService.logErrorStatic('FCMService_tokenRefresh', e);
       });
     } catch (e) {
-      debugPrint('FCMService token refresh setup error: $e');
+      logE('Token refresh setup error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_setupTokenRefreshListener', e);
     }
   }
 
   void _handleTokenRefresh(String newToken) {
-    debugPrint('FCMService: Handling token refresh');
-    debugPrint('FCMService: Token refreshed, should update backend');
+    logD('Handle token refresh', tag: 'FCM');
   }
 
   Future<String?> getToken() async {
     try {
       if (_cachedToken != null) {
-        debugPrint('FCMService: Returning cached token');
+        logD('Returning cached token', tag: 'FCM');
         return _cachedToken;
       }
       
-      debugPrint('FCMService: Getting fresh token');
+      logD('Getting fresh token', tag: 'FCM');
       return await _getAndCacheToken();
     } catch (e) {
-      debugPrint('FCMService getToken error: $e');
+      logE('Get token error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_getToken', e);
       return null;
     }
@@ -166,7 +164,7 @@ class FCMService {
       return settings.authorizationStatus == AuthorizationStatus.authorized ||
              settings.authorizationStatus == AuthorizationStatus.provisional;
     } catch (e) {
-      debugPrint('FCMService permission check error: $e');
+      logE('Permission check error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_isPermissionGranted', e);
       return false;
     }
@@ -183,7 +181,7 @@ class FCMService {
       final settings = await _messaging.getNotificationSettings();
       return settings.authorizationStatus;
     } catch (e) {
-      debugPrint('FCMService get permission status error: $e');
+      logE('Get permission status error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_getPermissionStatus', e);
       return AuthorizationStatus.notDetermined;
     }
@@ -196,7 +194,7 @@ class FCMService {
     try {
       return await FirebaseMessaging.instance.getInitialMessage();
     } catch (e) {
-      debugPrint('FCMService getInitialMessage error: $e');
+      logE('Get initial message error', tag: 'FCM', error: e);
       MonitoringService.logErrorStatic('FCMService_getInitialMessage', e);
       return null;
     }
@@ -204,11 +202,11 @@ class FCMService {
 
   Future<void> subscribeToTopic(String topic) async {
     try {
-      debugPrint('FCMService: Subscribing to topic: $topic');
+      logD('Subscribing to topic', tag: 'FCM', data: {'topic': topic});
       await _messaging.subscribeToTopic(topic);
-      debugPrint('FCMService: Successfully subscribed to topic: $topic');
+      logI('Subscribed to topic', tag: 'FCM', data: {'topic': topic});
     } catch (e) {
-      debugPrint('FCMService subscribe to topic error: $e');
+      logE('Subscribe topic error', tag: 'FCM', error: e, data: {'topic': topic});
       MonitoringService.logErrorStatic('FCMService_subscribeToTopic', e);
       rethrow;
     }
@@ -216,18 +214,18 @@ class FCMService {
 
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
-      debugPrint('FCMService: Unsubscribing from topic: $topic');
+      logD('Unsubscribing from topic', tag: 'FCM', data: {'topic': topic});
       await _messaging.unsubscribeFromTopic(topic);
-      debugPrint('FCMService: Successfully unsubscribed from topic: $topic');
+      logI('Unsubscribed from topic', tag: 'FCM', data: {'topic': topic});
     } catch (e) {
-      debugPrint('FCMService unsubscribe from topic error: $e');
+      logE('Unsubscribe topic error', tag: 'FCM', error: e, data: {'topic': topic});
       MonitoringService.logErrorStatic('FCMService_unsubscribeFromTopic', e);
       rethrow;
     }
   }
 
   void dispose() {
-    debugPrint('FCMService: Disposing resources');
+    logD('Disposing resources', tag: 'FCM');
     _cachedToken = null;
   }
 }

@@ -11,7 +11,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/theme.dart';
 import 'utils/app_logger.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy fallback
+import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/theme_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
 import 'package:wishlist_app/services/notification_service.dart';
@@ -239,16 +240,18 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
   static const Duration _retryDelay = Duration(milliseconds: 500);
   static bool _prefetchDone = false; // garante execução única
 
+  final _userProfileRepo = UserProfileRepository();
+
   Future<Map<String, dynamic>?> _getProfileWithRetry() async {
   appLog('_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries', tag: 'ROUTING');
     
     try {
       // First, try to get user profile from Firestore
-      final profile = await FirebaseDatabaseService().getUserProfile(widget.user.uid);
-      
-      if (profile != null) {
-  appLog('Profile found on attempt ${_retryCount + 1}: ${profile.keys.join(', ')}', tag: 'ROUTING');
-        return profile;
+      final userProfile = await _userProfileRepo.fetchById(widget.user.uid);
+      if (userProfile != null) {
+        final map = userProfile.toMap();
+        appLog('Profile found on attempt ${_retryCount + 1}: ${map.keys.join(', ')}', tag: 'ROUTING');
+        return map;
       }
       
       // If no profile found and we have retries left, wait and retry
@@ -281,7 +284,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
             DateTime.now().difference(widget.user.metadata.creationTime!).inMinutes < 10) {
           appLog('Creating temporary profile (email registration in progress)', tag: 'ROUTING');
           try {
-            await FirebaseDatabaseService().createUserProfile(widget.user.uid, {
+            await FirebaseDatabaseService().createUserProfile(widget.user.uid, { // deprecated; keep for transition
               'email': widget.user.email,
               'display_name': widget.user.displayName ?? widget.user.email!.split('@')[0],
               'registration_complete': false,

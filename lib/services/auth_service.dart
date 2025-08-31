@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wishlist_app/services/firebase_auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy profile updates gradually migrating
+import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/firebase_functions_service.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:wishlist_app/services/notification_service.dart';
@@ -21,6 +22,7 @@ enum GoogleSignInResult {
 class AuthService {
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
   final FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
+  final UserProfileRepository _userProfileRepo = UserProfileRepository();
   final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
 
@@ -135,10 +137,10 @@ class AuthService {
         }
         
         // User is logged in via fallback, proceed with validation
-        final profile = await _databaseService.getUserProfile(user.uid);
-        if (profile == null || 
-            profile['phone_number'] == null || 
-            profile['phone_number'].toString().isEmpty) {
+    final profile = await _userProfileRepo.fetchById(user.uid);
+    if (profile == null || 
+      profile.phoneNumber == null || 
+      profile.phoneNumber!.isEmpty) {
           return GoogleSignInResult.missingPhoneNumber;
         }
         
@@ -151,10 +153,10 @@ class AuthService {
         return GoogleSignInResult.failed;
       }
       
-      final profile = await _databaseService.getUserProfile(user.uid);
-      if (profile == null || 
-          profile['phone_number'] == null || 
-          profile['phone_number'].toString().isEmpty) {
+    final profile = await _userProfileRepo.fetchById(user.uid);
+    if (profile == null || 
+      profile.phoneNumber == null || 
+      profile.phoneNumber!.isEmpty) {
         return GoogleSignInResult.missingPhoneNumber;
       }
       
@@ -401,10 +403,8 @@ class AuthService {
       return true;
     }
     
-    final profile = await _databaseService.getUserProfile(user.uid);
-    return profile != null && 
-           profile['phone_number'] != null && 
-           profile['phone_number'].toString().isNotEmpty;
+  final profile = await _userProfileRepo.fetchById(user.uid);
+  return profile != null && profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty;
   }
 
   /// Validates if the current user has an email configured
@@ -416,10 +416,8 @@ class AuthService {
       return true;
     }
     
-    final profile = await _databaseService.getUserProfile(user.uid);
-    return profile != null && 
-           profile['email'] != null && 
-           profile['email'].toString().isNotEmpty;
+  final profile = await _userProfileRepo.fetchById(user.uid);
+  return profile != null && profile.email != null && profile.email!.isNotEmpty;
   }
 
   /// Check if a user's registration is complete based on the profile flag
@@ -428,8 +426,9 @@ class AuthService {
     if (user == null) return false;
     
     try {
-      final profile = await _databaseService.getUserProfile(user.uid);
-      return profile != null && profile['registration_complete'] == true;
+  final profile = await _userProfileRepo.fetchById(user.uid);
+  final map = profile?.toMap();
+  return map != null && map['registration_complete'] == true;
     } catch (e) {
       debugPrint('Error checking registration status: $e');
       return false;
@@ -444,10 +443,8 @@ class AuthService {
     if (user == null) return false;
     
     try {
-      final profile = await _databaseService.getUserProfile(user.uid);
-      
-      // If profile exists, not orphaned
-      if (profile != null) return false;
+  final profile = await _userProfileRepo.fetchById(user.uid);
+  if (profile != null) return false; // exists
       
       // Special case: Email registration in progress (< 10 minutes old)
       if (user.email != null && user.metadata.creationTime != null) {

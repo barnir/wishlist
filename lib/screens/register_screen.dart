@@ -3,6 +3,7 @@ import '../theme_extensions.dart';
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -46,11 +47,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       // No need to navigate manually - StreamBuilder will handle it
       // User will be automatically taken to AddPhoneScreen since no profile exists yet
-      debugPrint('✅ Email registration successful - StreamBuilder will handle navigation');
+  logI('Email registration success (navigation via stream)', tag: 'UI');
       
     } catch (e) {
       if (!mounted) return; // If widget disposed during await
-      debugPrint('Registration error: $e');
+  logE('Registration error', tag: 'UI', error: e);
       final l10n = AppLocalizations.of(context);
       String errorMessage = l10n?.registerErrorPrefix ?? 'Erro ao registar: ';
       final errStr = e.toString();

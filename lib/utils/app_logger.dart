@@ -24,11 +24,19 @@ void appLog(
   LogLevel level = LogLevel.debug,
   Object? error,
   StackTrace? stackTrace,
+  Map<String, dynamic>? data,
 }) {
   if (!kDebugMode) return; // Avoid noise in release
 
   final buffer = StringBuffer()
     ..write('[${_levelLabel(level)}][$tag] $message');
+  if (data != null && data.isNotEmpty) {
+  // Compact key=value rendering
+  final dataStr = data.entries
+    .map((e) => '${e.key}=${e.value}')
+    .join(' ');
+  buffer.write(' | $dataStr');
+  }
   if (error != null) buffer.write(' | error: $error');
   if (stackTrace != null && level == LogLevel.error) {
     buffer.write('\n$stackTrace');
@@ -37,8 +45,11 @@ void appLog(
 }
 
 /// Convenience helpers.
-void logD(String message, {String tag = 'APP'}) => appLog(message, tag: tag, level: LogLevel.debug);
-void logI(String message, {String tag = 'APP'}) => appLog(message, tag: tag, level: LogLevel.info);
-void logW(String message, {String tag = 'APP'}) => appLog(message, tag: tag, level: LogLevel.warn);
-void logE(String message, {String tag = 'APP', Object? error, StackTrace? stackTrace}) =>
-    appLog(message, tag: tag, level: LogLevel.error, error: error, stackTrace: stackTrace);
+void logD(String message, {String tag = 'APP', Map<String, dynamic>? data}) =>
+  appLog(message, tag: tag, level: LogLevel.debug, data: data);
+void logI(String message, {String tag = 'APP', Map<String, dynamic>? data}) =>
+  appLog(message, tag: tag, level: LogLevel.info, data: data);
+void logW(String message, {String tag = 'APP', Map<String, dynamic>? data}) =>
+  appLog(message, tag: tag, level: LogLevel.warn, data: data);
+void logE(String message, {String tag = 'APP', Object? error, StackTrace? stackTrace, Map<String, dynamic>? data}) =>
+  appLog(message, tag: tag, level: LogLevel.error, error: error, stackTrace: stackTrace, data: data);

@@ -5,6 +5,7 @@ import 'package:wishlist_app/services/fcm_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 enum NotificationType {
   priceDrop,
@@ -54,7 +55,7 @@ class NotificationService {
 
   Future<void> initialize() async {
     try {
-      debugPrint('=== NotificationService: Initialize ===');
+      logI('Initialize', tag: 'NOTIF');
 
       // Código otimizado apenas para Android - verificação de plataforma removida
 
@@ -62,17 +63,17 @@ class NotificationService {
       await _fcmService.initialize();
       await _setupMessageListeners();
 
-      _isInitialized = true;
-      debugPrint('NotificationService: Initialization completed successfully');
+  _isInitialized = true;
+  logI('Initialization completed', tag: 'NOTIF');
     } catch (e) {
-      debugPrint('NotificationService initialization error: $e');
+  logE('Initialization error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_initialize', e);
     }
   }
 
   Future<void> _initializeLocalNotifications() async {
     try {
-      debugPrint('NotificationService: Initializing local notifications');
+      logD('Initializing local notifications', tag: 'NOTIF');
 
       const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
       const initSettings = InitializationSettings(android: androidSettings);
@@ -84,9 +85,9 @@ class NotificationService {
       );
 
       await _createNotificationChannels();
-      debugPrint('NotificationService: Local notifications initialized');
+  logI('Local notifications initialized', tag: 'NOTIF');
     } catch (e) {
-      debugPrint('NotificationService local notifications error: $e');
+  logE('Local notifications error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_initializeLocalNotifications', e);
       rethrow;
     }
@@ -94,7 +95,7 @@ class NotificationService {
 
   Future<void> _createNotificationChannels() async {
     try {
-      debugPrint('NotificationService: Creating notification channels');
+      logD('Creating notification channels', tag: 'NOTIF');
 
       const highImportanceChannel = AndroidNotificationChannel(
         'high_importance_channel',
@@ -135,9 +136,9 @@ class NotificationService {
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(socialChannel);
 
-      debugPrint('NotificationService: Notification channels created');
+  logI('Notification channels created', tag: 'NOTIF');
     } catch (e) {
-      debugPrint('NotificationService channels error: $e');
+  logE('Create channels error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_createNotificationChannels', e);
       rethrow;
     }
@@ -145,7 +146,7 @@ class NotificationService {
 
   Future<void> _setupMessageListeners() async {
     try {
-      debugPrint('NotificationService: Setting up message listeners');
+      logD('Setting up message listeners', tag: 'NOTIF');
 
       _fcmService.onMessage.listen(_handleForegroundMessage);
       _fcmService.onMessageOpenedApp.listen(_handleMessageOpenedApp);
@@ -155,54 +156,59 @@ class NotificationService {
         _handleInitialMessage(initialMessage);
       }
 
-      debugPrint('NotificationService: Message listeners configured');
+  logI('Message listeners configured', tag: 'NOTIF');
     } catch (e) {
-      debugPrint('NotificationService message listeners error: $e');
+  logE('Message listeners error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_setupMessageListeners', e);
     }
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     try {
-      debugPrint('NotificationService: Handling foreground message');
-      debugPrint('Message title: ${message.notification?.title}');
-      debugPrint('Message body: ${message.notification?.body}');
+      logD('Foreground message', tag: 'NOTIF', data: {
+        'title': message.notification?.title,
+        'body': message.notification?.body,
+        'type': message.data['type']
+      });
 
       final payload = NotificationPayload.fromRemoteMessage(message);
       await _showLocalNotification(payload);
 
       HapticService.lightImpact();
     } catch (e) {
-      debugPrint('NotificationService foreground message error: $e');
+      logE('Foreground message error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_handleForegroundMessage', e);
     }
   }
 
   Future<void> _handleMessageOpenedApp(RemoteMessage message) async {
     try {
-      debugPrint('NotificationService: Handling message opened app');
+      logD('Message opened app', tag: 'NOTIF');
       final payload = NotificationPayload.fromRemoteMessage(message);
       await _handleNotificationAction(payload);
     } catch (e) {
-      debugPrint('NotificationService message opened app error: $e');
+      logE('Message opened app error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_handleMessageOpenedApp', e);
     }
   }
 
   Future<void> _handleInitialMessage(RemoteMessage message) async {
     try {
-      debugPrint('NotificationService: Handling initial message');
+      logD('Initial message', tag: 'NOTIF');
       final payload = NotificationPayload.fromRemoteMessage(message);
       await _handleNotificationAction(payload);
     } catch (e) {
-      debugPrint('NotificationService initial message error: $e');
+      logE('Initial message error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_handleInitialMessage', e);
     }
   }
 
   Future<void> _showLocalNotification(NotificationPayload payload) async {
     try {
-      debugPrint('NotificationService: Showing local notification');
+      logD('Show local notification', tag: 'NOTIF', data: {
+        'type': payload.type.name,
+        'title': payload.title
+      });
 
       final channelId = _getChannelIdForType(payload.type);
       final notificationId = DateTime.now().millisecondsSinceEpoch.remainder(100000);
@@ -228,9 +234,9 @@ class NotificationService {
         payload: _encodePayload(payload),
       );
 
-      debugPrint('NotificationService: Local notification shown');
+  logI('Local notification shown', tag: 'NOTIF');
     } catch (e) {
-      debugPrint('NotificationService show local notification error: $e');
+  logE('Show local notification error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_showLocalNotification', e);
     }
   }
@@ -252,7 +258,7 @@ class NotificationService {
     try {
       return '${payload.type.name}|${payload.data?.toString() ?? ''}';
     } catch (e) {
-      debugPrint('NotificationService encode payload error: $e');
+      logE('Encode payload error', tag: 'NOTIF', error: e);
       return payload.type.name;
     }
   }
@@ -276,13 +282,13 @@ class NotificationService {
         data: parts.length > 1 ? {'raw': parts[1]} : null,
       );
     } catch (e) {
-      debugPrint('NotificationService decode payload error: $e');
+      logE('Decode payload error', tag: 'NOTIF', error: e);
       return null;
     }
   }
 
   void _onNotificationTap(NotificationResponse response) {
-    debugPrint('NotificationService: Notification tapped');
+  logD('Notification tapped', tag: 'NOTIF');
     final payload = _decodePayload(response.payload);
     if (payload != null) {
       _handleNotificationAction(payload);
@@ -290,12 +296,12 @@ class NotificationService {
   }
 
   static void _onBackgroundNotificationTap(NotificationResponse response) {
-    debugPrint('NotificationService: Background notification tapped');
+  logD('Background notification tapped', tag: 'NOTIF');
   }
 
   Future<void> _handleNotificationAction(NotificationPayload payload) async {
     try {
-      debugPrint('NotificationService: Handling notification action for type: ${payload.type}');
+      logD('Handle notification action', tag: 'NOTIF', data: {'type': payload.type.name});
 
       HapticService.selectionClick();
 
@@ -317,34 +323,29 @@ class NotificationService {
           break;
       }
     } catch (e) {
-      debugPrint('NotificationService notification action error: $e');
+      logE('Notification action error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_handleNotificationAction', e);
     }
   }
 
   Future<void> _handlePriceDropAction(NotificationPayload payload) async {
-    debugPrint('NotificationService: Handling price drop action');
-    debugPrint('NotificationService: Price drop notification tapped');
+  logD('Price drop action', tag: 'NOTIF');
   }
 
   Future<void> _handleWishlistShareAction(NotificationPayload payload) async {
-    debugPrint('NotificationService: Handling wishlist share action');
-    debugPrint('NotificationService: Wishlist share notification tapped');
+  logD('Wishlist share action', tag: 'NOTIF');
   }
 
   Future<void> _handleNewFavoriteAction(NotificationPayload payload) async {
-    debugPrint('NotificationService: Handling new favorite action');
-    debugPrint('NotificationService: New favorite notification tapped');
+  logD('New favorite action', tag: 'NOTIF');
   }
 
   Future<void> _handleGiftHintAction(NotificationPayload payload) async {
-    debugPrint('NotificationService: Handling gift hint action');
-    debugPrint('NotificationService: Gift hint notification tapped');
+  logD('Gift hint action', tag: 'NOTIF');
   }
 
   Future<void> _handleGeneralAction(NotificationPayload payload) async {
-    debugPrint('NotificationService: Handling general action');
-    debugPrint('NotificationService: General notification tapped');
+  logD('General notification action', tag: 'NOTIF');
   }
 
   Future<String?> getDeviceToken() async {
@@ -379,7 +380,7 @@ class NotificationService {
         'message': _getStatusMessage(status, l10n),
       };
     } catch (e) {
-      debugPrint('Error getting notification status: $e');
+  logE('Get notification status error', tag: 'NOTIF', error: e);
       return {
         'enabled': false,
         'status': 'error',
@@ -423,9 +424,9 @@ class NotificationService {
   Future<void> subscribeToUserTopic(String userId) async {
     try {
       await _fcmService.subscribeToTopic('user_$userId');
-      debugPrint('NotificationService: Subscribed to user topic: user_$userId');
+  logI('Subscribed to user topic', tag: 'NOTIF', data: {'userTopic': 'user_$userId'});
     } catch (e) {
-      debugPrint('NotificationService subscribe to user topic error: $e');
+  logE('Subscribe user topic error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_subscribeToUserTopic', e);
     }
   }
@@ -433,9 +434,9 @@ class NotificationService {
   Future<void> unsubscribeFromUserTopic(String userId) async {
     try {
       await _fcmService.unsubscribeFromTopic('user_$userId');
-      debugPrint('NotificationService: Unsubscribed from user topic: user_$userId');
+  logI('Unsubscribed from user topic', tag: 'NOTIF', data: {'userTopic': 'user_$userId'});
     } catch (e) {
-      debugPrint('NotificationService unsubscribe from user topic error: $e');
+  logE('Unsubscribe user topic error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_unsubscribeFromUserTopic', e);
     }
   }
@@ -443,7 +444,7 @@ class NotificationService {
   bool get isInitialized => _isInitialized;
 
   void dispose() {
-    debugPrint('NotificationService: Disposing resources');
+  logD('Disposing resources', tag: 'NOTIF');
     _fcmService.dispose();
     _isInitialized = false;
   }

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:wishlist_app/services/security_service.dart';
 import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 class CloudinaryService {
   late final CloudinaryPublic _cloudinary;
@@ -19,18 +20,13 @@ class CloudinaryService {
     }
     
     _cloudinary = CloudinaryPublic(cloudName, uploadPreset);
-    debugPrint('=== Cloudinary Service Initialized ===');
-    debugPrint('Cloud Name: $cloudName');
-    debugPrint('Upload Preset: $uploadPreset');
+  logI('Service initialized', tag: 'IMG', data: {'cloudName': cloudName, 'preset': uploadPreset});
   }
 
   /// Upload profile image
   Future<String?> uploadProfileImage(File imageFile, String userId, {String? oldImageUrl}) async {
     try {
-      debugPrint('=== Uploading Profile Image ===');
-      debugPrint('User ID: $userId');
-      debugPrint('File path: ${imageFile.path}');
-      debugPrint('Old image URL: $oldImageUrl');
+      logD('Upload profile image start', tag: 'IMG', data: {'userId': userId, 'hasOld': oldImageUrl != null});
 
       // Security validation
       final validationResult = await _securityService.validateImage(imageFile);
@@ -46,7 +42,7 @@ class CloudinaryService {
       String? oldPublicId;
       if (oldImageUrl != null && oldImageUrl.isNotEmpty) {
         oldPublicId = _extractPublicIdFromUrl(oldImageUrl);
-        debugPrint('Old image public ID to cleanup: $oldPublicId');
+  logD('Old profile image detected', tag: 'IMG', data: {'oldPublicId': oldPublicId});
       }
 
       // Use timestamp to ensure unique URLs and avoid cache issues
@@ -61,9 +57,7 @@ class CloudinaryService {
         ),
       );
 
-      debugPrint('Profile image uploaded successfully');
-      debugPrint('Public ID: ${result.publicId}');
-      debugPrint('Secure URL: ${result.secureUrl}');
+  logI('Profile image uploaded', tag: 'IMG', data: {'publicId': result.publicId});
 
       // Schedule cleanup of old image (log for now since we can't delete directly)
       if (oldPublicId != null) {
@@ -72,7 +66,7 @@ class CloudinaryService {
 
       return result.secureUrl;
     } catch (e) {
-      debugPrint('Error uploading profile image: $e');
+      logE('Error uploading profile image', tag: 'IMG', error: e, data: {'userId': userId});
       rethrow;
     }
   }
@@ -80,10 +74,7 @@ class CloudinaryService {
   /// Upload product/wishlist item image
   Future<String?> uploadProductImage(File imageFile, String itemId, {String? oldImageUrl}) async {
     try {
-      debugPrint('=== Uploading Product Image ===');
-      debugPrint('Item ID: $itemId');
-      debugPrint('File path: ${imageFile.path}');
-      debugPrint('Old image URL: $oldImageUrl');
+      logD('Upload product image start', tag: 'IMG', data: {'itemId': itemId, 'hasOld': oldImageUrl != null});
 
       // Security validation
       final validationResult = await _securityService.validateImage(imageFile);
@@ -99,7 +90,7 @@ class CloudinaryService {
       String? oldPublicId;
       if (oldImageUrl != null && oldImageUrl.isNotEmpty) {
         oldPublicId = _extractPublicIdFromUrl(oldImageUrl);
-        debugPrint('Old product image public ID to cleanup: $oldPublicId');
+  logD('Old product image detected', tag: 'IMG', data: {'oldPublicId': oldPublicId});
       }
 
       // Use timestamp to ensure unique URLs
@@ -114,9 +105,7 @@ class CloudinaryService {
         ),
       );
 
-      debugPrint('Product image uploaded successfully');
-      debugPrint('Public ID: ${result.publicId}');
-      debugPrint('Secure URL: ${result.secureUrl}');
+  logI('Product image uploaded', tag: 'IMG', data: {'publicId': result.publicId});
 
       // Schedule cleanup of old image
       if (oldPublicId != null) {
@@ -125,7 +114,7 @@ class CloudinaryService {
 
       return result.secureUrl;
     } catch (e) {
-      debugPrint('Error uploading product image: $e');
+      logE('Error uploading product image', tag: 'IMG', error: e, data: {'itemId': itemId});
       rethrow;
     }
   }
@@ -133,10 +122,7 @@ class CloudinaryService {
   /// Upload wishlist icon/cover image
   Future<String?> uploadWishlistImage(File imageFile, String wishlistId, {String? oldImageUrl}) async {
     try {
-      debugPrint('=== Uploading Wishlist Image ===');
-      debugPrint('Wishlist ID: $wishlistId');
-      debugPrint('File path: ${imageFile.path}');
-      debugPrint('Old image URL: $oldImageUrl');
+      logD('Upload wishlist image start', tag: 'IMG', data: {'wishlistId': wishlistId, 'hasOld': oldImageUrl != null});
 
       // Security validation
       final validationResult = await _securityService.validateImage(imageFile);
@@ -152,7 +138,7 @@ class CloudinaryService {
       String? oldPublicId;
       if (oldImageUrl != null && oldImageUrl.isNotEmpty) {
         oldPublicId = _extractPublicIdFromUrl(oldImageUrl);
-        debugPrint('Old wishlist image public ID to cleanup: $oldPublicId');
+  logD('Old wishlist image detected', tag: 'IMG', data: {'oldPublicId': oldPublicId});
       }
 
       // Use timestamp to ensure unique URLs
@@ -167,9 +153,7 @@ class CloudinaryService {
         ),
       );
 
-      debugPrint('Wishlist image uploaded successfully');
-      debugPrint('Public ID: ${result.publicId}');
-      debugPrint('Secure URL: ${result.secureUrl}');
+  logI('Wishlist image uploaded', tag: 'IMG', data: {'publicId': result.publicId});
 
       // Schedule cleanup of old image
       if (oldPublicId != null) {
@@ -178,7 +162,7 @@ class CloudinaryService {
 
       return result.secureUrl;
     } catch (e) {
-      debugPrint('Error uploading wishlist image: $e');
+      logE('Error uploading wishlist image', tag: 'IMG', error: e, data: {'wishlistId': wishlistId});
       rethrow;
     }
   }
@@ -205,7 +189,7 @@ class CloudinaryService {
       
       return publicId;
     } catch (e) {
-      debugPrint('Error extracting public ID from URL: $e');
+      logE('Extract publicId error', tag: 'IMG', error: e);
       return null;
     }
   }
@@ -213,11 +197,7 @@ class CloudinaryService {
   /// Schedule image cleanup (logs cleanup info since client-side deletion isn't supported)
   Future<void> _scheduleImageCleanup(String publicId, String imageType) async {
     try {
-      debugPrint('=== IMAGE CLEANUP SCHEDULED ===');
-      debugPrint('Public ID: $publicId');
-      debugPrint('Image Type: $imageType');
-      debugPrint('Timestamp: ${DateTime.now().toIso8601String()}');
-      debugPrint('Action Required: Delete from Cloudinary dashboard or use server-side API');
+      logD('Schedule image cleanup', tag: 'IMG', data: {'publicId': publicId, 'type': imageType});
       
       // Store cleanup request in Firestore for future processing
       await _storeCleanupRequest(publicId, imageType);
@@ -232,7 +212,7 @@ class CloudinaryService {
         'Image cleanup scheduled: $publicId ($imageType)',
       );
     } catch (e) {
-      debugPrint('Error scheduling image cleanup: $e');
+      logE('Schedule image cleanup error', tag: 'IMG', error: e, data: {'publicId': publicId});
     }
   }
 
@@ -250,9 +230,9 @@ class CloudinaryService {
         'cloud_name': dotenv.env['CLOUDINARY_CLOUD_NAME'],
       });
       
-      debugPrint('✅ Cleanup request stored in Firestore: $publicId');
+  logD('Cleanup request stored', tag: 'IMG', data: {'publicId': publicId});
     } catch (e) {
-      debugPrint('⚠️ Failed to store cleanup request: $e');
+  logW('Failed to store cleanup request', tag: 'IMG', data: {'publicId': publicId, 'err': e.toString()});
       // Don't throw error - cleanup storage is not critical for main functionality
     }
   }
@@ -305,7 +285,7 @@ class CloudinaryService {
       final publicId = pathSegments.sublist(uploadIndex + 1).join('/');
       return getOptimizedImageUrl(publicId, type);
     } catch (e) {
-      debugPrint('Error optimizing URL: $e');
+      logE('Optimize URL error', tag: 'IMG', error: e);
       return cloudinaryUrl; // Return original on error
     }
   }
@@ -335,14 +315,12 @@ class CloudinaryService {
   /// Images can be deleted from the Cloudinary dashboard or using server-side API calls
   Future<bool> deleteImage(String publicId) async {
     try {
-      debugPrint('=== Image Deletion Not Supported in Public SDK ===');
-      debugPrint('Public ID: $publicId');
-      debugPrint('Use Cloudinary dashboard or server-side API to delete images');
+      logW('Image deletion not supported client-side', tag: 'IMG', data: {'publicId': publicId});
       
       // Return false to indicate deletion is not supported in client-side
       return false;
     } catch (e) {
-      debugPrint('Error with image deletion: $e');
+      logE('Image deletion error', tag: 'IMG', error: e, data: {'publicId': publicId});
       return false;
     }
   }
@@ -394,9 +372,9 @@ class CloudinaryService {
   Future<void> _scheduleUserProfileCleanup(String userId) async {
     try {
       await _storeCleanupRequest('profile_$userId*', 'user_profile_bulk');
-      debugPrint('✅ Scheduled cleanup for all profile images of user: $userId');
+      logD('Scheduled profile images cleanup', tag: 'IMG', data: {'userId': userId});
     } catch (e) {
-      debugPrint('⚠️ Failed to schedule user profile cleanup: $e');
+  logW('Failed scheduling profile images cleanup', tag: 'IMG', data: {'userId': userId, 'err': e.toString()});
     }
   }
 
@@ -416,19 +394,16 @@ class CloudinaryService {
         'pattern': '*$userId*',
         'cloud_name': dotenv.env['CLOUDINARY_CLOUD_NAME'],
       });
-      
-      debugPrint('✅ Bulk cleanup scheduled for user: $userId');
+      logD('Bulk cleanup scheduled', tag: 'IMG', data: {'userId': userId});
     } catch (e) {
-      debugPrint('⚠️ Failed to schedule bulk cleanup: $e');
+  logW('Failed scheduling bulk cleanup', tag: 'IMG', data: {'userId': userId, 'err': e.toString()});
     }
   }
 
   /// Schedule cleanup when a wishlist is deleted
   Future<void> scheduleWishlistCleanup(String wishlistId, List<String> productImageUrls) async {
     try {
-      debugPrint('=== Wishlist Deletion Cleanup ===');
-      debugPrint('Wishlist ID: $wishlistId');
-      debugPrint('Product images to clean: ${productImageUrls.length}');
+      logD('Wishlist deletion cleanup', tag: 'IMG', data: {'wishlistId': wishlistId, 'productImages': productImageUrls.length});
 
       // Schedule wishlist cover image cleanup
       await _scheduleImageCleanup('wishlist_$wishlistId*', 'wishlist_bulk');
@@ -441,9 +416,9 @@ class CloudinaryService {
         }
       }
 
-      debugPrint('✅ Scheduled cleanup for wishlist and ${productImageUrls.length} products');
+  logD('Scheduled wishlist cleanup', tag: 'IMG', data: {'wishlistId': wishlistId, 'products': productImageUrls.length});
     } catch (e) {
-      debugPrint('⚠️ Error scheduling wishlist cleanup: $e');
+  logE('Error scheduling wishlist cleanup', tag: 'IMG', error: e, data: {'wishlistId': wishlistId});
     }
   }
 
@@ -453,10 +428,10 @@ class CloudinaryService {
       final publicId = _extractPublicIdFromUrl(productImageUrl);
       if (publicId != null) {
         await _scheduleImageCleanup(publicId, 'product');
-        debugPrint('✅ Scheduled cleanup for product image: $publicId');
+        logD('Scheduled product image cleanup', tag: 'IMG', data: {'publicId': publicId});
       }
     } catch (e) {
-      debugPrint('⚠️ Error scheduling product cleanup: $e');
+      logE('Error scheduling product cleanup', tag: 'IMG', error: e);
     }
   }
 
@@ -470,7 +445,7 @@ class CloudinaryService {
         'secure_url': getOptimizedImageUrl(publicId, ImageType.original),
       };
     } catch (e) {
-      debugPrint('Error getting image info: $e');
+      logE('Get image info error', tag: 'IMG', error: e, data: {'publicId': publicId});
       return null;
     }
   }

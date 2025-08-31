@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -287,7 +288,7 @@ class HelpScreen extends StatelessWidget {
         await launchUrl(emailUri);
       }
     } catch (e) {
-      debugPrint('Error launching email: $e');
+      logE('Launch email error', tag: 'UI', error: e);
     }
   }
 }

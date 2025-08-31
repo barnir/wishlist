@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/rate_limiter_service.dart';
 import 'package:wishlist_app/utils/validation_utils.dart';
 import '../widgets/app_snack.dart';
@@ -14,7 +14,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with RateLimited {
   final _authService = AuthService();
-  final _databaseService = FirebaseDatabaseService();
+  final _userProfileRepo = UserProfileRepository();
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -48,11 +48,12 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
         // After email login, check for phone number
         final user = _authService.currentUser;
         if (user != null) {
-          final userProfile = await _databaseService.getUserProfile(user.uid);
+          final userProfile = await _userProfileRepo.fetchById(user.uid);
           if (!mounted) return;
-          if (userProfile == null ||
-              userProfile['phone_number'] == null ||
-              userProfile['phone_number'].toString().isEmpty) {
+      final profileMap = userProfile?.toMap();
+      if (profileMap == null ||
+        profileMap['phone_number'] == null ||
+        profileMap['phone_number'].toString().isEmpty) {
             Navigator.pushReplacementNamed(context, '/add_phone');
           } else {
             Navigator.pushReplacementNamed(context, '/wishlists');

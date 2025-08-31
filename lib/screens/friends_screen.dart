@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
-import '../services/favorites_service.dart';
+import 'package:wishlist_app/repositories/favorites_repository.dart';
+import 'package:wishlist_app/models/user_favorite.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
@@ -13,13 +15,13 @@ class FriendsScreen extends StatefulWidget {
 }
 
 class _FriendsScreenState extends State<FriendsScreen> {
-  final _favoritesService = FavoritesService();
+  final _favoritesRepo = FavoritesRepository();
   final _scrollController = ScrollController();
 
   // Paginação
   static const int _pageSize = 15;
-  final List<Map<String, dynamic>> _favorites = [];
-  int _currentPage = 0;
+  final List<UserFavoriteWithProfile> _favorites = [];
+  DocumentSnapshot? _lastDoc;
   bool _isLoading = false;
   bool _hasMoreData = true;
   bool _isInitialLoading = true;
@@ -41,7 +43,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     setState(() {
       _isInitialLoading = true;
       _favorites.clear();
-      _currentPage = 0;
+  _lastDoc = null;
       _hasMoreData = true;
     });
 
@@ -62,18 +64,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
     });
 
     try {
-      final newFavorites = await _favoritesService.getFavoritesPaginated(
+      final page = await _favoritesRepo.fetchPage(
         limit: _pageSize,
-        offset: _currentPage * _pageSize,
+        startAfter: _lastDoc,
       );
+      final newFavorites = page.items;
 
       if (mounted) {
         setState(() {
-          if (newFavorites.length < _pageSize) {
-            _hasMoreData = false;
-          }
+          _hasMoreData = page.hasMore;
           _favorites.addAll(newFavorites);
-          _currentPage++;
+          _lastDoc = page.lastDoc;
           _isLoading = false;
         });
       }
@@ -143,11 +144,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  Widget _buildFavoriteCard(Map<String, dynamic> favorite) {
-    final displayName = favorite['display_name'] as String? ?? 'Utilizador';
-    final email = favorite['email'] as String?;
-    final userId = favorite['id'] as String;
-    final bio = favorite['bio'] as String?;
+  Widget _buildFavoriteCard(UserFavoriteWithProfile favorite) {
+    final displayName = favorite.displayName ?? 'Utilizador';
+    final email = favorite.email;
+    final userId = favorite.favoriteUserId; // navegar para perfil do favorito
+    final bio = favorite.bio;
   // final isPrivate = favorite['is_private'] as bool? ?? false; // (não usado atualmente)
     return Card(
       margin: UIConstants.cardMargin,

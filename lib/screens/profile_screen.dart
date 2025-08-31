@@ -6,7 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/firebase_database_service.dart';
+import 'package:wishlist_app/services/firebase_database_service.dart'; // legacy for streams & wishlist/item stats
+import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import 'package:wishlist_app/services/favorites_service.dart';
 import 'package:wishlist_app/services/haptic_service.dart';
 import 'package:wishlist_app/services/language_service.dart';
@@ -19,6 +20,7 @@ import 'package:wishlist_app/widgets/ui_components.dart';
 import 'package:wishlist_app/screens/help_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_snack.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,6 +32,7 @@ class ProfileScreen extends StatefulWidget {
 class ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
   final _databaseService = FirebaseDatabaseService();
+  final _userProfileRepo = UserProfileRepository();
   final _favoritesService = FavoritesService();
   final _languageService = LanguageService();
 
@@ -66,16 +69,16 @@ class ProfileScreenState extends State<ProfileScreen> {
       final user = _authService.currentUser;
       
       // Carregar dados do utilizador
-      final userData = await _databaseService.getUserProfile(userId);
-      if (userData != null) {
-        _displayName = userData['display_name'] ?? '';
-        _bio = userData['bio'] ?? '';
-        _isPrivate = userData['is_private'] ?? false;
-        _phoneNumber = userData['phone_number'];
+      final userProfile = await _userProfileRepo.fetchById(userId);
+      if (userProfile != null) {
+        _displayName = userProfile.displayName ?? '';
+        _bio = userProfile.toMap()['bio'] as String? ?? '';
+        _isPrivate = userProfile.isPrivate;
+        _phoneNumber = userProfile.phoneNumber;
       }
       
       // Carregar imagem de perfil - priorizar Firestore que tem a URL mais recente
-      final firestorePhotoUrl = userData?['photo_url'];
+  final firestorePhotoUrl = userProfile?.photoUrl;
       final firebasePhotoUrl = user?.photoURL;
       
       // Se tem URL no Firestore, usar essa (mais recente)
@@ -87,21 +90,19 @@ class ProfileScreenState extends State<ProfileScreen> {
         _profileImageUrl = null;
       }
       
-      debugPrint('Profile image URL loaded: $_profileImageUrl');
+  logD('Profile image loaded', tag: 'UI', data: {'hasImage': _profileImageUrl != null});
       
       // Se não tem nome na base de dados, usar do Firebase
       if (_displayName.isEmpty && user?.displayName != null) {
         _displayName = user!.displayName!;
-        await _databaseService.updateUserProfile(userId, {
-          'display_name': _displayName,
-        });
+  await _userProfileRepo.update(userId, {'display_name': _displayName});
       }
       
       // Carregar estatísticas
       await _loadUserStats(userId);
       
     } catch (e) {
-      debugPrint('Erro ao carregar dados do perfil: $e');
+      logE('Load profile error', tag: 'UI', error: e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -114,12 +115,12 @@ class ProfileScreenState extends State<ProfileScreen> {
     final now = DateTime.now();
     if (_statsLastUpdated != null && 
         now.difference(_statsLastUpdated!) < _statsCacheDuration) {
-      debugPrint('Usando stats em cache - última atualização: $_statsLastUpdated');
+  logD('Stats cache hit', tag: 'UI', data: {'lastUpdated': _statsLastUpdated.toString()});
       return;
     }
     
     try {
-      debugPrint('Carregando stats frescas do servidor...');
+  logD('Loading fresh stats', tag: 'UI');
       
       // Carregar wishlists do utilizador - usando stream primeiro valor
       final wishlistsStream = _databaseService.getWishlists(userId);
@@ -149,7 +150,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       try {
         _favoritesCount = await _favoritesService.getFavoritesCount();
       } catch (e) {
-        debugPrint('Error loading favorites count: $e');
+        logE('Favorites count error', tag: 'UI', error: e);
         _favoritesCount = 0; // Fallback to 0 on error
       }
       
@@ -157,7 +158,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       _statsLastUpdated = now;
       
     } catch (e) {
-      debugPrint('Erro ao carregar estatísticas: $e');
+      logE('Stats load error', tag: 'UI', error: e);
       // Em caso de erro, usar valores padrão
       _wishlistsCount = 0;
       _itemsCount = 0;
@@ -224,7 +225,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       onSave: (name, bio) async {
         final userId = _authService.currentUser!.uid;
         await _authService.updateUser(displayName: name);
-        await _databaseService.updateUserProfile(userId, {
+        await _userProfileRepo.update(userId, {
           'display_name': name,
           'bio': bio,
         });
@@ -243,7 +244,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       initialIsPrivate: _isPrivate,
       onSave: (isPrivate) async {
         final userId = _authService.currentUser!.uid;
-        await _databaseService.updateUserProfile(userId, {'is_private': isPrivate});
+  await _userProfileRepo.update(userId, {'is_private': isPrivate});
         setState(() => _isPrivate = isPrivate);
       },
     );
@@ -355,7 +356,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
 
     try {
-      debugPrint('=== Deleting Firebase User Account ===');
+      logI('Deleting user account', tag: 'UI');
       
       await _authService.deleteAccount();
 
@@ -374,7 +375,7 @@ class ProfileScreenState extends State<ProfileScreen> {
   Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
-      debugPrint('Error deleting account: $e');
+      logE('Delete account error', tag: 'UI', error: e);
       if (!mounted) return;
       
       // Only show user-friendly errors, not technical Firebase auth errors
@@ -598,7 +599,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error opening app store: $e');
+  logE('Open app store error', tag: 'UI', error: e);
       if (mounted) {
         AppSnack.show(context, 'Erro ao abrir a loja de aplicações', type: SnackType.error);
       }

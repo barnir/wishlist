@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 /// Firebase Firestore Database Service
 /// Firebase Firestore database service - complete NoSQL integration
@@ -13,9 +14,6 @@ class FirebaseDatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final CloudinaryService _cloudinaryService = CloudinaryService();
-  void _log(String msg) {
-    if (kDebugMode) debugPrint(msg);
-  }
 
   // Simple in-memory cache for first page of wish_items queries to reduce reads on quick back/forth
   final Map<String, (List<Map<String, dynamic>> items, DocumentSnapshot? lastDoc)> _firstPageCache = {};
@@ -38,10 +36,11 @@ class FirebaseDatabaseService {
 
   // ============== USER METHODS ==============
 
-  /// Create user profile
+  /// Create user profile (legacy – use UserProfileRepository.create)
+  @Deprecated('Use UserProfileRepository.create for typed access')
   Future<Map<String, dynamic>> createUserProfile(String userId, Map<String, dynamic> profileData) async {
     try {
-  _log('🔥 Creating user profile in Firestore: $userId');
+      logI('Creating user profile', tag: 'DB', data: {'userId': userId});
       
       final docRef = _firestore.collection('users').doc(userId);
       
@@ -58,39 +57,41 @@ class FirebaseDatabaseService {
       final createdDoc = await docRef.get();
       final result = createdDoc.data()!;
       
-  _log('✅ User profile created successfully');
+  logI('User profile created', tag: 'DB', data: {'userId': userId});
       return result;
     } catch (e) {
-  _log('❌ Error creating user profile: $e');
+  logE('Error creating user profile', tag: 'DB', error: e, data: {'userId': userId});
       rethrow;
     }
   }
 
-  /// Get user profile
+  /// Get user profile (legacy – use UserProfileRepository.fetchById)
+  @Deprecated('Use UserProfileRepository.fetchById for typed access')
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-  _log('🔥 Getting user profile from Firestore: $userId');
+      logD('Get user profile', tag: 'DB', data: {'userId': userId});
       
       final doc = await _firestore.collection('users').doc(userId).get();
       
       if (doc.exists) {
         final data = doc.data()!;
-  _log('✅ User profile retrieved successfully');
+        logI('User profile retrieved', tag: 'DB', data: {'userId': userId});
         return data;
       } else {
-  _log('⚠️ User profile not found');
+        logW('User profile not found', tag: 'DB', data: {'userId': userId});
         return null;
       }
     } catch (e) {
-  _log('❌ Error getting user profile: $e');
+      logE('Error getting user profile', tag: 'DB', error: e, data: {'userId': userId});
       rethrow;
     }
   }
 
-  /// Update user profile
+  /// Update user profile (legacy – use UserProfileRepository.update)
+  @Deprecated('Use UserProfileRepository.update for typed access')
   Future<void> updateUserProfile(String userId, Map<String, dynamic> updates) async {
     try {
-      debugPrint('🔥 Updating user profile in Firestore: $userId');
+      logI('Updating user profile', tag: 'DB', data: {'userId': userId});
       
       final data = {
         ...updates,
@@ -99,27 +100,28 @@ class FirebaseDatabaseService {
       
       await _firestore.collection('users').doc(userId).update(data);
       
-      debugPrint('✅ User profile updated successfully');
+  logI('User profile updated', tag: 'DB', data: {'userId': userId});
     } catch (e) {
-      debugPrint('❌ Error updating user profile: $e');
+  logE('Error updating user profile', tag: 'DB', error: e, data: {'userId': userId});
       rethrow;
     }
   }
 
-  /// Delete user profile
+  /// Delete user profile (legacy – use UserProfileRepository.delete)
+  @Deprecated('Use UserProfileRepository.delete for typed access')
   Future<void> deleteUserProfile(String userId) async {
     try {
-      debugPrint('🔥 Deleting user profile from Firestore: $userId');
+      logI('Deleting user profile', tag: 'DB', data: {'userId': userId});
       
       // Before deleting profile, schedule cleanup of all user images
       await _cloudinaryService.deleteUserImages(userId);
       
       await _firestore.collection('users').doc(userId).delete();
       
-      debugPrint('✅ User profile deleted successfully');
-      debugPrint('🗑️ Scheduled cleanup for all user images');
+  logI('User profile deleted', tag: 'DB', data: {'userId': userId});
+  logD('Scheduled cleanup for user images', tag: 'IMG', data: {'userId': userId});
     } catch (e) {
-      debugPrint('❌ Error deleting user profile: $e');
+  logE('Error deleting user profile', tag: 'DB', error: e, data: {'userId': userId});
       rethrow;
     }
   }
@@ -129,7 +131,7 @@ class FirebaseDatabaseService {
   /// Get user's wishlists
   Future<List<Map<String, dynamic>>> getUserWishlists(String userId) async {
     try {
-      debugPrint('🔥 Getting user wishlists from Firestore: $userId');
+      logD('Get user wishlists', tag: 'DB', data: {'userId': userId});
       
       final querySnapshot = await _firestore
           .collection('wishlists')
@@ -142,10 +144,10 @@ class FirebaseDatabaseService {
         ...doc.data(),
       }).toList();
       
-      debugPrint('✅ Retrieved ${wishlists.length} wishlists');
+  logI('Wishlists retrieved', tag: 'DB', data: {'userId': userId, 'count': wishlists.length});
       return wishlists;
     } catch (e) {
-      debugPrint('❌ Error getting user wishlists: $e');
+  logE('Error getting user wishlists', tag: 'DB', error: e, data: {'userId': userId});
       rethrow;
     }
   }
@@ -153,7 +155,7 @@ class FirebaseDatabaseService {
   /// Create wishlist
   Future<Map<String, dynamic>> createWishlist(Map<String, dynamic> wishlistData) async {
     try {
-      debugPrint('🔥 Creating wishlist in Firestore');
+      logI('Creating wishlist', tag: 'DB');
       
       final docRef = _firestore.collection('wishlists').doc();
       
@@ -171,10 +173,10 @@ class FirebaseDatabaseService {
       final createdDoc = await docRef.get();
       final result = createdDoc.data()!;
       
-      debugPrint('✅ Wishlist created successfully: ${docRef.id}');
+  logI('Wishlist created', tag: 'DB', data: {'wishlistId': docRef.id});
       return result;
     } catch (e) {
-      debugPrint('❌ Error creating wishlist: $e');
+  logE('Error creating wishlist', tag: 'DB', error: e);
       rethrow;
     }
   }
@@ -182,7 +184,7 @@ class FirebaseDatabaseService {
   /// Update wishlist
   Future<void> updateWishlist(String wishlistId, Map<String, dynamic> updates) async {
     try {
-      debugPrint('🔥 Updating wishlist in Firestore: $wishlistId');
+      logI('Updating wishlist', tag: 'DB', data: {'wishlistId': wishlistId});
       
       final data = {
         ...updates,
@@ -191,9 +193,9 @@ class FirebaseDatabaseService {
       
       await _firestore.collection('wishlists').doc(wishlistId).update(data);
       
-      debugPrint('✅ Wishlist updated successfully');
+  logI('Wishlist updated', tag: 'DB', data: {'wishlistId': wishlistId});
     } catch (e) {
-      debugPrint('❌ Error updating wishlist: $e');
+  logE('Error updating wishlist', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
       rethrow;
     }
   }
@@ -201,7 +203,7 @@ class FirebaseDatabaseService {
   /// Delete wishlist
   Future<void> deleteWishlist(String wishlistId) async {
     try {
-      debugPrint('🔥 Deleting wishlist from Firestore: $wishlistId');
+      logI('Deleting wishlist', tag: 'DB', data: {'wishlistId': wishlistId});
       
       // Get wishlist data for image cleanup
       final wishlistDoc = await _firestore.collection('wishlists').doc(wishlistId).get();
@@ -240,10 +242,10 @@ class FirebaseDatabaseService {
         await _cloudinaryService.scheduleProductCleanup(wishlistImageUrl);
       }
       
-      debugPrint('✅ Wishlist and all items deleted successfully');
-      debugPrint('🗑️ Scheduled cleanup for ${productImageUrls.length} product images');
+  logI('Wishlist deleted', tag: 'DB', data: {'wishlistId': wishlistId, 'itemsImages': productImageUrls.length});
+  logD('Scheduled product images cleanup', tag: 'IMG', data: {'count': productImageUrls.length, 'wishlistId': wishlistId});
     } catch (e) {
-      debugPrint('❌ Error deleting wishlist: $e');
+  logE('Error deleting wishlist', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
       rethrow;
     }
   }
@@ -251,7 +253,7 @@ class FirebaseDatabaseService {
   /// Get wishlist by ID
   Future<Map<String, dynamic>?> getWishlist(String wishlistId) async {
     try {
-      debugPrint('🔥 Getting wishlist from Firestore: $wishlistId');
+      logD('Get wishlist', tag: 'DB', data: {'wishlistId': wishlistId});
       
       final doc = await _firestore.collection('wishlists').doc(wishlistId).get();
       
@@ -260,14 +262,14 @@ class FirebaseDatabaseService {
           'id': doc.id,
           ...doc.data()!,
         };
-        debugPrint('✅ Wishlist retrieved successfully');
+        logI('Wishlist retrieved', tag: 'DB', data: {'wishlistId': wishlistId});
         return data;
       } else {
-        debugPrint('⚠️ Wishlist not found');
+        logW('Wishlist not found', tag: 'DB', data: {'wishlistId': wishlistId});
         return null;
       }
     } catch (e) {
-      debugPrint('❌ Error getting wishlist: $e');
+      logE('Error getting wishlist', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
       rethrow;
     }
   }
@@ -277,7 +279,7 @@ class FirebaseDatabaseService {
   /// Get wishlist items
   Future<List<Map<String, dynamic>>> getWishlistItems(String wishlistId) async {
     try {
-      debugPrint('🔥 Getting wishlist items from Firestore: $wishlistId');
+      logD('Get wishlist items', tag: 'DB', data: {'wishlistId': wishlistId});
       
       final querySnapshot = await _firestore
           .collection('wish_items')
@@ -290,10 +292,10 @@ class FirebaseDatabaseService {
         ...doc.data(),
       }).toList();
       
-      debugPrint('✅ Retrieved ${items.length} wishlist items');
+  logI('Wishlist items retrieved', tag: 'DB', data: {'wishlistId': wishlistId, 'count': items.length});
       return items;
     } catch (e) {
-      debugPrint('❌ Error getting wishlist items: $e');
+  logE('Error getting wishlist items', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
       rethrow;
     }
   }
@@ -301,7 +303,7 @@ class FirebaseDatabaseService {
   /// Create wish item
   Future<Map<String, dynamic>> createWishItem(Map<String, dynamic> itemData) async {
     try {
-      debugPrint('🔥 Creating wish item in Firestore');
+      logI('Creating wish item', tag: 'DB');
       
       final docRef = _firestore.collection('wish_items').doc();
       
@@ -318,10 +320,10 @@ class FirebaseDatabaseService {
       final createdDoc = await docRef.get();
       final result = createdDoc.data()!;
       
-      debugPrint('✅ Wish item created successfully: ${docRef.id}');
+  logI('Wish item created', tag: 'DB', data: {'itemId': docRef.id});
       return result;
     } catch (e) {
-      debugPrint('❌ Error creating wish item: $e');
+  logE('Error creating wish item', tag: 'DB', error: e);
       rethrow;
     }
   }
@@ -329,7 +331,7 @@ class FirebaseDatabaseService {
   /// Update wish item
   Future<void> updateWishItem(String itemId, Map<String, dynamic> updates) async {
     try {
-      debugPrint('🔥 Updating wish item in Firestore: $itemId');
+      logI('Updating wish item', tag: 'DB', data: {'itemId': itemId});
       
       final data = {
         ...updates,
@@ -338,9 +340,9 @@ class FirebaseDatabaseService {
       
       await _firestore.collection('wish_items').doc(itemId).update(data);
       
-      debugPrint('✅ Wish item updated successfully');
+  logI('Wish item updated', tag: 'DB', data: {'itemId': itemId});
     } catch (e) {
-      debugPrint('❌ Error updating wish item: $e');
+  logE('Error updating wish item', tag: 'DB', error: e, data: {'itemId': itemId});
       rethrow;
     }
   }
@@ -348,7 +350,7 @@ class FirebaseDatabaseService {
   /// Delete wish item
   Future<void> deleteWishItem(String itemId) async {
     try {
-      debugPrint('🔥 Deleting wish item from Firestore: $itemId');
+      logI('Deleting wish item', tag: 'DB', data: {'itemId': itemId});
       
       // Get item data for image cleanup before deleting
       final itemDoc = await _firestore.collection('wish_items').doc(itemId).get();
@@ -362,16 +364,16 @@ class FirebaseDatabaseService {
         // Schedule image cleanup if item had an image
         if (imageUrl != null && imageUrl.isNotEmpty) {
           await _cloudinaryService.scheduleProductCleanup(imageUrl);
-          debugPrint('🗑️ Scheduled cleanup for product image: $imageUrl');
+          logD('Scheduled product image cleanup', tag: 'IMG', data: {'imageUrl': imageUrl});
         }
       } else {
-        // Item doesn't exist, just log
-        debugPrint('⚠️ Wish item not found: $itemId');
+        // Item doesn't exist
+        logW('Wish item not found', tag: 'DB', data: {'itemId': itemId});
       }
       
-      debugPrint('✅ Wish item deleted successfully');
+      logI('Wish item deleted', tag: 'DB', data: {'itemId': itemId});
     } catch (e) {
-      debugPrint('❌ Error deleting wish item: $e');
+      logE('Error deleting wish item', tag: 'DB', error: e, data: {'itemId': itemId});
       rethrow;
     }
   }
@@ -381,7 +383,7 @@ class FirebaseDatabaseService {
   /// Get wish item status
   Future<Map<String, dynamic>?> getWishItemStatus(String itemId, String userId) async {
     try {
-      debugPrint('🔥 Getting wish item status from Firestore: $itemId for user $userId');
+      logD('Get wish item status', tag: 'DB', data: {'itemId': itemId, 'userId': userId});
       
       final querySnapshot = await _firestore
           .collection('wish_item_statuses')
@@ -396,14 +398,14 @@ class FirebaseDatabaseService {
           'id': doc.id,
           ...doc.data(),
         };
-        debugPrint('✅ Wish item status retrieved successfully');
+        logI('Wish item status retrieved', tag: 'DB', data: {'itemId': itemId, 'userId': userId});
         return data;
       } else {
-        debugPrint('⚠️ Wish item status not found');
+        logW('Wish item status not found', tag: 'DB', data: {'itemId': itemId, 'userId': userId});
         return null;
       }
     } catch (e) {
-      debugPrint('❌ Error getting wish item status: $e');
+      logE('Error getting wish item status', tag: 'DB', error: e, data: {'itemId': itemId, 'userId': userId});
       rethrow;
     }
   }
@@ -411,7 +413,7 @@ class FirebaseDatabaseService {
   /// Set wish item status
   Future<void> setWishItemStatus(String itemId, String userId, Map<String, dynamic> statusData) async {
     try {
-      debugPrint('🔥 Setting wish item status in Firestore: $itemId for user $userId');
+      logI('Setting wish item status', tag: 'DB', data: {'itemId': itemId, 'userId': userId});
       
       // Check if status already exists
       final existingStatus = await getWishItemStatus(itemId, userId);
@@ -438,9 +440,9 @@ class FirebaseDatabaseService {
         });
       }
       
-      debugPrint('✅ Wish item status set successfully');
+  logI('Wish item status set', tag: 'DB', data: {'itemId': itemId, 'userId': userId});
     } catch (e) {
-      debugPrint('❌ Error setting wish item status: $e');
+  logE('Error setting wish item status', tag: 'DB', error: e, data: {'itemId': itemId, 'userId': userId});
       rethrow;
     }
   }
@@ -450,7 +452,7 @@ class FirebaseDatabaseService {
   /// Get user's friends
   Future<List<Map<String, dynamic>>> getUserFriends(String userId) async {
     try {
-      debugPrint('🔥 Getting user friends from Firestore: $userId');
+      logD('Get user friends', tag: 'DB', data: {'userId': userId});
       
       final querySnapshot = await _firestore
           .collection('friendships')
@@ -461,7 +463,7 @@ class FirebaseDatabaseService {
       final friendIds = querySnapshot.docs.map((doc) => doc.data()['friend_id'] as String).toList();
       
       if (friendIds.isEmpty) {
-        debugPrint('✅ No friends found');
+  logI('No friends found', tag: 'DB', data: {'userId': userId});
         return [];
       }
       
@@ -476,10 +478,10 @@ class FirebaseDatabaseService {
         ...doc.data(),
       }).toList();
       
-      debugPrint('✅ Retrieved ${friends.length} friends');
+  logI('Friends retrieved', tag: 'DB', data: {'userId': userId, 'count': friends.length});
       return friends;
     } catch (e) {
-      debugPrint('❌ Error getting user friends: $e');
+  logE('Error getting user friends', tag: 'DB', error: e, data: {'userId': userId});
       rethrow;
     }
   }
@@ -511,9 +513,9 @@ class FirebaseDatabaseService {
         'created_at': FieldValue.serverTimestamp(),
       });
 
-      debugPrint('✅ Added user $favoriteUserId to favorites');
+  logI('Added favorite', tag: 'FAVORITES', data: {'userId': currentUserId, 'favoriteUserId': favoriteUserId});
     } catch (e) {
-      debugPrint('❌ Error adding favorite: $e');
+  logE('Error adding favorite', tag: 'FAVORITES', error: e, data: {'favoriteUserId': favoriteUserId});
       rethrow;
     }
   }
@@ -533,9 +535,9 @@ class FirebaseDatabaseService {
         await doc.reference.delete();
       }
 
-      debugPrint('✅ Removed user $favoriteUserId from favorites');
+  logI('Removed favorite', tag: 'FAVORITES', data: {'userId': currentUserId, 'favoriteUserId': favoriteUserId});
     } catch (e) {
-      debugPrint('❌ Error removing favorite: $e');
+  logE('Error removing favorite', tag: 'FAVORITES', error: e, data: {'favoriteUserId': favoriteUserId});
       rethrow;
     }
   }
@@ -554,7 +556,7 @@ class FirebaseDatabaseService {
 
       return query.docs.isNotEmpty;
     } catch (e) {
-      debugPrint('❌ Error checking favorite: $e');
+      logE('Error checking favorite', tag: 'FAVORITES', error: e, data: {'userId': userId});
       return false;
     }
   }
@@ -588,10 +590,10 @@ class FirebaseDatabaseService {
         ...doc.data(),
       }).toList();
 
-      debugPrint('✅ Retrieved ${favorites.length} favorites');
+  logI('Favorites retrieved', tag: 'FAVORITES', data: {'count': favorites.length});
       return favorites;
     } catch (e) {
-      debugPrint('❌ Error getting favorites: $e');
+  logE('Error getting favorites', tag: 'FAVORITES', error: e);
       return [];
     }
   }
@@ -633,7 +635,7 @@ class FirebaseDatabaseService {
 
       return favorites;
     } catch (e) {
-      debugPrint('❌ Error getting paginated favorites: $e');
+      logE('Error getting paginated favorites', tag: 'FAVORITES', error: e, data: {'limit': limit, 'offset': offset});
       return [];
     }
   }
@@ -673,10 +675,10 @@ class FirebaseDatabaseService {
           })
           .toList();
 
-      debugPrint('✅ Found ${filteredUsers.length} users matching "$query"');
+  logI('Users search results', tag: 'SEARCH', data: {'query': query, 'count': filteredUsers.length});
       return filteredUsers;
     } catch (e) {
-      debugPrint('❌ Error searching users: $e');
+  logE('Error searching users', tag: 'SEARCH', error: e, data: {'query': query});
       return [];
     }
   }
@@ -686,7 +688,7 @@ class FirebaseDatabaseService {
     try {
       if (phoneNumbers.isEmpty || currentUserId == null) return [];
 
-      debugPrint('🔍 Searching for users with ${phoneNumbers.length} phone numbers');
+  logD('Search users by phone numbers', tag: 'SEARCH', data: {'count': phoneNumbers.length});
 
       // Firestore 'in' queries are limited to 10 items, so we need to batch
       const batchSize = 10;
@@ -711,10 +713,10 @@ class FirebaseDatabaseService {
         results.addAll(batchResults);
       }
 
-      debugPrint('✅ Found ${results.length} users matching phone numbers');
+  logI('Users found by phone numbers', tag: 'SEARCH', data: {'count': results.length});
       return results;
     } catch (e) {
-      debugPrint('❌ Error finding users by phone numbers: $e');
+  logE('Error finding users by phone numbers', tag: 'SEARCH', error: e, data: {'phones': phoneNumbers.length});
       return [];
     }
   }
@@ -734,10 +736,10 @@ class FirebaseDatabaseService {
         ...doc.data(),
       }).toList();
 
-      debugPrint('✅ Retrieved ${wishlists.length} public wishlists for user $userId');
+  logI('Public wishlists retrieved', tag: 'DB', data: {'userId': userId, 'count': wishlists.length});
       return wishlists;
     } catch (e) {
-      debugPrint('❌ Error getting public wishlists: $e');
+  logE('Error getting public wishlists', tag: 'DB', error: e, data: {'userId': userId});
       return [];
     }
   }
@@ -879,10 +881,10 @@ class FirebaseDatabaseService {
               })
           .toList();
 
-      debugPrint('✅ Retrieved ${items.length} wish items (paginated)');
+  logI('Paginated wish items retrieved', tag: 'DB', data: {'wishlistId': wishlistId, 'count': items.length, 'limit': limit, 'offset': offset});
       return items;
     } catch (e) {
-      debugPrint('❌ Error getting paginated wish items: $e');
+  logE('Error getting paginated wish items', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
       return [];
     }
   }
@@ -901,7 +903,7 @@ class FirebaseDatabaseService {
       if (startAfter == null && _firstPageCache.containsKey(cacheKey)) {
         final ts = _firstPageCacheTime[cacheKey];
         if (ts != null && DateTime.now().difference(ts) < _firstPageTtl) {
-          debugPrint('⚡ Using cached first page for $cacheKey');
+          logD('Using cached first page', tag: 'DB', data: {'cacheKey': cacheKey});
           return _firstPageCache[cacheKey]!;
         }
       }
@@ -942,10 +944,11 @@ class FirebaseDatabaseService {
         _firstPageCache[cacheKey] = (items, last);
         _firstPageCacheTime[cacheKey] = DateTime.now();
       }
+      logI('Cursor page retrieved', tag: 'DB', data: {'wishlistId': wishlistId, 'count': items.length, 'cached': startAfter == null});
       return (items, last);
     } catch (e) {
-      debugPrint('❌ Cursor pagination error: $e');
-  return (<Map<String, dynamic>>[], null);
+      logE('Cursor pagination error', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
+      return (<Map<String, dynamic>>[], null);
     }
   }
 
@@ -975,10 +978,10 @@ class FirebaseDatabaseService {
               })
           .toList();
 
-      debugPrint('✅ Retrieved ${wishlists.length} wishlists (paginated)');
+  logI('Paginated wishlists retrieved', tag: 'DB', data: {'userId': userId, 'count': wishlists.length, 'limit': limit, 'offset': offset});
       return wishlists;
     } catch (e) {
-      debugPrint('❌ Error getting paginated wishlists: $e');
+  logE('Error getting paginated wishlists', tag: 'DB', error: e, data: {'userId': userId});
       return [];
     }
   }
@@ -988,9 +991,9 @@ class FirebaseDatabaseService {
     // For compatibility, we ignore wishlistId and just delete by itemId
     try {
       await _firestore.collection('wish_items').doc(itemId).delete();
-      debugPrint('✅ Deleted wish item $itemId');
+      logI('Deleted wish item (compat)', tag: 'DB', data: {'itemId': itemId});
     } catch (e) {
-      debugPrint('❌ Error deleting wish item: $e');
+      logE('Error deleting wish item (compat)', tag: 'DB', error: e, data: {'itemId': itemId});
       rethrow;
     }
   }
@@ -1009,9 +1012,9 @@ class FirebaseDatabaseService {
         'created_at': FieldValue.serverTimestamp(),
       });
       
-      debugPrint('📊 Analytics event logged: $eventType');
+      logD('Analytics event logged', tag: 'ANALYTICS', data: {'eventType': eventType});
     } catch (e) {
-      debugPrint('❌ Error logging analytics event: $e');
+      logE('Error logging analytics event', tag: 'ANALYTICS', error: e, data: {'eventType': eventType});
       // Don't rethrow - analytics shouldn't break app functionality
     }
   }
@@ -1033,7 +1036,7 @@ class FirebaseDatabaseService {
         };
       }
     } catch (e) {
-      debugPrint('❌ Error getting usage stats: $e');
+      logE('Error getting usage stats', tag: 'ANALYTICS', error: e);
       return null;
     }
   }
@@ -1062,7 +1065,7 @@ class FirebaseDatabaseService {
         return [];
       }
       
-      debugPrint('🔍 Looking up users by phone numbers (${phoneNumbers.length})');
+  logD('Lookup users by phone numbers', tag: 'SEARCH', data: {'count': phoneNumbers.length});
       
       // Firestore não suporta consultas IN com mais de 10 valores
       // Por isso, dividimos em batches de 10
@@ -1090,10 +1093,10 @@ class FirebaseDatabaseService {
         }
       }
       
-      debugPrint('✅ Found ${results.length} users from phone numbers');
+  logI('Users found (phone lookup)', tag: 'SEARCH', data: {'count': results.length});
       return results;
     } catch (e) {
-      debugPrint('❌ Error looking up users by phone numbers: $e');
+  logE('Error looking up users by phone numbers', tag: 'SEARCH', error: e, data: {'phones': phoneNumbers.length});
       return [];
     }
   }

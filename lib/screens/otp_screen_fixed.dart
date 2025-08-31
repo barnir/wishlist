@@ -6,6 +6,7 @@ import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../constants/ui_constants.dart';
 import '../main.dart';
 import '../widgets/app_snack.dart';
+import 'package:wishlist_app/utils/app_logger.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phoneNumber;
@@ -34,8 +35,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     
     // Firebase Auth has native SMS auto-fill, no custom implementation needed
-    debugPrint('=== Firebase OTP Screen Initialized ===');
-    debugPrint('Phone number: ${widget.phoneNumber}');
+  logD('OTP screen init', tag: 'OTP', data: {'phone': widget.phoneNumber});
     
     // Check for stored phone number to validate consistency
     _checkStoredPhoneNumber();
@@ -64,7 +64,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      debugPrint('OTP Screen: App resumed, checking for stored verification data');
+  logD('App resumed - rechecking stored phone', tag: 'OTP');
       _checkStoredPhoneNumber();
     }
   }
@@ -73,19 +73,19 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     try {
       _storedPhoneNumber = await _firebaseAuthService.getStoredPhoneNumber();
       if (_storedPhoneNumber != null) {
-        debugPrint('Stored phone number found: $_storedPhoneNumber');
+        logD('Stored phone number', tag: 'OTP', data: {'stored': _storedPhoneNumber});
         if (_storedPhoneNumber != widget.phoneNumber) {
-          debugPrint('Warning: Phone number mismatch. Current: ${widget.phoneNumber}, Stored: $_storedPhoneNumber');
+          logW('Phone mismatch', tag: 'OTP', data: {'current': widget.phoneNumber, 'stored': _storedPhoneNumber});
         }
       }
     } catch (e) {
-      debugPrint('Error checking stored phone number: $e');
+      logE('Check stored phone error', tag: 'OTP', error: e);
     }
   }
 
   Future<void> _submitOTP() async {
     if (_hasSubmitted || _isLoading) {
-      debugPrint('Submission ignored - already processing');
+      logD('Submit ignored (busy)', tag: 'OTP');
       return;
     }
     
@@ -102,9 +102,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     });
 
     try {
-      debugPrint('=== Verifying Firebase OTP ===');
-      debugPrint('Code: $code');
-      debugPrint('Method: ${_hasSubmitted ? "Auto-submit" : "Manual"}');
+      logI('Verifying OTP', tag: 'OTP', data: {'codeLen': code.length, 'method': _hasSubmitted ? 'auto' : 'manual'});
       
       final result = await _firebaseAuthService.verifyPhoneOtpEnhanced(
         widget.phoneNumber,
@@ -113,12 +111,12 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
 
       if (!mounted) return;
       
-      debugPrint('OTP verification result: $result');
+  logI('OTP verification result', tag: 'OTP', data: {'result': result.name});
       
       switch (result) {
         case PhoneVerificationResult.success:
         case PhoneVerificationResult.alreadyLinked:
-          debugPrint('OTP verification successful ($result)');
+          logI('OTP success', tag: 'OTP', data: {'result': result.name});
           // Use Future.microtask to ensure context is valid for navigation
           Future.microtask(() {
             if (mounted) {
@@ -146,13 +144,13 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
           break;
         case PhoneVerificationResult.internalError:
           HapticFeedback.heavyImpact();
-          debugPrint('Internal error during OTP verification - user can retry');
+      logE('Internal OTP error', tag: 'OTP');
           _showSnackBar(AppLocalizations.of(context)?.otpInternalError ?? 'Erro interno. Tente novamente.');
           setState(() => _hasSubmitted = false);
           break;
       }
     } catch (e) {
-      debugPrint('OTP verification error: $e');
+    logE('OTP verification error', tag: 'OTP', error: e);
       if (mounted) {
         String errorMessage = AppLocalizations.of(context)?.otpInvalidCode ?? 'Código inválido. Tente novamente.';
         if (e.toString().contains('No verification ID found')) {
@@ -222,7 +220,7 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
       // Add delay to ensure all text field updates are complete
       Future.delayed(const Duration(milliseconds: 150), () {
         if (mounted && !_isLoading && !_hasSubmitted) {
-          debugPrint('Auto-submitting OTP: $code');
+          logD('Auto submit trigger', tag: 'OTP');
           _submitOTP();
         }
       });
