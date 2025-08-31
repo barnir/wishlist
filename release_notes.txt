@@ -1,24 +1,23 @@
-🚀 Wishlist App Beta v0.1.1 (Build 2)
+🚀 Wishlist App Beta v0.1.2 (Build 3)
 
 ✨ Novidades:
-- Alternância de layout (lista | grelha) nas wishlists com persistência
-- Auto-complete de registo quando telefone já existe (eliminação do loop de verificação)
-- Fallback robusto de queries Firestore (multinível) para evitar listas vazias sem índice
-- Novos índices compostos para ordenação por nome, preço e categoria (melhor performance & sorting consistente)
-- Upload de imagem otimizado (Cloudinary singleton + precache)
+- Ícone de acesso rápido ao link (carrinho) sobreposto na grelha
+- Abertura direta de links no browser (remoção do canLaunch + package visibility http/https)
+- Filtro de categoria mais robusto (name + alias → whereIn) evitando itens “perdidos”
+- Overlay de ação visual refinado para itens com link
 
-� Melhorias Técnicas:
-- Logging estruturado (latência, warnings de índice, diagnóstico)
-- Redução de rebuilds e otimizações de scroll/paginação
-- Substituição de APIs deprecated (surfaceVariant → surfaceContainerHighest)
-- Zero issues em `dart analyze`
+🔧 Melhorias Técnicas:
+- Suporte a variantes de categoria (alias) via `Category.storageCandidates()`
+- Simplificação do fluxo de abertura de URL com sanitização centralizada
+- Adição de intents http/https em `<queries>` para Android 11+
+- Bump de versão para distribuição beta
 
 🐞 Correções:
-- Navegação incorreta para ecrã de verificação de telefone corrigida
-- Evita bloqueio do fluxo em falta de índice Firestore
- - Ajuste de versionCode/Name para evitar falha de instalação em atualização
+- Links que não abriam devido a `canLaunch` falso negativo
+- Categoria com alias não filtrava (ex: "Saúde" vs "Saúde & Fitness")
+- Ícone de link ausente na grelha
 
 📌 Nota:
-Cria automaticamente novos índices; garantir propagação antes de testes intensivos de ordenação.
+Se ainda não tiverem propagado índices antigos, a query fallback mantém UX. Testar abertura de vários domínios externos.
 
 Pronto para distribuição beta. 🎯
