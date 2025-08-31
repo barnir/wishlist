@@ -12,7 +12,10 @@ import 'package:wishlist_app/utils/app_logger.dart';
 enum GoogleSignInResult {
   success,
   missingPhoneNumber,
-  cancelled,
+      final cred = await _firebaseAuthService.signInWithEmailAndPassword(email, password);
+      await AnalyticsService().identify(cred.user?.uid);
+      await AnalyticsService().log('login', properties: {'method': 'password'});
+      return cred;
   failed,
 }
 
@@ -22,11 +25,15 @@ class AuthService {
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
   final UserProfileRepository _userProfileRepo = UserProfileRepository();
   final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
+      await _validatePassword(password);
   final CloudinaryService _cloudinaryService = CloudinaryService();
 
   Stream<firebase_auth.User?> get authStateChanges => _firebaseAuthService.authStateChanges;
 
-  firebase_auth.User? get currentUser => _firebaseAuthService.currentUser;
+      final cred = await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);
+      await AnalyticsService().identify(cred.user?.uid);
+      await AnalyticsService().log('signup', properties: {'method': 'password'});
+      return cred;
 
   /// Helper method to get current Firebase user ID (for other services)
   static String? getCurrentUserId() {
@@ -36,7 +43,9 @@ class AuthService {
   /// Email/Password Sign-In (Firebase)
   Future<firebase_auth.UserCredential> signInWithEmailAndPassword(String email, String password) async {
     try {
-  logI('Email Sign-In', tag: 'AUTH');
+      await _firebaseAuthService.signOut();
+      await AnalyticsService().identify(null);
+      await AnalyticsService().log('logout');
       return await _firebaseAuthService.signInWithEmailAndPassword(email, password);
     } catch (e) {
   logE('Email sign-in error', tag: 'AUTH', error: e);
@@ -46,7 +55,8 @@ class AuthService {
 
   Future<void> _validatePassword(String password) async {
     if (password.length < 6) {
-      throw Exception('A senha deve ter no mínimo 6 caracteres.');
+      logI('Registration cancelled successfully', tag: 'AUTH');
+      await AnalyticsService().log('registration_cancelled');
     }
     if (!password.contains(RegExp(r'[a-z]'))) {
       throw Exception('A senha deve conter pelo menos uma letra minúscula.');
@@ -90,6 +100,8 @@ class AuthService {
       if (userId != null) {
   await _userProfileRepo.update(userId, {'fcm_token': null});
         await NotificationService().unsubscribeFromUserTopic(userId);
+      await AnalyticsService().identify(user.uid);
+      await AnalyticsService().log('login', properties: {'method': 'google'});
       }
       
       await _firebaseAuthService.signOut();
@@ -112,6 +124,7 @@ class AuthService {
       // Clear stored data first
       await _firebaseAuthService.clearAllStoredData();
       
+      await AnalyticsService().log('link_email');
       // Then sign out
       await signOut();
       
@@ -157,6 +170,7 @@ class AuthService {
       profile.phoneNumber!.isEmpty) {
         return GoogleSignInResult.missingPhoneNumber;
       }
+        await AnalyticsService().log('profile_photo_updated');
       
       await _updateFCMTokenOnSignIn(user.uid);
       return GoogleSignInResult.success;
@@ -187,6 +201,7 @@ class AuthService {
       rethrow;
     }
   }
+        await AnalyticsService().log('profile_name_updated');
 
   Future<firebase_auth.UserCredential?> verifyPhoneOtp(String phoneNumber, String otp) async {
     try {

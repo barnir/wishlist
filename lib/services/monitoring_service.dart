@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'package:wishlist_app/services/analytics/analytics_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wishlist_app/services/auth_service.dart';
@@ -193,11 +194,7 @@ class MonitoringService {
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId != null) {
-        // Placeholder for analytics integration
-        if (kDebugMode) {
-          developer.log('Analytics event: $eventName', name: 'MonitoringService',
-              error: null, stackTrace: null, level: 0);
-        }
+        await AnalyticsService().log(eventName, properties: properties ?? {});
       }
     } catch (e) {
       logError('Failed to track event: $eventName', null, operation: 'trackEvent');
