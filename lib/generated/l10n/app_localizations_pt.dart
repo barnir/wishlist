@@ -36,6 +36,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get cancel => 'Cancelar';
 
   @override
+  String get enrichmentPending => 'A melhorar detalhes...';
+
+  @override
+  String get enrichmentRateLimited =>
+      'Limite de enriquecimentos atingido. Tente mais tarde.';
+
+  @override
+  String get enrichmentCompleted => 'Detalhes enriquecidos.';
+
+  @override
   String get account => 'Conta';
 
   @override

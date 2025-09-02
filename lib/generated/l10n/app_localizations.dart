@@ -152,6 +152,24 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// Shown while metadata enrichment is pending
+  ///
+  /// In en, this message translates to:
+  /// **'Enhancing details...'**
+  String get enrichmentPending;
+
+  /// Shown when user is rate limited for enrich link
+  ///
+  /// In en, this message translates to:
+  /// **'Enrichment limit reached. Try later.'**
+  String get enrichmentRateLimited;
+
+  /// Shown when enrichment finishes
+  ///
+  /// In en, this message translates to:
+  /// **'Details enriched.'**
+  String get enrichmentCompleted;
+
   /// Account section title
   ///
   /// In en, this message translates to:

@@ -128,6 +128,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             if (cacheId != null && cacheId.isNotEmpty) {
               _enrichmentCacheId = cacheId;
             }
+            if (data['rateLimited'] == true) {
+              setState(() {
+                _scrapingStatus = 'Limite de enriquecimentos atingido.'; // l10n enrichmentRateLimited
+                _pendingEnrichment = false;
+              });
+              return;
+            }
             // Evitar sobrescrever se usuário já editou
             if (_nameController.text.isEmpty && (data['title'] as String?)?.isNotEmpty == true) {
               _nameController.text = data['title'];
@@ -167,15 +174,20 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               } catch (_) {}
             }
             setState(() {
-              _scrapingStatus = null; // concluiu
+              _scrapingStatus = 'Detalhes enriquecidos.'; // l10n enrichmentCompleted
               _pendingEnrichment = false; // enrichment finalizado
+            });
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted && _scrapingStatus == 'Detalhes enriquecidos.') {
+                setState(() => _scrapingStatus = null);
+              }
             });
           });
         }
 
         // Status inicial muda para preenchimento rápido
         setState(() {
-          _scrapingStatus = l10n?.scrapingFillingFields;
+          _scrapingStatus = l10n?.scrapingFillingFields ?? 'A melhorar detalhes...'; // l10n enrichmentPending
         });
 
         // Ainda executamos fallback antigo se enrichment falhar e título vazio

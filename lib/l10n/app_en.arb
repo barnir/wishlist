@@ -44,6 +44,12 @@
   "@cancel": {
     "description": "Cancel button text"
   },
+  "enrichmentPending": "Enhancing details...",
+  "@enrichmentPending": {"description":"Shown while metadata enrichment is pending"},
+  "enrichmentRateLimited": "Enrichment limit reached. Try later.",
+  "@enrichmentRateLimited": {"description":"Shown when user is rate limited for enrich link"},
+  "enrichmentCompleted": "Details enriched.",
+  "@enrichmentCompleted": {"description":"Shown when enrichment finishes"},
 
   "account": "Account",
   "@account": {
