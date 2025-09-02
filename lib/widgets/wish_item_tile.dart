@@ -69,7 +69,7 @@ class WishItemTile extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '€${item.price!.toStringAsFixed(2)}',
+                          '€${item.price!.toStringAsFixed(2)}', // Consider localizing currency formatting if multi-currency support is needed
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -160,8 +160,8 @@ class WishItemTile extends StatelessWidget {
                               AccessibleIconButton(
                                 icon: Icons.open_in_new,
                                 color: Theme.of(context).colorScheme.primary,
-                                semanticLabel: 'Abrir link do item',
-                                tooltip: 'Abrir link',
+                                semanticLabel: AppLocalizations.of(context)?.openItemLink ?? 'Abrir link do item',
+                                tooltip: AppLocalizations.of(context)?.openLink ?? 'Abrir link',
                                 onPressed: () => _openLink(item.link!),
                               ),
                             
@@ -170,8 +170,8 @@ class WishItemTile extends StatelessWidget {
                               AccessibleIconButton(
                                 icon: Icons.edit_outlined,
                                 color: Theme.of(context).colorScheme.outline,
-                                semanticLabel: '${AppLocalizations.of(context)?.edit ?? 'Editar'} item',
-                                tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
+                                semanticLabel: AppLocalizations.of(context)?.editItem ?? 'Editar item',
+                                tooltip: AppLocalizations.of(context)?.editItem ?? 'Editar',
                                 onPressed: () {
                                   HapticService.lightImpact();
                                   onEdit!();

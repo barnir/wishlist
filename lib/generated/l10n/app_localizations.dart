@@ -98,6 +98,30 @@ abstract class AppLocalizations {
     Locale('pt'),
   ];
 
+  /// No description provided for @createWishlistError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create wishlist'**
+  String get createWishlistError;
+
+  /// No description provided for @openItemLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open item link'**
+  String get openItemLink;
+
+  /// No description provided for @openLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get openLink;
+
+  /// No description provided for @editItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit item'**
+  String get editItem;
+
   /// The title of the application
   ///
   /// In en, this message translates to:

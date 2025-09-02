@@ -389,12 +389,12 @@ class SwipeAction {
   /// Factory for edit actions
   factory SwipeAction.edit({
     required VoidCallback onPressed,
-    String? label = 'Editar',
+    String? label,
   }) {
     return SwipeAction(
       icon: Icons.edit,
       onPressed: onPressed,
-      label: label,
+      label: label ?? 'Editar',
       type: SwipeActionType.primary,
     );
   }

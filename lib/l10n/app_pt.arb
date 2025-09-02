@@ -1,4 +1,8 @@
 {
+  "createWishlistError": "Falha ao criar wishlist",
+  "openItemLink": "Abrir link do item",
+  "openLink": "Abrir link",
+  "editItem": "Editar item",
   "@@locale": "pt",
   "appTitle": "MyWishStash",
   "@appTitle": {"description": "Nome da aplicação (marca unificada)"},

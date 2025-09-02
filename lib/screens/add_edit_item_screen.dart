@@ -239,7 +239,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         isPrivate: false,
         imageUrl: null,
       );
-      if (id == null) throw Exception('Falha ao criar wishlist');
+  if (id == null) throw Exception(AppLocalizations.of(context)?.createWishlistError ?? 'Falha ao criar wishlist');
       _newWishlistNameController.clear();
       setState(() {
         _wishlists.insert(0, Wishlist(

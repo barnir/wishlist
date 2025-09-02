@@ -9,6 +9,18 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get createWishlistError => 'Falha ao criar wishlist';
+
+  @override
+  String get openItemLink => 'Abrir link do item';
+
+  @override
+  String get openLink => 'Abrir link';
+
+  @override
+  String get editItem => 'Editar item';
+
+  @override
   String get appTitle => 'MyWishStash';
 
   @override
