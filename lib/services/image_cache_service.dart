@@ -8,6 +8,11 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 class ImageCacheService {
   static final DefaultCacheManager _cacheManager = DefaultCacheManager();
 
+  /// Limpa todo o cache de imagens (memória e disco).
+  static Future<void> clearCache() async {
+    await _cacheManager.emptyCache();
+  }
+
   /// Retrieves a file from the cache.
   ///
   /// If the file is not in the cache, it will be downloaded from the given [url].

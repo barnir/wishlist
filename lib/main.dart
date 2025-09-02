@@ -98,6 +98,9 @@ void main() async {
     } catch (_) {
       // Non-fatal: ignore analytics bootstrap errors
     }
+
+    // Prefetch imagens ao entrar na app
+    await ImagePrefetchService().warmUp();
   }
 
   runApp(const MyApp());

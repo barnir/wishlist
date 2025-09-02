@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/services/image_cache_service.dart';
 // Estatísticas migradas para StatsRepository (serviço legado removido desta tela)
 import 'package:mywishstash/repositories/stats_repository.dart';
 import 'package:mywishstash/repositories/user_profile_repository.dart';
@@ -241,6 +242,7 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _signOut() async {
     await _authService.signOut();
+    await ImageCacheService.clearCache();
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/login');
     }

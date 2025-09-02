@@ -7,6 +7,7 @@ import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:mywishstash/widgets/optimized_cloudinary_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import 'package:mywishstash/services/cloudinary_service.dart';
 import 'package:mywishstash/repositories/wishlist_repository.dart';
@@ -140,6 +141,25 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
         if (!_hasMoreData) {
           _scrollController.removeListener(_onScroll);
+        }
+      }
+      // Prefetch thumbnails da próxima página (se houver mais dados)
+      if (page.hasMore && page.lastDoc != null) {
+        final nextPage = await _wishItemRepo.fetchPage(
+          wishlistId: widget.wishlistId,
+          limit: _pageSize,
+          category: _selectedCategory,
+          sortOptions: _sortOption,
+          startAfter: page.lastDoc,
+        );
+        final nextImageUrls = nextPage.items
+          .map((item) => item.imageUrl)
+          .whereType<String>()
+          .where((url) => url.isNotEmpty)
+          .toList();
+        for (final url in nextImageUrls) {
+          // Prefetch usando CachedNetworkImageProvider
+          CachedNetworkImageProvider(url).resolve(const ImageConfiguration());
         }
       }
   // Lint falso-positivo: helper não usa BuildContext após async; apenas agenda cache sem contexto.
