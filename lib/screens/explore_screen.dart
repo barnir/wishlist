@@ -1,6 +1,7 @@
 import 'package:mywishstash/widgets/skeleton_loader.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -785,10 +786,16 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
+                  AccessibleIconButton(
+                    icon: isFav ? Icons.star : Icons.star_border,
+                    color: isFav ? Colors.amber : Theme.of(context).colorScheme.primary,
+                    semanticLabel: isFav
+                      ? AppLocalizations.of(context)?.removeFromFavorites ?? 'Remover dos favoritos'
+                      : AppLocalizations.of(context)?.addToFavorites ?? 'Adicionar aos favoritos',
+                    tooltip: isFav
+                      ? AppLocalizations.of(context)?.removeFromFavorites ?? 'Remover dos favoritos'
+                      : AppLocalizations.of(context)?.addToFavorites ?? 'Adicionar aos favoritos',
                     onPressed: () => _toggleFavorite(userId, isFav),
-                    icon: Icon(isFav ? Icons.star : Icons.star_border, color: isFav ? Colors.amber : Theme.of(context).colorScheme.primary),
                   ),
                 ],
               )

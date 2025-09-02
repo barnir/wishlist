@@ -373,9 +373,10 @@ class CloudinaryService {
       final cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME'];
       if (cloudName == null) return cloudinaryUrl;
       final publicId = pathSegments.sublist(uploadIndex + 1).join('/');
-      return 'https://res.cloudinary.com/'
-          '$cloudName/image/upload/w_40,q_10,e_blur:200,f_auto/'
-          '$publicId';
+    // Softer blur, higher width/quality for better legibility
+    return 'https://res.cloudinary.com/'
+      '$cloudName/image/upload/w_80,q_30,e_blur:40,f_auto/'
+      '$publicId';
     } catch (_) {
       return cloudinaryUrl;
     }

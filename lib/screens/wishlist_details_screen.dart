@@ -400,24 +400,25 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               ),
             ),
             if (item.link?.isNotEmpty == true)
-              IconButton(
-                visualDensity: VisualDensity.compact,
+              AccessibleIconButton(
+                icon: Icons.shopping_cart_outlined,
                 tooltip: AppLocalizations.of(context)?.view ?? 'Ver',
-                icon: const Icon(Icons.shopping_cart_outlined, size: 20),
+                semanticLabel: AppLocalizations.of(context)?.view ?? 'Ver',
                 onPressed: () => _openItemLink(item),
               ),
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              onPressed: () => _editItem(item),
-            ),
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              tooltip: AppLocalizations.of(context)?.delete ?? 'Eliminar',
-              icon: Icon(Icons.delete_outline, size: 20, color: Theme.of(context).colorScheme.error),
-              onPressed: () => _showDeleteConfirmation(item),
-            ),
+              AccessibleIconButton(
+                icon: Icons.edit_outlined,
+                tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
+                semanticLabel: AppLocalizations.of(context)?.edit ?? 'Editar',
+                onPressed: () => _editItem(item),
+              ),
+              AccessibleIconButton(
+                icon: Icons.delete_outline,
+                tooltip: AppLocalizations.of(context)?.delete ?? 'Eliminar',
+                semanticLabel: AppLocalizations.of(context)?.delete ?? 'Eliminar',
+                color: Theme.of(context).colorScheme.error,
+                onPressed: () => _showDeleteConfirmation(item),
+              ),
           ],
         ),
       ),

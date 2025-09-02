@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:mywishstash/widgets/app_snack.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mywishstash/services/auth_service.dart';
 import 'package:mywishstash/repositories/wishlist_repository.dart';
@@ -180,11 +181,10 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
+    AppSnack.show(
+      context,
+      message,
+      type: SnackType.error,
     );
   }
 

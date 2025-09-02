@@ -1,5 +1,6 @@
 import '../widgets/app_snack.dart';
 import 'package:flutter/material.dart';
+import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:mywishstash/services/auth_service.dart';
@@ -339,9 +340,10 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
           title: AppLocalizations.of(context)?.myWishlists ?? 'Minhas Wishlists',
           showBackButton: false,
           actions: [
-            IconButton(
+            AccessibleIconButton(
+              icon: Icons.filter_list_rounded,
+              semanticLabel: l10n?.filtersAndSortingTitle ?? 'Filtros',
               tooltip: l10n?.filtersAndSortingTitle ?? 'Filtros',
-              icon: const Icon(Icons.filter_list_rounded),
               onPressed: _openSortFilterSheet,
             ),
           ],
