@@ -9,6 +9,16 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String itemMarkedStatus(Object status) {
+    return 'Item marked as $status';
+  }
+
+  @override
+  String genericError(Object error) {
+    return 'Error: $error';
+  }
+
+  @override
   String get removeStatusButton => 'Remove';
 
   @override
@@ -22,11 +32,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String errorLoadingProfile(Object error) {
     return 'Error loading profile: $error';
-  }
-
-  @override
-  String genericError(Object error) {
-    return 'Error: $error';
   }
 
   @override

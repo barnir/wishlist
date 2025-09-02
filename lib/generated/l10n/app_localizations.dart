@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('pt'),
   ];
 
+  /// Success message when marking the status of an item.
+  ///
+  /// In en, this message translates to:
+  /// **'Item marked as {status}'**
+  String itemMarkedStatus(Object status);
+
+  /// Generic error message.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String genericError(Object error);
+
   /// Button to remove item status (reversible action)
   ///
   /// In en, this message translates to:
@@ -121,12 +133,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error loading profile: {error}'**
   String errorLoadingProfile(Object error);
-
-  /// No description provided for @genericError.
-  ///
-  /// In en, this message translates to:
-  /// **'Error: {error}'**
-  String genericError(Object error);
 
   /// No description provided for @createWishlistError.
   ///

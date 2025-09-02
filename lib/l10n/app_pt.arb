@@ -1,4 +1,19 @@
 {
+  "itemMarkedStatus": "Item marcado como {status}",
+  "@itemMarkedStatus": {
+    "description": "Mensagem de sucesso ao marcar o status de um item.",
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "genericError": "Erro: {error}",
+  "@genericError": {
+    "description": "Mensagem genérica de erro.",
+    "placeholders": {
+      "error": {}
+    }
+  },
+
   "removeStatusButton": "Remover",
   "@removeStatusButton": {"description": "Botão para remover status do item (ação reversível)"},
   "removeStatusSuccess": "Status removido",

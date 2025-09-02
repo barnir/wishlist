@@ -294,13 +294,21 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
       if (mounted) {
         Navigator.of(context).pop(true); // true indica sucesso
         
-  AppSnack.show(context, 'Item marcado como "${_selectedStatus.shortDisplayName}"', type: SnackType.success);
+  AppSnack.show(
+    context,
+    AppLocalizations.of(context)?.itemMarkedStatus(_selectedStatus.shortDisplayName) ?? 'Item marcado como "${_selectedStatus.shortDisplayName}"',
+    type: SnackType.success,
+  );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         
-  AppSnack.show(context, 'Erro: $e', type: SnackType.error);
+  AppSnack.show(
+    context,
+    AppLocalizations.of(context)?.genericError(e.toString()) ?? 'Erro: $e',
+    type: SnackType.error,
+  );
       }
     }
   }
