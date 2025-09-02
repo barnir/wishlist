@@ -1,5 +1,5 @@
-name: wishlist_app
-description: "Wishlist social app: cria e partilha listas de desejos, adiciona produtos com imagens (Cloudinary), acompanha quedas de preço, recebe notificações (FCM) e sincroniza tudo em tempo real via Firebase."
+name: mywishstash
+description: "MyWishStash: cria e partilha listas de desejos, adiciona produtos com imagens (Cloudinary), acompanha quedas de preço, recebe notificações (FCM) e sincroniza tudo em tempo real via Firebase."
 publish_to: 'none'
 version: 0.1.2+3
 

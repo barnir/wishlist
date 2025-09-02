@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// The title of the application
   ///
   /// In en, this message translates to:
-  /// **'Wishlist'**
+  /// **'MyWishStash'**
   String get appTitle;
 
   /// Profile page title
