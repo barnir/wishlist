@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/models/user_favorite.dart';
-import 'package:wishlist_app/repositories/page.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/models/user_favorite.dart';
+import 'package:mywishstash/repositories/page.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Repository for favorites with cursor pagination returning enriched profile data.

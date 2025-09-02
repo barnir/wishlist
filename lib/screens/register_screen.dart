@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/utils/validation_utils.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/utils/validation_utils.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});

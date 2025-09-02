@@ -2,10 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:mywishstash/services/cloudinary_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
 import 'dart:math';
-import 'package:wishlist_app/services/analytics/analytics_service.dart';
+import 'package:mywishstash/services/analytics/analytics_service.dart';
 import 'dart:io';
 
 /// Unified image widget applying Cloudinary transformation + shimmer + fallback to original URL on error.

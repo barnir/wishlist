@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/models/user_profile.dart';
-import 'package:wishlist_app/repositories/page.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/models/user_profile.dart';
+import 'package:mywishstash/repositories/page.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 /// Simplified search repository for public users.
 /// Firestore doesn't support full text search natively; this performs a

@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wishlist_app/services/analytics/analytics_service.dart';
+import 'package:mywishstash/services/analytics/analytics_service.dart';
 
 class LanguageService extends ChangeNotifier {
   static final LanguageService _instance = LanguageService._internal();

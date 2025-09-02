@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/repositories/user_profile_repository.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/repositories/user_profile_repository.dart';
 
 class SetupNameScreen extends StatefulWidget {
   const SetupNameScreen({super.key});

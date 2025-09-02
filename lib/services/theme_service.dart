@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
-import 'package:wishlist_app/services/analytics/analytics_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/services/analytics/analytics_service.dart';
 
 /// Service to manage app theme (light/dark/system)
 class ThemeService extends ChangeNotifier {

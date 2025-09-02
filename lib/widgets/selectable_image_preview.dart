@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'optimized_cloudinary_image.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:mywishstash/services/cloudinary_service.dart';
 
 /// Reusable image picker/display widget integrating OptimizedCloudinaryImage
 /// with optional local preview path and upload progress overlay.

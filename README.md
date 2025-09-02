@@ -64,21 +64,28 @@ flutter pub get
 2. Crie uma conta gratuita
 3. Anote o **Cloud Name**, **API Key** e **API Secret**
 
-#### 3.3 Configurar Variáveis de Ambiente
-Crie um arquivo `.env` na raiz do projeto:
+#### 3.3 Configurar Variáveis de Ambiente (Cliente Flutter)
+Crie um arquivo `.env` na raiz do projeto contendo APENAS as chaves realmente lidas pela app:
 
 ```env
-# Firebase
-FIREBASE_PROJECT_ID=seu_projeto_firebase
-
-# Cloudinary
+# Cloudinary (uploads UNSIGNED)
 CLOUDINARY_CLOUD_NAME=seu_cloud_name
-CLOUDINARY_API_KEY=sua_api_key
-CLOUDINARY_API_SECRET=seu_api_secret
+CLOUDINARY_UPLOAD_PRESET=wishlist_unsigned
 
-# Google Sign-In
+# Google Sign-In (opcional – web client ID para server auth code flow)
 GOOGLE_SIGN_IN_SERVER_CLIENT_ID=seu_client_id_google
 ```
+
+Notas importantes:
+- NÃO colocar API Key nem API Secret do Cloudinary no cliente (risco de abuso / quota / manipulação).
+- Configuração Firebase (API key, project id, etc.) vem exclusivamente do `google-services.json` colocado em `android/app/` – não duplicar no `.env`.
+- Se precisar usar a Cloudinary API Secret (ex: limpeza, deleção administrativa) faça isso apenas em Cloud Functions usando variáveis de ambiente seguras (`firebase functions:config:set` ou Secret Manager) e NÃO no repositório.
+
+Backend (Cloud Functions) – exemplo de configuração segura (não commitado):
+```
+firebase functions:config:set cloudinary.cloud_name="seu_cloud_name" cloudinary.api_key="xxxxx" cloudinary.api_secret="xxxxx"
+```
+E no código Functions ler via `process.env`/`functions.config()` em vez de `.env` do cliente.
 
 ### 4. **Deploy Cloud Functions**
 ```bash

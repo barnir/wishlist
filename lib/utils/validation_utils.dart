@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
 /// Comprehensive validation utilities for form inputs and security
 class ValidationUtils {

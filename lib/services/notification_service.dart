@@ -1,11 +1,11 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/fcm_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
-import 'package:wishlist_app/services/haptic_service.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/services/fcm_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/services/haptic_service.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 enum NotificationType {
   priceDrop,

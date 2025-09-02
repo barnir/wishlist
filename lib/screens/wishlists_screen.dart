@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 // Legacy FirebaseDatabaseService removed in favor of typed repository
-import 'package:wishlist_app/repositories/wishlist_repository.dart';
-import 'package:wishlist_app/models/wishlist.dart';
+import 'package:mywishstash/repositories/wishlist_repository.dart';
+import 'package:mywishstash/models/wishlist.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/wishlist_card_item.dart';
 import '../widgets/ui_components.dart';

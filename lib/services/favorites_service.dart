@@ -1,6 +1,6 @@
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
-import 'package:wishlist_app/repositories/favorites_repository.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/repositories/favorites_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Service for managing user favorites system.

@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // Removed legacy firebase_database_service usage for profiles
-import 'package:wishlist_app/repositories/user_profile_repository.dart';
+import 'package:mywishstash/repositories/user_profile_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 /// Structured result for phone verification (Android only)
 /// success: phone linked / verified

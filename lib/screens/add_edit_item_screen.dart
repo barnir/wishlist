@@ -3,23 +3,23 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:wishlist_app/repositories/wish_item_repository.dart';
-import 'package:wishlist_app/repositories/wishlist_repository.dart';
-import 'package:wishlist_app/models/wishlist.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
-import 'package:wishlist_app/services/image_cache_service.dart';
+import 'package:mywishstash/repositories/wish_item_repository.dart';
+import 'package:mywishstash/repositories/wishlist_repository.dart';
+import 'package:mywishstash/models/wishlist.dart';
+import 'package:mywishstash/services/cloudinary_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../widgets/selectable_image_preview.dart';
-import 'package:wishlist_app/services/web_scraper_service.dart';
-import 'package:wishlist_app/services/share_enrichment_service.dart';
+import 'package:mywishstash/services/web_scraper_service.dart';
+import 'package:mywishstash/services/share_enrichment_service.dart';
 import 'package:http/http.dart' as http;
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/utils/validation_utils.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/utils/validation_utils.dart';
 
 import '../models/category.dart';
-import 'package:wishlist_app/services/category_usage_service.dart';
+import 'package:mywishstash/services/category_usage_service.dart';
 
 class AddEditItemScreen extends StatefulWidget {
   final String? wishlistId;

@@ -3,7 +3,7 @@ import '../services/contacts_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
 class FriendSuggestionsScreen extends StatefulWidget {
   const FriendSuggestionsScreen({super.key});

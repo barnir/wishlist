@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/theme_service.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/services/haptic_service.dart';
+import 'package:mywishstash/services/theme_service.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/services/haptic_service.dart';
 import '../constants/ui_constants.dart';
 
 class ThemeSelectorBottomSheet extends StatefulWidget {

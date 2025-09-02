@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
 
 /// Rate limiter service to prevent abuse and protect against spam
 class RateLimiterService {

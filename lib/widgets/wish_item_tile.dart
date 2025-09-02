@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/widgets/accessible_icon_button.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../theme_extensions.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wishlist_app/services/image_cache_service.dart';
-import 'package:wishlist_app/services/haptic_service.dart';
+import 'package:mywishstash/services/image_cache_service.dart';
+import 'package:mywishstash/services/haptic_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
 

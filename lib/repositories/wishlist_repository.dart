@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/models/wishlist.dart';
-import 'package:wishlist_app/repositories/page.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/models/wishlist.dart';
+import 'package:mywishstash/repositories/page.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 class WishlistRepository {
   final FirebaseFirestore _firestore;

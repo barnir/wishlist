@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/models/category.dart';
-import 'package:wishlist_app/services/category_usage_service.dart';
-import 'package:wishlist_app/models/sort_options.dart';
-import 'package:wishlist_app/services/haptic_service.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/models/category.dart';
+import 'package:mywishstash/services/category_usage_service.dart';
+import 'package:mywishstash/models/sort_options.dart';
+import 'package:mywishstash/services/haptic_service.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import '../services/filter_preferences_service.dart';
 import '../constants/ui_constants.dart';
 

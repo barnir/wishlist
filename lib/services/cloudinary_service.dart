@@ -3,10 +3,10 @@ import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:wishlist_app/services/security_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
-import 'package:wishlist_app/services/analytics/analytics_service.dart';
+import 'package:mywishstash/services/security_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/utils/app_logger.dart';
+import 'package:mywishstash/services/analytics/analytics_service.dart';
 
 class CloudinaryService {
   // Singleton instance

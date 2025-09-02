@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
 /// Domain category with icon mapping.
 /// Names are persisted as strings in Firestore so existing labels MUST remain stable.

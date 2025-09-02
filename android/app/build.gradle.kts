@@ -21,7 +21,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.wishlist_app"
+    namespace = "com.mywishstash.app"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.wishlist_app"
+    applicationId = "com.mywishstash.app"
         minSdkVersion(24)
         targetSdk = 36
     // Align with pubspec.yaml version: 0.1.1 -> bump versionCode

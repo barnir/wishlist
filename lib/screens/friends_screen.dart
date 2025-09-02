@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import '../theme_extensions.dart';
-import 'package:wishlist_app/repositories/favorites_repository.dart';
-import 'package:wishlist_app/models/user_favorite.dart';
+import 'package:mywishstash/repositories/favorites_repository.dart';
+import 'package:mywishstash/models/user_favorite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import '../widgets/ui_components.dart';
-import 'package:wishlist_app/widgets/accessible_icon_button.dart';
+import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
 
 class FriendsScreen extends StatefulWidget {

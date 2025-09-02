@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
-import 'package:wishlist_app/widgets/optimized_cloudinary_image.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/repositories/user_profile_repository.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
-import 'package:wishlist_app/widgets/accessible_icon_button.dart';
+import 'package:mywishstash/widgets/optimized_cloudinary_image.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/services/cloudinary_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/repositories/user_profile_repository.dart';
+import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
 
 class UserProfileScreen extends StatefulWidget {

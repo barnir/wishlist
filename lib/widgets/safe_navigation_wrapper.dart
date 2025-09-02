@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:wishlist_app/services/auth_service.dart';
+import 'package:mywishstash/services/auth_service.dart';
 
 /// Widget wrapper que protege telas autenticadas de navegação incorreta
 /// Garante que usuários logados nunca voltem para telas de login/registo

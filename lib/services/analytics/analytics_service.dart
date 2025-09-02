@@ -1,5 +1,5 @@
 import 'analytics_provider.dart';
-import 'package:wishlist_app/services/auth_service.dart';
+import 'package:mywishstash/services/auth_service.dart';
 
 /// Facade for analytics operations used across the app.
 class AnalyticsService {

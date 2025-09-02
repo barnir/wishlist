@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/repositories/user_profile_repository.dart';
-import 'package:wishlist_app/services/rate_limiter_service.dart';
-import 'package:wishlist_app/utils/validation_utils.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/repositories/user_profile_repository.dart';
+import 'package:mywishstash/services/rate_limiter_service.dart';
+import 'package:mywishstash/utils/validation_utils.dart';
 import '../widgets/app_snack.dart';
 
 class LoginScreen extends StatefulWidget {

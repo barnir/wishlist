@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/models/wishlist.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
 import '../constants/ui_constants.dart';
 import 'wishlist_total.dart';
 import 'optimized_cloudinary_image.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:mywishstash/models/wishlist.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/services/cloudinary_service.dart';
 
 class WishlistCardItem extends StatelessWidget {
   final Wishlist wishlist;

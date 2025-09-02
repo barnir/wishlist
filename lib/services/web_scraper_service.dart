@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
-import 'package:wishlist_app/services/firebase_functions_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:mywishstash/services/firebase_functions_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
 
 /// Serviço de web scraping seguro usando Firebase Cloud Functions
 /// 

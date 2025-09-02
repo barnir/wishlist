@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/services/cloudinary_service.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 /// Firebase Firestore Database Service
 /// Firebase Firestore database service - complete NoSQL integration

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme_extensions.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/screens/otp_screen.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/screens/otp_screen.dart';
 import '../widgets/app_snack.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 class AddPhoneScreen extends StatefulWidget {
   const AddPhoneScreen({super.key});

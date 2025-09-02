@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' hide Category; // Avoid clash with our domain Category
-import 'package:wishlist_app/models/wish_item.dart';
-import 'package:wishlist_app/models/category.dart';
-import 'package:wishlist_app/models/sort_options.dart';
-import 'package:wishlist_app/repositories/page.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/models/wish_item.dart';
+import 'package:mywishstash/models/category.dart';
+import 'package:mywishstash/models/sort_options.dart';
+import 'package:mywishstash/repositories/page.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 /// Repository providing typed access to wish items with cursor pagination.
 class WishItemRepository {

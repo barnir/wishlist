@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:wishlist_app/models/user_profile.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/models/user_profile.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 /// Repository encapsulating CRUD for user profiles.
 class UserProfileRepository {

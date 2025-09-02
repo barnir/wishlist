@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
 
 /// Service for providing haptic feedback throughout the app
 class HapticService {

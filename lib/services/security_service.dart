@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:wishlist_app/services/monitoring_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
 
 /// Security service for URL sanitization and content validation
 class SecurityService {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
-import 'package:wishlist_app/services/language_service.dart';
-import 'package:wishlist_app/widgets/profile_widgets.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/services/language_service.dart';
+import 'package:mywishstash/widgets/profile_widgets.dart';
 
 /// Memoized language selector widget para evitar rebuilds desnecessários
 class MemoizedLanguageTile extends StatelessWidget {

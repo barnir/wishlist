@@ -1,6 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 enum NotificationPermissionResult {
   granted,

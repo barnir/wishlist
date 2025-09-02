@@ -1,11 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/repositories/wishlist_repository.dart';
-import 'package:wishlist_app/repositories/wish_item_repository.dart';
-import 'package:wishlist_app/services/auth_service.dart';
-import 'package:wishlist_app/services/monitoring_service.dart';
-import 'package:wishlist_app/services/cloudinary_service.dart';
+import 'package:mywishstash/repositories/wishlist_repository.dart';
+import 'package:mywishstash/repositories/wish_item_repository.dart';
+import 'package:mywishstash/services/auth_service.dart';
+import 'package:mywishstash/services/monitoring_service.dart';
+import 'package:mywishstash/services/cloudinary_service.dart';
 
 /// Simple prefetch of initial wishlist + item images to warm cache.
 class ImagePrefetchService {

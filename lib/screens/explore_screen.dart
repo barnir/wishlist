@@ -4,14 +4,14 @@ import 'package:flutter/rendering.dart' show ScrollDirection;
 import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/repositories/user_search_repository.dart';
-import 'package:wishlist_app/models/user_profile.dart';
+import 'package:mywishstash/repositories/user_search_repository.dart';
+import 'package:mywishstash/models/user_profile.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
-import 'package:wishlist_app/repositories/favorites_repository.dart';
+import 'package:mywishstash/utils/app_logger.dart';
+import 'package:mywishstash/repositories/favorites_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ExploreScreen extends StatefulWidget {

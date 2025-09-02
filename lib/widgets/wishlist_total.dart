@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/repositories/stats_repository.dart';
+import 'package:mywishstash/repositories/stats_repository.dart';
 
 class WishlistTotal extends StatefulWidget {
   final String wishlistId;

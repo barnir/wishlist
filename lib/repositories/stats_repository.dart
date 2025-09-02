@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:wishlist_app/utils/app_logger.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 class StatsRepository {
   final FirebaseFirestore _firestore;

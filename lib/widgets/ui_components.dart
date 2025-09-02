@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/services/haptic_service.dart';
+import 'package:mywishstash/services/haptic_service.dart';
 import '../constants/ui_constants.dart';
 
 /// Widgets UI reutilizáveis para manter consistência na aplicação

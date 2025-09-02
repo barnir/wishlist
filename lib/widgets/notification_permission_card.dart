@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:wishlist_app/widgets/accessible_icon_button.dart';
+import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../theme_extensions.dart';
-import 'package:wishlist_app/services/notification_service.dart';
-import 'package:wishlist_app/services/fcm_service.dart';
-import 'package:wishlist_app/constants/ui_constants.dart';
-import 'package:wishlist_app/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/services/notification_service.dart';
+import 'package:mywishstash/services/fcm_service.dart';
+import 'package:mywishstash/constants/ui_constants.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
 class NotificationPermissionCard extends StatefulWidget {
   final VoidCallback? onPermissionGranted;

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:wishlist_app/services/analytics/analytics_service.dart';
+import 'package:mywishstash/services/analytics/analytics_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wishlist_app/services/auth_service.dart';
+import 'package:mywishstash/services/auth_service.dart';
 // Legacy FirebaseDatabaseService removed; analytics events can be forwarded to a future analytics provider
 
 class MonitoringService {
