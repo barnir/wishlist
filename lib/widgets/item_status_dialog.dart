@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import '../theme_extensions.dart';
 import '../models/wish_item_status.dart';
 import '../services/wish_item_status_service.dart';
@@ -199,7 +200,7 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
           TextButton(
             onPressed: _isLoading ? null : _removeStatus,
             child: Text(
-              'Remover',
+              AppLocalizations.of(context)?.removeStatusButton ?? 'Remover',
               style: TextStyle(color: context.semanticColors.danger),
             ),
           ),
@@ -312,14 +313,12 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
       
       if (mounted) {
         Navigator.of(context).pop(true); // true indica sucesso
-        
-  AppSnack.show(context, 'Status removido', type: SnackType.info);
+        AppSnack.show(context, AppLocalizations.of(context)?.removeStatusSuccess ?? 'Status removido', type: SnackType.info);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        
-  AppSnack.show(context, 'Erro: $e', type: SnackType.error);
+        AppSnack.show(context, AppLocalizations.of(context)?.removeStatusError(e.toString()) ?? 'Erro: $e', type: SnackType.error);
       }
     }
   }

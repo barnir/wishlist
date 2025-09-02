@@ -214,7 +214,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
             SnackBar(
               content: Text(AppLocalizations.of(context)!.contactsPermissionRequired),
               action: SnackBarAction(
-                label: 'Tentar novamente',
+                label: AppLocalizations.of(context)?.contactsPermissionTryAgain ?? 'Tentar novamente',
                 onPressed: _requestContactsPermission,
               ),
               duration: const Duration(seconds: 5),
@@ -234,12 +234,12 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           SnackBar(
             content: Text(AppLocalizations.of(context)!.errorRequestingPermission(e.toString())),
             action: SnackBarAction(
-              label: 'Configurações',
+              label: AppLocalizations.of(context)?.contactsPermissionSettings ?? 'Configurações',
               onPressed: () {
                 // TODO: Abrir configurações da app se necessário
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente'),
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context)?.contactsPermissionManual ?? 'Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente'),
                     duration: Duration(seconds: 4),
                   ),
                 );
@@ -313,7 +313,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         // Trata diferentes tipos de erro
         String errorMessage;
         if (e.toString().contains('permission')) {
-          errorMessage = 'Permissão de contactos foi revogada. Tenta novamente.';
+          errorMessage = AppLocalizations.of(context)?.contactsPermissionRevoked ?? 'Permissão de contactos foi revogada. Tenta novamente.';
           setState(() {
             _hasContactsPermission = false;
           });

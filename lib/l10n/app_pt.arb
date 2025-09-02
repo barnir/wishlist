@@ -1,4 +1,10 @@
 {
+  "removeStatusButton": "Remover",
+  "@removeStatusButton": {"description": "Botão para remover status do item (ação reversível)"},
+  "removeStatusSuccess": "Status removido",
+  "@removeStatusSuccess": {"description": "Mensagem de sucesso ao remover status do item"},
+  "removeStatusError": "Erro: {error}",
+  "@removeStatusError": {"description": "Mensagem de erro ao remover status do item","placeholders": {"error": {"description": "Detalhe do erro"}}},
   "errorLoadingProfile": "Erro ao carregar perfil: {error}",
   "genericError": "Erro: {error}",
   "createWishlistError": "Falha ao criar wishlist",
@@ -8,7 +14,6 @@
   "@@locale": "pt",
   "appTitle": "MyWishStash",
   "@appTitle": {"description": "Nome da aplicação (marca unificada)"},
-
   "cancelRegistrationTitle": "Cancelar Registo",
   "@cancelRegistrationTitle": {"description": "Título do diálogo de confirmação de cancelamento de registo"},
   "cancelRegistrationMessage": "Tem a certeza que deseja cancelar o registo? Perderá o progresso atual e terá de começar novamente.",
@@ -19,7 +24,6 @@
   "@errorCancelRegistration": {"description": "Mensagem de erro ao cancelar registo","placeholders": {"error": {"description": "Detalhe do erro"}}},
   "registrationUserPlaceholder": "Utilizador em processo de registo",
   "@registrationUserPlaceholder": {"description": "Placeholder quando email/displayName ainda não definidos"},
-
   "completeRegistrationTitle": "Completar Registo",
   "@completeRegistrationTitle": {"description": "Título AppBar completar registo"},
   "incompleteProcessTitle": "Processo Incompleto",
@@ -44,7 +48,6 @@
   "@invalidPhoneWarning": {"description": "Aviso quando telefone inválido"},
   "logoutError": "Erro ao fazer logout: {error}",
   "@logoutError": {"description": "Erro ao terminar sessão a partir deste ecrã","placeholders": {"error": {"description": "Mensagem de erro"}}},
-
   "pwRuleMinLength": "A senha deve ter no mínimo 6 caracteres.",
   "@pwRuleMinLength": {"description": "Regra de password - comprimento mínimo"},
   "pwRuleLower": "A senha deve conter pelo menos uma letra minúscula.",
@@ -67,7 +70,6 @@
   "@itemDeletedSuccess": {"description": "Snack de sucesso ao eliminar item"},
   "itemDeleteError": "Erro ao eliminar item: {error}",
   "@itemDeleteError": {"description": "Snack erro eliminar item","placeholders":{"error":{"description":"Mensagem de erro"}}},
-
   "profile": "Perfil",
   "editProfile": "Editar Perfil",
   "name": "Nome",
@@ -76,12 +78,10 @@
   "phone": "Telemóvel",
   "save": "Guardar",
   "cancel": "Cancelar",
-
   "account": "Conta",
   "preferences": "Preferências",
   "about": "Sobre",
   "actions": "Ações",
-
   "theme": "Tema",
   "privacy": "Privacidade",
   "privacySettings": "Configurações de Privacidade",
@@ -90,57 +90,47 @@
   "privateProfileDesc": "Apenas utilizadores aprovados podem ver as suas wishlists",
   "publicProfileDesc": "Qualquer utilizador pode ver as suas wishlists públicas",
   "customizeAppearance": "Personalizar aparência",
-
   "helpSupport": "Ajuda e Suporte",
   "rateApp": "Avaliar App",
   "signOut": "Terminar Sessão",
   "deleteAccount": "Apagar Conta",
   "deleteAccountDesc": "Esta ação é irreversível",
-
   "wishlists": "Wishlists",
   "items": "Items",
   "favorites": "Favoritos",
   "shared": "Partilhadas",
-
   "addBio": "Adicionar biografia...",
   "tellAboutYou": "Conte um pouco sobre si...",
   "noName": "Sem nome",
   "noEmail": "Sem email",
   "noEmailLinked": "Nenhum email vinculado",
   "userNotFound": "Utilizador não encontrado.",
-
   "nameCannotBeEmpty": "Nome não pode estar vazio",
   "errorSaving": "Erro ao guardar: {error}",
-
   "deleteAccountConfirmation": "Apagar Conta",
   "deleteAccountWarning": "Esta ação é irreversível. Todos os seus dados serão perdidos. Para confirmar, escreva \"APAGAR\" na caixa abaixo.",
   "confirm": "Confirmar",
   "deletePermanently": "Apagar Permanentemente",
   "accountDeletedSuccessfully": "Conta apagada com sucesso.",
   "errorDeletingAccount": "Erro ao apagar conta: {error}",
-
   "reauthenticate": "Reautenticar",
-
   "login": "Entrar",
   "register": "Registar",
   "welcome": "Bem-vindo",
   "myWishlists": "As Minhas Listas",
   "explore": "Explorar",
-
   "createWishlist": "Criar Lista",
   "wishlistName": "Nome da Lista",
   "description": "Descrição",
   "public": "Público",
-  "private": "Privado"
-  ,
+  "private": "Privado",
   "deleteConfirmWord": "APAGAR",
   "errorLoadingWishlists": "Erro ao carregar wishlists: {error}",
   "noWishlistsYetTitle": "Nenhuma wishlist por aqui",
   "noWishlistsYetSubtitle": "Toque em \"+\" para criar a sua primeira!",
   "pleaseLoginToSeeWishlists": "Por favor, faça login para ver suas wishlists.",
   "loadingWishlists": "A carregar wishlists...",
-  "addNewWishlistTooltip": "Adicionar nova wishlist"
-  ,
+  "addNewWishlistTooltip": "Adicionar nova wishlist",
   "publicWishlistsTab": "Wishlists Públicas",
   "aboutTab": "Sobre",
   "noPublicWishlists": "Nenhuma wishlist pública",
@@ -197,7 +187,6 @@
   "deleteItemTooltip": "Eliminar item",
   "deleteItemTitle": "Eliminar item",
   "deleteItemConfirmation": "Tens a certeza que queres eliminar \"{itemName}\"?",
-  
   "tapToAdd": "Toca para adicionar",
   "processingImage": "A processar...",
   "recommendedImageSize": "Recomendado: 400x400px ou superior",
@@ -217,8 +206,7 @@
   "contactsAccessTitle": "Acesso aos Contactos",
   "contactsAccessExplanation": "Para encontrar amigos dos seus contactos que já usam a app, precisamos de acesso à sua lista de contactos.",
   "grantContactsAccess": "Permitir Acesso aos Contactos",
-  "viewProfile": "Ver perfil"
-  ,
+  "viewProfile": "Ver perfil",
   "helpWelcomeTitle": "Bem-vindo ao Wishlist App!",
   "helpWelcomeSubtitle": "Crie e partilhe as suas listas de desejos de forma simples e organizada.",
   "helpHowToUse": "Como Usar",
@@ -233,8 +221,7 @@
   "shareProfileTooltip": "Partilhar perfil",
   "profileInfoSectionTitle": "Informações do Perfil",
   "memberSinceLabel": "Membro desde",
-  "recentlyLabel": "Recentemente"
-  ,
+  "recentlyLabel": "Recentemente",
   "otpVerifyTitle": "Verificar Código",
   "otpInstructionPhone": "Insira o código de 6 dígitos enviado para {phone}.",
   "otpAutoDetectNote": "O Firebase irá detectar automaticamente o SMS.",
@@ -268,7 +255,6 @@
   "@themeSystemSubtitle": {"description": "Subtítulo explicando que a aparência segue o dispositivo"},
   "close": "Fechar",
   "@close": {"description": "Rótulo / tooltip genérico para botão de fechar"},
-  
   "registerTitle": "Registar nova conta",
   "@registerTitle": {"description": "Título no ecrã de registo"},
   "registerErrorPrefix": "Erro ao registar: ",
@@ -301,7 +287,6 @@
   "@registerAction": {"description": "Botão principal para submeter registo"},
   "registerExistingAccountCta": "Já tens conta? Fazer login!",
   "@registerExistingAccountCta": {"description": "Chamada para fazer login se já existir conta"},
-  
   "scrapingExtractingInfo": "Extraindo informações do produto...",
   "@scrapingExtractingInfo": {"description": "Estado enquanto parser analisa HTML inicial"},
   "scrapingFillingFields": "Preenchendo campos automaticamente...",
@@ -326,7 +311,6 @@
   "@scrapingFeatureRating": {"description": "Token para feature avaliação"},
   "scrapingFeatureImage": "imagem",
   "@scrapingFeatureImage": {"description": "Token para feature imagem"},
-  
   "addItemTitle": "Adicionar Item",
   "@addItemTitle": {"description": "Título para ecrã de adicionar item"},
   "editItemTitle": "Editar Item",
@@ -411,219 +395,218 @@
   "@imageUploadFailed": {"description": "Erro upload imagem Cloudinary", "placeholders": {"error": {"type": "String"}}},
   "addItemAction": "Adicionar",
   "@addItemAction": {"description": "Botão para submeter formulário de adicionar item"},
-  "saveItemAction": "Guardar"
-  ,"@saveItemAction": {"description": "Botão para guardar alterações ao editar item"}
-  ,"emailRequired": "Email é obrigatório"
-  ,"@emailRequired": {"description": "Validação: email vazio"}
-  ,"emailInvalid": "Email inválido"
-  ,"@emailInvalid": {"description": "Validação: formato de email inválido"}
-  ,"emailTooLong": "Email demasiado longo"
-  ,"@emailTooLong": {"description": "Validação: email excede limite"}
-  ,"emailDomainInvalid": "Domínio do email inválido"
-  ,"@emailDomainInvalid": {"description": "Validação: domínio inválido"}
-  ,"passwordRequired": "Password é obrigatória"
-  ,"@passwordRequired": {"description": "Validação: password vazia"}
-  ,"passwordTooShort": "Password deve ter pelo menos 8 caracteres"
-  ,"@passwordTooShort": {"description": "Validação: password curta"}
-  ,"passwordTooLong": "Password demasiado longa"
-  ,"@passwordTooLong": {"description": "Validação: password longa"}
-  ,"passwordNeedUpper": "Password deve conter pelo menos uma letra maiúscula"
-  ,"@passwordNeedUpper": {"description": "Regra: necessita maiúscula"}
-  ,"passwordNeedLower": "Password deve conter pelo menos uma letra minúscula"
-  ,"@passwordNeedLower": {"description": "Regra: necessita minúscula"}
-  ,"passwordNeedNumber": "Password deve conter pelo menos um número"
-  ,"@passwordNeedNumber": {"description": "Regra: necessita número"}
-  ,"passwordNeedSpecial": "Password deve conter pelo menos um caracter especial"
-  ,"@passwordNeedSpecial": {"description": "Regra: necessita símbolo"}
-  ,"nameRequired": "Nome é obrigatório"
-  ,"@nameRequired": {"description": "Validação: nome vazio"}
-  ,"nameTooShort": "Nome deve ter pelo menos 2 caracteres"
-  ,"@nameTooShort": {"description": "Validação: nome curto"}
-  ,"nameTooLong": "Nome demasiado longo"
-  ,"@nameTooLong": {"description": "Validação: nome longo"}
-  ,"nameInvalidChars": "Nome contém caracteres inválidos"
-  ,"@nameInvalidChars": {"description": "Validação: caracteres não permitidos"}
-  ,"phoneRequired": "Número de telefone é obrigatório"
-  ,"@phoneRequired": {"description": "Validação: telefone vazio"}
-  ,"phoneInvalidFormat": "Número de telefone inválido (formato: 9XXXXXXXX)"
-  ,"@phoneInvalidFormat": {"description": "Validação: formato telefone inválido"}
-  ,"urlMustBeHttp": "URL deve usar HTTP ou HTTPS"
-  ,"@urlMustBeHttp": {"description": "Validação: esquema inválido"}
-  ,"urlInvalid": "URL inválido"
-  ,"@urlInvalid": {"description": "Validação: URL inválido"}
-  ,"urlLocalNotAllowed": "URLs locais não são permitidos"
-  ,"@urlLocalNotAllowed": {"description": "Validação: URL local proibido"}
-  ,"urlTooLong": "URL demasiado longo"
-  ,"@urlTooLong": {"description": "Validação: URL longo"}
-  ,"priceInvalid": "Preço inválido"
-  ,"@priceInvalid": {"description": "Validação: preço inválido"}
-  ,"priceNegative": "Preço não pode ser negativo"
-  ,"@priceNegative": {"description": "Validação: preço negativo"}
-  ,"priceTooHigh": "Preço demasiado alto"
-  ,"@priceTooHigh": {"description": "Validação: preço alto"}
-  ,"descriptionTooLong": "Descrição demasiado longa (máximo 500 caracteres)"
-  ,"@descriptionTooLong": {"description": "Validação: descrição longa"}
-  ,"wishlistNameRequired": "Nome da wishlist é obrigatório"
-  ,"@wishlistNameRequired": {"description": "Validação: nome wishlist vazio"}
-  ,"wishlistNameTooShort": "Nome da wishlist deve ter pelo menos 2 caracteres"
-  ,"@wishlistNameTooShort": {"description": "Validação: nome wishlist curto"}
-  ,"wishlistNameTooLong": "Nome da wishlist demasiado longo"
-  ,"@wishlistNameTooLong": {"description": "Validação: nome wishlist longo"}
-  ,"itemNameRequired": "Nome do item é obrigatório"
-  ,"@itemNameRequired": {"description": "Validação: nome item vazio"}
-  ,"itemNameTooShort": "Nome do item deve ter pelo menos 2 caracteres"
-  ,"@itemNameTooShort": {"description": "Validação: nome item curto"}
-  ,"itemNameTooLong": "Nome do item demasiado longo"
-  ,"@itemNameTooLong": {"description": "Validação: nome item longo"}
-  ,"imageTooLarge": "Imagem demasiado grande (máximo 10MB)"
-  ,"@imageTooLarge": {"description": "Validação: imagem grande"}
-  ,"imageFormatUnsupported": "Formato de imagem não suportado (use JPG, PNG ou GIF)"
-  ,"@imageFormatUnsupported": {"description": "Validação: formato imagem não suportado"}
-  ,"otpCodeRequired": "Código é obrigatório"
-  ,"@otpCodeRequired": {"description": "Validação: código OTP vazio"}
-  ,"otpCodeLength": "Código deve ter 6 dígitos"
-  ,"@otpCodeLength": {"description": "Validação: tamanho inválido"}
-  ,"otpCodeDigitsOnly": "Código deve conter apenas números"
-  ,"@otpCodeDigitsOnly": {"description": "Validação: código contém não dígitos"}
-  ,"languageSubtitlePtPt": "Português de Portugal"
-  ,"@languageSubtitlePtPt": {"description": "Subtítulo descrevendo a variante pt (Portugal)"}
-  ,"languageSubtitleInternational": "Internacional"
-  ,"@languageSubtitleInternational": {"description": "Subtítulo descrevendo o locale internacional genérico"}
-  
-  ,"searchTab": "Pesquisar"
-  ,"@searchTab": {"description": "Aba de pesquisa na tela explorar"}
-  ,"friendsTab": "Amigos"
-  ,"@friendsTab": {"description": "Aba de amigos na tela explorar"}
-  ,"inviteTab": "Convidar"
-  ,"@inviteTab": {"description": "Aba de convites na tela explorar"}
-  
-  ,"discoverFriends": "Descobrir Amigos"
-  ,"@discoverFriends": {"description": "Título para descoberta de amigos"}
-  ,"allowContactsAccess": "Permitir Acesso aos Contactos"
-  ,"@allowContactsAccess": {"description": "Botão para permitir acesso aos contactos"}
-  ,"contactsPermissionDescription": "Permite acesso aos contactos para descobrir quais dos teus amigos já usam a app"
-  ,"@contactsPermissionDescription": {"description": "Descrição da permissão de contactos"}
-  
-  ,"discoveringFriends": "A descobrir amigos..."
-  ,"@discoveringFriends": {"description": "Texto de carregamento da descoberta de amigos"}
-  ,"loadingContacts": "A carregar contactos..."
-  ,"@loadingContacts": {"description": "Texto de carregamento dos contactos"}
-  
-  ,"noFriendsFound": "Nenhum amigo encontrado"
-  ,"@noFriendsFound": {"description": "Título quando não há amigos encontrados"}
-  ,"noFriendsFoundDescription": "Os teus contactos que usam a app aparecerão aqui"
-  ,"@noFriendsFoundDescription": {"description": "Descrição quando não há amigos encontrados"}
-  
-  ,"allFriendsUseApp": "Todos os teus contactos já usam a app!"
-  ,"@allFriendsUseApp": {"description": "Título quando todos os contactos já usam a app"}
-  ,"noContactsToInvite": "Ou não tens contactos para convidar"
-  ,"@noContactsToInvite": {"description": "Subtítulo quando não há contactos para convidar"}
-  
-  ,"friendBadge": "Amigo"
-  ,"@friendBadge": {"description": "Badge indicando que é amigo"}
-  ,"contactLabel": "Contacto"
-  ,"@contactLabel": {"description": "Label para contacto"}
-  ,"inviteButton": "Convidar"
-  ,"@inviteButton": {"description": "Botão para convidar contacto"}
-  
-  ,"inviteSubject": "Convite para WishlistApp"
-  ,"@inviteSubject": {"description": "Assunto do convite"}
-  ,"invitePlayStoreMessage": "📱 Brevemente na Play Store!"
-  ,"@invitePlayStoreMessage": {"description": "Mensagem sobre Play Store no convite"}
-  
-  ,"contactsPermissionRequired": "Permissão de contactos necessária para descobrir amigos"
-  ,"@contactsPermissionRequired": {"description": "Mensagem quando permissão é negada"}
-  ,"errorRequestingPermission": "Erro ao solicitar permissão: {error}"
-  ,"@errorRequestingPermission": {"description": "Erro ao solicitar permissão"}
-  ,"errorLoadingContacts": "Erro ao carregar contactos: {error}"
-  ,"@errorLoadingContacts": {"description": "Erro ao carregar contactos"}
-  ,"filtersAndSortingTitle": "Filtros e Ordenação"
-  ,"@filtersAndSortingTitle": {"description": "Título da folha de filtros"}
-  ,"clear": "Limpar"
-  ,"@clear": {"description": "Botão para limpar filtros"}
-  ,"applyFilters": "Aplicar Filtros"
-  ,"@applyFilters": {"description": "Botão para aplicar filtros"}
-  ,"sortBy": "Ordenar por"
-  ,"@sortBy": {"description": "Rótulo da secção de ordenação"}
-  ,"filtersSummaryPrefix": "Atual:"
-  ,"@filtersSummaryPrefix": {"description": "Prefixo no resumo de filtros"}
-  ,"sortNewestFirst": "Mais recentes"
-  ,"@sortNewestFirst": {"description": "Ordenar por mais recentes"}
-  ,"sortOldestFirst": "Mais antigas"
-  ,"@sortOldestFirst": {"description": "Ordenar por mais antigas"}
-  ,"sortTotalDesc": "Valor total (Maior-Menor)"
-  ,"@sortTotalDesc": {"description": "Ordenar por valor total desc"}
-  ,"sortTotalAsc": "Valor total (Menor-Maior)"
-  ,"@sortTotalAsc": {"description": "Ordenar por valor total asc"}
-  ,"privacyTitle": "Privacidade"
-  ,"@privacyTitle": {"description": "Título da secção privacidade"}
-  ,"privacyAll": "Todas"
-  ,"@privacyAll": {"description": "Filtro todas as listas"}
-  ,"privacyPublic": "Públicas"
-  ,"@privacyPublic": {"description": "Filtro listas públicas"}
-  ,"privacyPrivate": "Privadas"
-  ,"@privacyPrivate": {"description": "Filtro listas privadas"}
-  ,"totalValueFilterTitle": "Filtro por valor total (€)"
-  ,"@totalValueFilterTitle": {"description": "Título filtro valor total"}
-  ,"minLabel": "Mínimo"
-  ,"@minLabel": {"description": "Label mínimo"}
-  ,"maxLabel": "Máximo"
-  ,"@maxLabel": {"description": "Label máximo"}
-  ,"allLabel": "Todas"
-  ,"@allLabel": {"description": "Rótulo para todas as categorias"}
-  ,"sortNameAsc": "Nome (A-Z)"
-  ,"@sortNameAsc": {"description": "Ordenação nome ascendente"}
-  ,"sortNameDesc": "Nome (Z-A)"
-  ,"@sortNameDesc": {"description": "Ordenação nome descendente"}
-  ,"sortPriceAsc": "Preço (Menor-Maior)"
-  ,"@sortPriceAsc": {"description": "Ordenação preço ascendente"}
-  ,"sortPriceDesc": "Preço (Maior-Menor)"
-  ,"@sortPriceDesc": {"description": "Ordenação preço descendente"}
-  ,"errorSendingInvite": "Erro ao enviar convite: {error}"
-  ,"@errorSendingInvite": {"description": "Erro ao enviar convite"}
-  
-  ,"notificationsTitle": "Notificações"
-  ,"@notificationsTitle": {"description": "Título das notificações"}
-  ,"notificationsActive": "Notificações Ativas"
-  ,"@notificationsActive": {"description": "Estado das notificações ativas"}
-  ,"notificationsDisabled": "Notificações Desativadas"
-  ,"@notificationsDisabled": {"description": "Estado das notificações desativadas"}
-  ,"notificationsEnabled": "Notificações ativadas"
-  ,"@notificationsEnabled": {"description": "Status de notificações ativadas"}
-  ,"notificationsDisabledGoSettings": "Notificações desativadas - ativar nas configurações"
-  ,"@notificationsDisabledGoSettings": {"description": "Status de notificações desativadas com orientação"}
-  ,"notificationsNotRequested": "Permissão de notificações não solicitada"
-  ,"@notificationsNotRequested": {"description": "Status de permissão não solicitada"}
-  ,"notificationsSilent": "Notificações silenciosas ativadas"
-  ,"@notificationsSilent": {"description": "Status de notificações silenciosas"}
-  ,"notificationsSuccess": "Notificações ativadas com sucesso!"
-  ,"@notificationsSuccess": {"description": "Mensagem de sucesso"}
-  ,"notificationsSilentSuccess": "Notificações silenciosas ativadas!"
-  ,"@notificationsSilentSuccess": {"description": "Mensagem de sucesso silenciosa"}
-  ,"notificationsDenied": "Notificações negadas. Pode ativar nas configurações."
-  ,"@notificationsDenied": {"description": "Mensagem de permissão negada"}
-  ,"notificationsNotDetermined": "Permissão não determinada. Tentar novamente?"
-  ,"@notificationsNotDetermined": {"description": "Mensagem de permissão não determinada"}
-  ,"notificationsError": "Erro ao solicitar permissões de notificação"
-  ,"@notificationsError": {"description": "Mensagem de erro"}
-  ,"notificationsActivate": "Ativar Notificações"
-  ,"@notificationsActivate": {"description": "Botão para ativar notificações"}
-  ,"notificationsRequesting": "A solicitar..."
-  ,"@notificationsRequesting": {"description": "Estado de carregamento"}
-  ,"notificationsGoSettings": "Ir para Configurações"
-  ,"@notificationsGoSettings": {"description": "Botão para ir às configurações"}
-  ,"notificationsTryAgain": "Tentar novamente"
-  ,"@notificationsTryAgain": {"description": "Botão para tentar novamente"}
-  ,"notificationsReceiveAlerts": "Receba alertas sobre:"
-  ,"@notificationsReceiveAlerts": {"description": "Texto introdutório dos benefícios"}
-  ,"notificationsBenefitPriceDrops": "Baixas de preço nos seus itens"
-  ,"@notificationsBenefitPriceDrops": {"description": "Benefício - alertas de preço"}
-  ,"notificationsBenefitShares": "Novas partilhas de listas"
-  ,"@notificationsBenefitShares": {"description": "Benefício - partilhas"}
-  ,"notificationsBenefitFavorites": "Novos favoritos"
-  ,"@notificationsBenefitFavorites": {"description": "Benefício - favoritos"}
-  ,"notificationsBenefitGiftHints": "Dicas de presentes"
-  ,"@notificationsBenefitGiftHints": {"description": "Benefício - dicas"}
-  ,"notificationsSettingsInstructions": "Vai às Configurações > Apps > WishlistApp > Notificações para ativar manualmente"
-  ,"@notificationsSettingsInstructions": {"description": "Instruções para ativar nas configurações"}
+  "saveItemAction": "Guardar",
+  "@saveItemAction": {"description": "Botão para guardar alterações ao editar item"},
+  "emailRequired": "Email é obrigatório",
+  "@emailRequired": {"description": "Validação: email vazio"},
+  "emailInvalid": "Email inválido",
+  "@emailInvalid": {"description": "Validação: formato de email inválido"},
+  "emailTooLong": "Email demasiado longo",
+  "@emailTooLong": {"description": "Validação: email excede limite"},
+  "emailDomainInvalid": "Domínio do email inválido",
+  "@emailDomainInvalid": {"description": "Validação: domínio inválido"},
+  "passwordRequired": "Password é obrigatória",
+  "@passwordRequired": {"description": "Validação: password vazia"},
+  "passwordTooShort": "Password deve ter pelo menos 8 caracteres",
+  "@passwordTooShort": {"description": "Validação: password curta"},
+  "passwordTooLong": "Password demasiado longa",
+  "@passwordTooLong": {"description": "Validação: password longa"},
+  "passwordNeedUpper": "Password deve conter pelo menos uma letra maiúscula",
+  "@passwordNeedUpper": {"description": "Regra: necessita maiúscula"},
+  "passwordNeedLower": "Password deve conter pelo menos uma letra minúscula",
+  "@passwordNeedLower": {"description": "Regra: necessita minúscula"},
+  "passwordNeedNumber": "Password deve conter pelo menos um número",
+  "@passwordNeedNumber": {"description": "Regra: necessita número"},
+  "passwordNeedSpecial": "Password deve conter pelo menos um caracter especial",
+  "@passwordNeedSpecial": {"description": "Regra: necessita símbolo"},
+  "nameRequired": "Nome é obrigatório",
+  "@nameRequired": {"description": "Validação: nome vazio"},
+  "nameTooShort": "Nome deve ter pelo menos 2 caracteres",
+  "@nameTooShort": {"description": "Validação: nome curto"},
+  "nameTooLong": "Nome demasiado longo",
+  "@nameTooLong": {"description": "Validação: nome longo"},
+  "nameInvalidChars": "Nome contém caracteres inválidos",
+  "@nameInvalidChars": {"description": "Validação: caracteres não permitidos"},
+  "phoneRequired": "Número de telefone é obrigatório",
+  "@phoneRequired": {"description": "Validação: telefone vazio"},
+  "phoneInvalidFormat": "Número de telefone inválido (formato: 9XXXXXXXX)",
+  "@phoneInvalidFormat": {"description": "Validação: formato telefone inválido"},
+  "urlMustBeHttp": "URL deve usar HTTP ou HTTPS",
+  "@urlMustBeHttp": {"description": "Validação: esquema inválido"},
+  "urlInvalid": "URL inválido",
+  "@urlInvalid": {"description": "Validação: URL inválido"},
+  "urlLocalNotAllowed": "URLs locais não são permitidos",
+  "@urlLocalNotAllowed": {"description": "Validação: URL local proibido"},
+  "urlTooLong": "URL demasiado longo",
+  "@urlTooLong": {"description": "Validação: URL longo"},
+  "priceInvalid": "Preço inválido",
+  "@priceInvalid": {"description": "Validação: preço inválido"},
+  "priceNegative": "Preço não pode ser negativo",
+  "@priceNegative": {"description": "Validação: preço negativo"},
+  "priceTooHigh": "Preço demasiado alto",
+  "@priceTooHigh": {"description": "Validação: preço alto"},
+  "descriptionTooLong": "Descrição demasiado longa (máximo 500 caracteres)",
+  "@descriptionTooLong": {"description": "Validação: descrição longa"},
+  "wishlistNameRequired": "Nome da wishlist é obrigatório",
+  "@wishlistNameRequired": {"description": "Validação: nome wishlist vazio"},
+  "wishlistNameTooShort": "Nome da wishlist deve ter pelo menos 2 caracteres",
+  "@wishlistNameTooShort": {"description": "Validação: nome wishlist curto"},
+  "wishlistNameTooLong": "Nome da wishlist demasiado longo",
+  "@wishlistNameTooLong": {"description": "Validação: nome wishlist longo"},
+  "itemNameRequired": "Nome do item é obrigatório",
+  "@itemNameRequired": {"description": "Validação: nome item vazio"},
+  "itemNameTooShort": "Nome do item deve ter pelo menos 2 caracteres",
+  "@itemNameTooShort": {"description": "Validação: nome item curto"},
+  "itemNameTooLong": "Nome do item demasiado longo",
+  "@itemNameTooLong": {"description": "Validação: nome item longo"},
+  "imageTooLarge": "Imagem demasiado grande (máximo 10MB)",
+  "@imageTooLarge": {"description": "Validação: imagem grande"},
+  "imageFormatUnsupported": "Formato de imagem não suportado (use JPG, PNG ou GIF)",
+  "@imageFormatUnsupported": {"description": "Validação: formato imagem não suportado"},
+  "otpCodeRequired": "Código é obrigatório",
+  "@otpCodeRequired": {"description": "Validação: código OTP vazio"},
+  "otpCodeLength": "Código deve ter 6 dígitos",
+  "@otpCodeLength": {"description": "Validação: tamanho inválido"},
+  "otpCodeDigitsOnly": "Código deve conter apenas números",
+  "@otpCodeDigitsOnly": {"description": "Validação: código contém não dígitos"},
+  "languageSubtitlePtPt": "Português de Portugal",
+  "@languageSubtitlePtPt": {"description": "Subtítulo descrevendo a variante pt (Portugal)"},
+  "languageSubtitleInternational": "Internacional",
+  "@languageSubtitleInternational": {"description": "Subtítulo descrevendo o locale internacional genérico"},
+  "searchTab": "Pesquisar",
+  "@searchTab": {"description": "Aba de pesquisa na tela explorar"},
+  "friendsTab": "Amigos",
+  "@friendsTab": {"description": "Aba de amigos na tela explorar"},
+  "inviteTab": "Convidar",
+  "@inviteTab": {"description": "Aba de convites na tela explorar"},
+  "discoverFriends": "Descobrir Amigos",
+  "@discoverFriends": {"description": "Título para descoberta de amigos"},
+  "allowContactsAccess": "Permitir Acesso aos Contactos",
+  "@allowContactsAccess": {"description": "Botão para permitir acesso aos contactos"},
+  "contactsPermissionDescription": "Permite acesso aos contactos para descobrir quais dos teus amigos já usam a app",
+  "@contactsPermissionDescription": {"description": "Descrição da permissão de contactos"},
+  "discoveringFriends": "A descobrir amigos...",
+  "@discoveringFriends": {"description": "Texto de carregamento da descoberta de amigos"},
+  "loadingContacts": "A carregar contactos...",
+  "@loadingContacts": {"description": "Texto de carregamento dos contactos"},
+  "noFriendsFound": "Nenhum amigo encontrado",
+  "@noFriendsFound": {"description": "Título quando não há amigos encontrados"},
+  "noFriendsFoundDescription": "Os teus contactos que usam a app aparecerão aqui",
+  "@noFriendsFoundDescription": {"description": "Descrição quando não há amigos encontrados"},
+  "allFriendsUseApp": "Todos os teus contactos já usam a app!",
+  "@allFriendsUseApp": {"description": "Título quando todos os contactos já usam a app"},
+  "noContactsToInvite": "Ou não tens contactos para convidar",
+  "@noContactsToInvite": {"description": "Subtítulo quando não há contactos para convidar"},
+  "friendBadge": "Amigo",
+  "@friendBadge": {"description": "Badge indicando que é amigo"},
+  "contactLabel": "Contacto",
+  "@contactLabel": {"description": "Label para contacto"},
+  "inviteButton": "Convidar",
+  "@inviteButton": {"description": "Botão para convidar contacto"},
+  "inviteSubject": "Convite para WishlistApp",
+  "@inviteSubject": {"description": "Assunto do convite"},
+  "invitePlayStoreMessage": "📱 Brevemente na Play Store!",
+  "@invitePlayStoreMessage": {"description": "Mensagem sobre Play Store no convite"},
+  "contactsPermissionRequired": "Permissão de contactos necessária para descobrir amigos",
+  "@contactsPermissionRequired": {"description": "Mensagem quando permissão é negada"},
+  "errorRequestingPermission": "Erro ao solicitar permissão: {error}",
+  "@errorRequestingPermission": {"description": "Erro ao solicitar permissão"},
+  "errorLoadingContacts": "Erro ao carregar contactos: {error}",
+  "@errorLoadingContacts": {"description": "Erro ao carregar contactos"},
+  "filtersAndSortingTitle": "Filtros e Ordenação",
+  "@filtersAndSortingTitle": {"description": "Título da folha de filtros"},
+  "clear": "Limpar",
+  "@clear": {"description": "Botão para limpar filtros"},
+  "applyFilters": "Aplicar Filtros",
+  "@applyFilters": {"description": "Botão para aplicar filtros"},
+  "sortBy": "Ordenar por",
+  "@sortBy": {"description": "Rótulo da secção de ordenação"},
+  "filtersSummaryPrefix": "Atual:",
+  "@filtersSummaryPrefix": {"description": "Prefixo no resumo de filtros"},
+  "sortNewestFirst": "Mais recentes",
+  "@sortNewestFirst": {"description": "Ordenar por mais recentes"},
+  "sortOldestFirst": "Mais antigas",
+  "@sortOldestFirst": {"description": "Ordenar por mais antigas"},
+  "sortTotalDesc": "Valor total (Maior-Menor)",
+  "@sortTotalDesc": {"description": "Ordenar por valor total desc"},
+  "sortTotalAsc": "Valor total (Menor-Maior)",
+  "@sortTotalAsc": {"description": "Ordenar por valor total asc"},
+  "privacyTitle": "Privacidade",
+  "@privacyTitle": {"description": "Título da secção privacidade"},
+  "privacyAll": "Todas",
+  "@privacyAll": {"description": "Filtro todas as listas"},
+  "privacyPublic": "Públicas",
+  "@privacyPublic": {"description": "Filtro listas públicas"},
+  "privacyPrivate": "Privadas",
+  "@privacyPrivate": {"description": "Filtro listas privadas"},
+  "totalValueFilterTitle": "Filtro por valor total (€)",
+  "@totalValueFilterTitle": {"description": "Título filtro valor total"},
+  "minLabel": "Mínimo",
+  "@minLabel": {"description": "Label mínimo"},
+  "maxLabel": "Máximo",
+  "@maxLabel": {"description": "Label máximo"},
+  "allLabel": "Todas",
+  "@allLabel": {"description": "Rótulo para todas as categorias"},
+  "sortNameAsc": "Nome (A-Z)",
+  "@sortNameAsc": {"description": "Ordenação nome ascendente"},
+  "sortNameDesc": "Nome (Z-A)",
+  "@sortNameDesc": {"description": "Ordenação nome descendente"},
+  "sortPriceAsc": "Preço (Menor-Maior)",
+  "@sortPriceAsc": {"description": "Ordenação preço ascendente"},
+  "sortPriceDesc": "Preço (Maior-Menor)",
+  "@sortPriceDesc": {"description": "Ordenação preço descendente"},
+  "errorSendingInvite": "Erro ao enviar convite: {error}",
+  "@errorSendingInvite": {"description": "Erro ao enviar convite"},
+  "notificationsTitle": "Notificações",
+  "@notificationsTitle": {"description": "Título das notificações"},
+  "notificationsActive": "Notificações Ativas",
+  "@notificationsActive": {"description": "Estado das notificações ativas"},
+  "notificationsDisabled": "Notificações Desativadas",
+  "@notificationsDisabled": {"description": "Estado das notificações desativadas"},
+  "notificationsEnabled": "Notificações ativadas",
+  "@notificationsEnabled": {"description": "Status de notificações ativadas"},
+  "notificationsDisabledGoSettings": "Notificações desativadas - ativar nas configurações",
+  "@notificationsDisabledGoSettings": {"description": "Status de notificações desativadas com orientação"},
+  "notificationsNotRequested": "Permissão de notificações não solicitada",
+  "@notificationsNotRequested": {"description": "Status de permissão não solicitada"},
+  "notificationsSilent": "Notificações silenciosas ativadas",
+  "@notificationsSilent": {"description": "Status de notificações silenciosas"},
+  "notificationsSuccess": "Notificações ativadas com sucesso!",
+  "@notificationsSuccess": {"description": "Mensagem de sucesso"},
+  "notificationsSilentSuccess": "Notificações silenciosas ativadas!",
+  "@notificationsSilentSuccess": {"description": "Mensagem de sucesso silenciosa"},
+  "notificationsDenied": "Notificações negadas. Pode ativar nas configurações.",
+  "@notificationsDenied": {"description": "Mensagem de permissão negada"},
+  "notificationsNotDetermined": "Permissão não determinada. Tentar novamente?",
+  "@notificationsNotDetermined": {"description": "Mensagem de permissão não determinada"},
+  "notificationsError": "Erro ao solicitar permissões de notificação",
+  "@notificationsError": {"description": "Mensagem de erro"},
+  "notificationsActivate": "Ativar Notificações",
+  "@notificationsActivate": {"description": "Botão para ativar notificações"},
+  "notificationsRequesting": "A solicitar...",
+  "@notificationsRequesting": {"description": "Estado de carregamento"},
+  "notificationsGoSettings": "Ir para Configurações",
+  "@notificationsGoSettings": {"description": "Botão para ir às configurações"},
+  "notificationsTryAgain": "Tentar novamente",
+  "@notificationsTryAgain": {"description": "Botão para tentar novamente"},
+  "notificationsReceiveAlerts": "Receba alertas sobre:",
+  "@notificationsReceiveAlerts": {"description": "Texto introdutório dos benefícios"},
+  "notificationsBenefitPriceDrops": "Baixas de preço nos seus itens",
+  "@notificationsBenefitPriceDrops": {"description": "Benefício - alertas de preço"},
+  "notificationsBenefitShares": "Novas partilhas de listas",
+  "@notificationsBenefitShares": {"description": "Benefício - partilhas"},
+  "notificationsBenefitFavorites": "Novos favoritos",
+  "@notificationsBenefitFavorites": {"description": "Benefício - favoritos"},
+  "notificationsBenefitGiftHints": "Dicas de presentes",
+  "@notificationsBenefitGiftHints": {"description": "Benefício - dicas"},
+  "notificationsSettingsInstructions": "Vai às Configurações > Apps > WishlistApp > Notificações para ativar manualmente",
+  "@notificationsSettingsInstructions": {"description": "Instruções para ativar nas configurações"},
+  "contactsPermissionTryAgain": "Tentar novamente",
+  "@contactsPermissionTryAgain": {"description": "Botão para tentar novamente solicitação de permissão de contactos"},
+  "contactsPermissionSettings": "Configurações",
+  "@contactsPermissionSettings": {"description": "Botão para abrir configurações da app"},
+  "contactsPermissionManual": "Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente",
+  "@contactsPermissionManual": {"description": "Mensagem instruindo usuário a ativar permissão manualmente"},
+  "contactsPermissionRevoked": "Permissão de contactos foi revogada. Tenta novamente.",
+  "@contactsPermissionRevoked": {"description": "Mensagem de erro quando permissão de contactos foi revogada"}
 }

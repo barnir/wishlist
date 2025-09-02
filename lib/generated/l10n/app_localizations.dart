@@ -98,6 +98,24 @@ abstract class AppLocalizations {
     Locale('pt'),
   ];
 
+  /// Button to remove item status (reversible action)
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removeStatusButton;
+
+  /// Success message when removing item status
+  ///
+  /// In en, this message translates to:
+  /// **'Status removed'**
+  String get removeStatusSuccess;
+
+  /// Error message when removing item status
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String removeStatusError(Object error);
+
   /// No description provided for @errorLoadingProfile.
   ///
   /// In en, this message translates to:
@@ -2383,6 +2401,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Settings > Apps > WishlistApp > Notifications to enable manually'**
   String get notificationsSettingsInstructions;
+
+  /// Button to retry contacts permission request
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get contactsPermissionTryAgain;
+
+  /// Button to open app settings
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get contactsPermissionSettings;
+
+  /// Message instructing user to enable permission manually
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Settings > Apps > WishlistApp > Permissions to enable manually'**
+  String get contactsPermissionManual;
+
+  /// Error message when contacts permission was revoked
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts permission was revoked. Try again.'**
+  String get contactsPermissionRevoked;
 }
 
 class _AppLocalizationsDelegate

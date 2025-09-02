@@ -9,6 +9,17 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get removeStatusButton => 'Remover';
+
+  @override
+  String get removeStatusSuccess => 'Status removido';
+
+  @override
+  String removeStatusError(Object error) {
+    return 'Erro: $error';
+  }
+
+  @override
   String errorLoadingProfile(Object error) {
     return 'Erro ao carregar perfil: $error';
   }
@@ -1249,4 +1260,18 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get notificationsSettingsInstructions =>
       'Vai às Configurações > Apps > WishlistApp > Notificações para ativar manualmente';
+
+  @override
+  String get contactsPermissionTryAgain => 'Tentar novamente';
+
+  @override
+  String get contactsPermissionSettings => 'Configurações';
+
+  @override
+  String get contactsPermissionManual =>
+      'Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente';
+
+  @override
+  String get contactsPermissionRevoked =>
+      'Permissão de contactos foi revogada. Tenta novamente.';
 }

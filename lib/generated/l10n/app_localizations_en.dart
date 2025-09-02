@@ -9,6 +9,17 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get removeStatusButton => 'Remove';
+
+  @override
+  String get removeStatusSuccess => 'Status removed';
+
+  @override
+  String removeStatusError(Object error) {
+    return 'Error: $error';
+  }
+
+  @override
   String errorLoadingProfile(Object error) {
     return 'Error loading profile: $error';
   }
@@ -1234,4 +1245,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notificationsSettingsInstructions =>
       'Go to Settings > Apps > WishlistApp > Notifications to enable manually';
+
+  @override
+  String get contactsPermissionTryAgain => 'Try again';
+
+  @override
+  String get contactsPermissionSettings => 'Settings';
+
+  @override
+  String get contactsPermissionManual =>
+      'Go to Settings > Apps > WishlistApp > Permissions to enable manually';
+
+  @override
+  String get contactsPermissionRevoked =>
+      'Contacts permission was revoked. Try again.';
 }

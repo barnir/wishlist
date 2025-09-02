@@ -1,4 +1,10 @@
 {
+  "removeStatusButton": "Remove",
+  "@removeStatusButton": {"description": "Button to remove item status (reversible action)"},
+  "removeStatusSuccess": "Status removed",
+  "@removeStatusSuccess": {"description": "Success message when removing item status"},
+  "removeStatusError": "Error: {error}",
+  "@removeStatusError": {"description": "Error message when removing item status","placeholders": {"error": {"description": "Error details"}}},
   "errorLoadingProfile": "Error loading profile: {error}",
   "genericError": "Error: {error}",
   "createWishlistError": "Failed to create wishlist",
@@ -858,4 +864,12 @@
   ,"@notificationsBenefitGiftHints": {"description": "Benefit - hints"}
   ,"notificationsSettingsInstructions": "Go to Settings > Apps > WishlistApp > Notifications to enable manually"
   ,"@notificationsSettingsInstructions": {"description": "Instructions to enable in settings"}
+  ,"contactsPermissionTryAgain": "Try again",
+  "@contactsPermissionTryAgain": {"description": "Button to retry contacts permission request"},
+  "contactsPermissionSettings": "Settings",
+  "@contactsPermissionSettings": {"description": "Button to open app settings"},
+  "contactsPermissionManual": "Go to Settings > Apps > WishlistApp > Permissions to enable manually",
+  "@contactsPermissionManual": {"description": "Message instructing user to enable permission manually"},
+  "contactsPermissionRevoked": "Contacts permission was revoked. Try again.",
+  "@contactsPermissionRevoked": {"description": "Error message when contacts permission was revoked"}
 }
