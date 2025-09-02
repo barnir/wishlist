@@ -1,3 +1,4 @@
+import '../widgets/app_snack.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
@@ -234,8 +235,9 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text((AppLocalizations.of(context)?.errorLoadingWishlists(e.toString())) ?? 'Erro ao carregar wishlists: $e')),
+        AppSnack.show(context,
+          (AppLocalizations.of(context)?.errorLoadingWishlists(e.toString())) ?? 'Erro ao carregar wishlists: $e',
+          type: SnackType.error,
         );
       }
     }

@@ -1,9 +1,9 @@
+import 'package:mywishstash/widgets/skeleton_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
-import 'package:mywishstash/widgets/loading_message.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:mywishstash/widgets/optimized_cloudinary_image.dart';
@@ -216,9 +216,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   Future<void> _deleteItem(String itemId) async {
     try {
       // Use repository delete (legacy service kept for other flows if needed)
-      await _wishItemRepo.deleteItem(itemId);
-      if (!mounted) return;
-  _showSnackBar(AppLocalizations.of(context)?.itemDeletedSuccess ?? 'Item eliminado com sucesso!');
+  await _wishItemRepo.deleteItem(itemId);
+  if (!mounted) return;
+  AppSnack.show(context, AppLocalizations.of(context)?.itemDeletedSuccess ?? 'Item eliminado com sucesso!', type: SnackType.success);
       
       // Remove item from local list
       setState(() {
@@ -322,7 +322,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Widget _buildContent() {
     if (_isInitialLoading) {
-      return const Center(child: LoadingMessage(messageKey: 'loadingItems'));
+      return const SkeletonLoader(itemCount: 6);
     }
 
     if (_items.isEmpty && !_isLoading) {
@@ -331,18 +331,20 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-  child: _isCompactList
-      ? ListView.builder(
+      child: _isCompactList
+          ? ListView.builder(
               controller: _scrollController,
               padding: UIConstants.listPadding.copyWith(top: 4, bottom: 12),
-              // Define altura consistente para densidade maior
               itemExtent: 68,
               itemCount: _items.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == _items.length) {
-                  return const Center(child: LoadingMessage(messageKey: 'loadingMoreItems'));
+                if (_isInitialLoading) {
+                  return const SkeletonLoader(itemCount: 1);
                 }
-        return _buildCompactRow(_items[index]);
+                if (index == _items.length) {
+                  return const SkeletonLoader(itemCount: 1);
+                }
+                return _buildCompactRow(_items[index]);
               },
             )
           : GridView.builder(
@@ -350,14 +352,17 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               padding: UIConstants.listPadding.copyWith(top: 4, bottom: 8),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 4, // ainda mais compacto
+                mainAxisSpacing: 4,
                 crossAxisSpacing: 10,
-                childAspectRatio: 0.82, // aumenta ratio => reduz altura usada por item
+                childAspectRatio: 0.82,
               ),
               itemCount: _items.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (_isInitialLoading) {
+                  return const SkeletonLoader(itemCount: 1);
+                }
                 if (index == _items.length) {
-                  return const Center(child: LoadingMessage(messageKey: 'loadingMoreItems'));
+                  return const SkeletonLoader(itemCount: 1);
                 }
                 return _buildGridItem(_items[index]);
               },

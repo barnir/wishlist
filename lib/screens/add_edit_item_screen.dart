@@ -20,6 +20,7 @@ import 'package:mywishstash/services/category_usage_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/selectable_image_preview.dart';
+import 'package:mywishstash/widgets/skeleton_loader.dart';
 class AddEditItemScreen extends StatefulWidget {
   final String? wishlistId;
   final String? itemId;
@@ -403,21 +404,23 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: _isSaving || _isUploading
-            ? const Center(child: CircularProgressIndicator())
-            : Form(
-                key: _formKey,
-                child: ListView(
-                  children: [
-                    if (_erro != null) ...[
-                      Text(_erro!, style: TextStyle(color: Theme.of(context).extension<AppSemanticColors>()!.danger)),
-                      const SizedBox(height: 16),
-                    ],
-                    if (_isScraping || _scrapingStatus != null) ...[
-                      const SizedBox(height: 4),
-                      AnimatedSwitcher(
+      body: _isLoadingWishlists && _wishlists.isEmpty
+          ? const SkeletonLoader(itemCount: 6)
+          : Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: _isSaving || _isUploading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Form(
+                      key: _formKey,
+                      child: ListView(
+                        children: [
+                          if (_erro != null) ...[
+                            Text(_erro!, style: TextStyle(color: Theme.of(context).extension<AppSemanticColors>()!.danger)),
+                            const SizedBox(height: 16),
+                          ],
+                          if (_isScraping || _scrapingStatus != null) ...[
+                            const SizedBox(height: 4),
+                            AnimatedSwitcher(
                         duration: const Duration(milliseconds: 250),
                         child: _scrapingStatus == null
                             ? const SizedBox.shrink()

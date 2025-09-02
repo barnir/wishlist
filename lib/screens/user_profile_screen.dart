@@ -13,6 +13,8 @@ import 'package:mywishstash/repositories/user_profile_repository.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
 
+import 'package:mywishstash/widgets/app_snack.dart';
+
 class UserProfileScreen extends StatefulWidget {
   final String userId;
 
@@ -442,18 +444,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (_isFavorite) {
         await _favoritesService.removeFavorite(widget.userId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)?.removedFromFavorites ?? 'Removido dos favoritos')),
-          );
+          AppSnack.show(context, AppLocalizations.of(context)?.removedFromFavorites ?? 'Removido dos favoritos', type: SnackType.success);
           setState(() => _isFavorite = false);
           MonitoringService().trackEvent('profile_unfavorite', properties: {'profile_id': widget.userId});
         }
       } else {
         await _favoritesService.addFavorite(widget.userId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!')),
-          );
+          AppSnack.show(context, AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!', type: SnackType.success);
           setState(() => _isFavorite = true);
           MonitoringService().trackEvent('profile_favorite', properties: {'profile_id': widget.userId});
         }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/contacts_service.dart';
 import '../services/favorites_service.dart';
+import 'package:mywishstash/widgets/app_snack.dart';
 import '../widgets/ui_components.dart';
 import 'package:mywishstash/widgets/loading_message.dart';
 import '../constants/ui_constants.dart';
@@ -100,9 +101,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
     try {
       await _favoritesService.addFavorite(userId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!')),
-        );
+        AppSnack.show(context, AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!', type: SnackType.success);
       }
     } catch (e) {
       if (mounted) {

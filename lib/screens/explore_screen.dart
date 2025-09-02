@@ -1,3 +1,4 @@
+import 'package:mywishstash/widgets/skeleton_loader.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
@@ -5,7 +6,6 @@ import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
-import 'package:mywishstash/widgets/loading_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/repositories/user_search_repository.dart';
 import 'package:mywishstash/models/user_profile.dart';
@@ -13,6 +13,7 @@ import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 import 'package:mywishstash/utils/app_logger.dart';
 import 'package:mywishstash/repositories/favorites_repository.dart';
+import 'package:mywishstash/widgets/app_snack.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -417,7 +418,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     }
 
     if (_isInitialLoading) {
-      return const Center(child: LoadingMessage(messageKey: 'searching'));
+      return const SkeletonLoader(itemCount: 8);
     }
 
     if (_users.isEmpty && !_isLoading) {
@@ -901,9 +902,15 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       if (currentlyFav) {
         await _favoritesRepo.remove(FirebaseAuth.instance.currentUser!.uid, userId);
         setState(() { _favoriteIds.remove(userId); });
+        if (mounted) {
+          AppSnack.show(context, AppLocalizations.of(context)?.removedFromFavorites ?? 'Removido dos favoritos', type: SnackType.success);
+        }
       } else {
         await _favoritesRepo.add(FirebaseAuth.instance.currentUser!.uid, userId);
         setState(() { _favoriteIds.add(userId); });
+        if (mounted) {
+          AppSnack.show(context, AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!', type: SnackType.success);
+        }
       }
     } catch (e) {
       if (mounted) {
