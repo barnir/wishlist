@@ -5,6 +5,7 @@ import 'package:mywishstash/repositories/favorites_repository.dart';
 import 'package:mywishstash/models/user_favorite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/widgets/loading_message.dart';
 import '../widgets/ui_components.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
@@ -123,8 +124,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
         ],
       ),
-      body: _isInitialLoading
-          ? WishlistLoadingIndicator(message: l10n.loadingFavorites)
+    body: _isInitialLoading
+      ? const Center(child: LoadingMessage(messageKey: 'loadingFavorites'))
           : _favorites.isEmpty
               ? WishlistEmptyState(
                   icon: Icons.star_border,

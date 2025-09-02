@@ -72,10 +72,12 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           title: Text(AppLocalizations.of(context)?.cancelRegistrationTitle ?? 'Cancelar Registo'),
           content: Text(AppLocalizations.of(context)?.cancelRegistrationMessage ?? 'Tem a certeza que deseja cancelar o registo? Perderá o progresso atual e terá de começar novamente.'),
           actions: [
+            // Secondary (dismiss / keep) action first (left)
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(AppLocalizations.of(context)?.continueRegistration ?? 'Continuar Registo'),
             ),
+            // Primary destructive confirm on the right
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: context.semanticColors.danger),

@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:mywishstash/services/auth_service.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/widgets/loading_message.dart';
 // Legacy FirebaseDatabaseService removed in favor of typed repository
 import 'package:mywishstash/repositories/wishlist_repository.dart';
 import 'package:mywishstash/models/wishlist.dart';
@@ -297,30 +298,13 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   // _buildWishlistImage removido (lógica movida para WishlistCardItem)
 
   Widget _buildLoadingIndicator() {
-    return Container(
+    return Padding(
       padding: UIConstants.paddingM,
-      alignment: Alignment.center,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-          Spacing.horizontalM,
-          Text(
-            AppLocalizations.of(context)?.loadingMoreWishlists ?? 'A carregar mais wishlists...',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+      child: Center(
+        child: LoadingMessage(
+          messageKey: 'loadingMoreWishlists',
+          indicatorColor: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
@@ -360,8 +344,8 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
             ),
           ],
         ),
-      body: _isInitialLoading
-          ? WishlistLoadingIndicator(message: AppLocalizations.of(context)?.loadingWishlists ?? 'A carregar wishlists...')
+    body: _isInitialLoading
+      ? const Center(child: LoadingMessage(messageKey: 'loadingWishlists'))
           : _wishlists.isEmpty
               ? _buildEmptyState(context)
               : RefreshIndicator(

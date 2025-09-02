@@ -190,16 +190,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      _buildPasswordRequirement(l10n?.passwordTooShort ?? 'Pelo menos 8 caracteres', 
-                          _passwordController.text.length >= 8),
-                      _buildPasswordRequirement(l10n?.passwordNeedUpper ?? 'Uma maiúscula (A-Z)', 
-                          RegExp(r'[A-Z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement(l10n?.passwordNeedLower ?? 'Uma minúscula (a-z)', 
-                          RegExp(r'[a-z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement(l10n?.passwordNeedNumber ?? 'Um número (0-9)', 
-                          RegExp(r'[0-9]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement(l10n?.passwordNeedSpecial ?? 'Um símbolo especial (!@#\$%^&*)', 
-                          RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(_passwordController.text)),
+                      _buildPasswordRequirement(
+                        // Fallback kept concise but neutral if localization missing
+                        l10n?.passwordTooShort ?? 'Password: mínimo 8 caracteres',
+                        _passwordController.text.length >= 8,
+                      ),
+                      _buildPasswordRequirement(
+                        l10n?.passwordNeedUpper ?? 'Password: incluir maiúscula',
+                        RegExp(r'[A-Z]').hasMatch(_passwordController.text),
+                      ),
+                      _buildPasswordRequirement(
+                        l10n?.passwordNeedLower ?? 'Password: incluir minúscula',
+                        RegExp(r'[a-z]').hasMatch(_passwordController.text),
+                      ),
+                      _buildPasswordRequirement(
+                        l10n?.passwordNeedNumber ?? 'Password: incluir número',
+                        RegExp(r'[0-9]').hasMatch(_passwordController.text),
+                      ),
+                      _buildPasswordRequirement(
+                        l10n?.passwordNeedSpecial ?? 'Password: incluir símbolo',
+                        RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(_passwordController.text),
+                      ),
                     ],
                   ),
                 ),

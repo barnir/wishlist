@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/contacts_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/ui_components.dart';
+import 'package:mywishstash/widgets/loading_message.dart';
 import '../constants/ui_constants.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
@@ -124,9 +125,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return WishlistLoadingIndicator(
-        message: AppLocalizations.of(context)?.loadingSuggestions ?? 'A carregar sugestões...',
-      );
+      return const Center(child: LoadingMessage(messageKey: 'loadingSuggestions'));
     }
 
     if (!_hasPermission) {

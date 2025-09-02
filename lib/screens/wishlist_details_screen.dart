@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/widgets/loading_message.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:mywishstash/widgets/optimized_cloudinary_image.dart';
@@ -321,9 +322,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
 
   Widget _buildContent() {
     if (_isInitialLoading) {
-      return WishlistLoadingIndicator(
-        message: AppLocalizations.of(context)?.loadingItems ?? 'A carregar itens...',
-      );
+      return const Center(child: LoadingMessage(messageKey: 'loadingItems'));
     }
 
     if (_items.isEmpty && !_isLoading) {
@@ -341,7 +340,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               itemCount: _items.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _items.length) {
-                  return _buildLoadingIndicator();
+                  return const Center(child: LoadingMessage(messageKey: 'loadingMoreItems'));
                 }
         return _buildCompactRow(_items[index]);
               },
@@ -358,7 +357,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
               itemCount: _items.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _items.length) {
-                  return _buildLoadingIndicator();
+                  return const Center(child: LoadingMessage(messageKey: 'loadingMoreItems'));
                 }
                 return _buildGridItem(_items[index]);
               },
@@ -482,35 +481,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       icon: Icons.add_shopping_cart_rounded,
       title: AppLocalizations.of(context)?.wishlistEmptyTitle ?? 'A sua wishlist está vazia',
       subtitle: AppLocalizations.of(context)?.wishlistEmptySubtitle ?? 'Adicione o seu primeiro desejo!',
-    );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Container(
-      padding: UIConstants.paddingM,
-      alignment: Alignment.center,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-          Spacing.horizontalM,
-          Text(
-            AppLocalizations.of(context)?.loadingMoreItems ?? 'A carregar mais itens...',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ],
-      ),
     );
   }
 

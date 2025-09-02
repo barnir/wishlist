@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import '../widgets/ui_components.dart';
 import '../widgets/selectable_image_preview.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/widgets/loading_message.dart';
 import 'package:mywishstash/utils/validation_utils.dart';
 import '../constants/ui_constants.dart';
 
@@ -201,10 +202,8 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
     ? (AppLocalizations.of(context)?.createWishlistTitle ?? 'Criar Wishlist')
     : (AppLocalizations.of(context)?.editWishlistTitle ?? 'Editar Wishlist'),
   ),
-      body: _isLoading && widget.wishlistId != null
-          ? WishlistLoadingIndicator(
-              message: AppLocalizations.of(context)?.loadingWishlist ?? 'A carregar wishlist...',
-            )
+    body: _isLoading && widget.wishlistId != null
+      ? const Center(child: LoadingMessage(messageKey: 'loadingWishlist'))
           : SingleChildScrollView(
               padding: UIConstants.paddingM,
               child: Form(

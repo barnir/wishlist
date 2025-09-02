@@ -5,6 +5,7 @@ import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/widgets/loading_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/repositories/user_search_repository.dart';
 import 'package:mywishstash/models/user_profile.dart';
@@ -416,8 +417,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     }
 
     if (_isInitialLoading) {
-      final l10n = AppLocalizations.of(context)!;
-      return WishlistLoadingIndicator(message: l10n.searching);
+      return const Center(child: LoadingMessage(messageKey: 'searching'));
     }
 
     if (_users.isEmpty && !_isLoading) {
