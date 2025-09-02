@@ -20,6 +20,61 @@ interface ScrapedData {
   availability?: string;
 }
 
+// Enrichment response structure (more explicit types)
+interface EnrichmentResult {
+  title: string;
+  price?: number; // numeric (parsed)
+  currency?: string;
+  image?: string;
+  ratingValue?: number;
+  ratingCount?: number;
+  categorySuggestion?: string;
+  rawPriceString?: string;
+  sourceDomain: string;
+  canonicalUrl: string;
+  updatedAt: string; // ISO
+  cacheId?: string; // doc id in link_metadata cache
+}
+
+// ================= Rate Limiting (per-user enrichLink) =================
+// Simple Firestore-backed sliding window (minute + hour) to prevent abuse.
+// For low scale acceptable; if scale grows, migrate to Redis/Memorystore.
+const ENRICH_PER_MINUTE_LIMIT = 5; // burst
+const ENRICH_PER_HOUR_LIMIT = 40;  // sustained
+
+async function assertEnrichRateLimit(uid: string, db: FirebaseFirestore.Firestore) {
+  const now = Date.now();
+  const docRef = db.collection('rl_enrich').doc(uid);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(docRef);
+    let minuteStart = now;
+    let hourStart = now;
+    let minuteCount = 0;
+    let hourCount = 0;
+    if (snap.exists) {
+      const d = snap.data() || {};
+      minuteStart = (d.minute_start_ms as number) || now;
+      hourStart = (d.hour_start_ms as number) || now;
+      minuteCount = (d.minute_count as number) || 0;
+      hourCount = (d.hour_count as number) || 0;
+      if (now - minuteStart >= 60_000) { minuteStart = now; minuteCount = 0; }
+      if (now - hourStart >= 3_600_000) { hourStart = now; hourCount = 0; }
+    }
+    if (minuteCount + 1 > ENRICH_PER_MINUTE_LIMIT || hourCount + 1 > ENRICH_PER_HOUR_LIMIT) {
+      logger.warn('enrichLink rate_limited', {uid, minuteCount, hourCount});
+      throw new HttpsError('resource-exhausted', 'Limite de enriquecimentos atingido. Tente novamente mais tarde.');
+    }
+    minuteCount += 1; hourCount += 1;
+    tx.set(docRef, {
+      minute_start_ms: minuteStart,
+      hour_start_ms: hourStart,
+      minute_count: minuteCount,
+      hour_count: hourCount,
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+  });
+}
+
 // Lista de domínios confiáveis (resumida para exemplo)
 const TRUSTED_DOMAINS = [
   // Marketplaces globais
@@ -159,6 +214,166 @@ export const secureScraper = onCall(async (request) => {
     };
   }
 });
+
+// ==========================================================
+// enrichLink callable (lightweight metadata enrichment + cache)
+// Params: { url: string }
+// Returns: EnrichmentResult
+// ==========================================================
+export const enrichLink = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'Utilizador não autenticado');
+  }
+  const url = (request.data as any)?.url?.trim?.() || '';
+  if (!url) {
+    throw new HttpsError('invalid-argument', 'url obrigatória');
+  }
+  const normalized = validateAndNormalizeUrl(url);
+  const canonical = stripTrackingParams(normalized);
+  if (canonical.length > 2048) {
+    throw new HttpsError('invalid-argument', 'URL demasiado longa');
+  }
+  const domain = new URL(canonical).hostname.toLowerCase();
+  const db = admin.firestore();
+  // Rate limit per user
+  await assertEnrichRateLimit(uid, db);
+  const cacheId = canonicalCacheId(canonical);
+  const cacheRef = db.collection('link_metadata').doc(cacheId);
+
+  // Cache reuse (TTL 12h)
+  const now = Date.now();
+  const ttlMs = 12 * 60 * 60 * 1000;
+  const cacheSnap = await cacheRef.get();
+  if (cacheSnap.exists) {
+    const data = cacheSnap.data() || {};
+    const updatedAtMs = (data.updated_at_ms as number) || 0;
+    if (now - updatedAtMs < ttlMs) {
+      logger.info('enrichLink cache_hit', {uid, cacheId, domain});
+      return {
+        title: data.title || 'Sem título',
+        price: typeof data.price_cents === 'number' ? data.price_cents / 100 : undefined,
+        currency: data.currency,
+        image: data.image,
+        ratingValue: data.rating_value,
+        ratingCount: data.rating_count,
+        categorySuggestion: data.category_suggestion,
+        rawPriceString: data.raw_price_string,
+        sourceDomain: data.domain || domain,
+        canonicalUrl: data.canonical_url || canonical,
+        updatedAt: new Date(updatedAtMs).toISOString(),
+        cacheId,
+      };
+    }
+  }
+
+  // Fetch + parse
+  let html: string;
+  try {
+    html = await fetchHtmlWithLimits(canonical);
+  } catch (e:any) {
+    logger.warn('enrichLink fetch fail', {canonical, error: String(e)});
+    throw new HttpsError('unavailable', 'Falha ao obter conteúdo');
+  }
+  const parsed = extractDataFromHtml(html, canonical);
+  const numericPrice = parseFloat(parsed.price || '0');
+  const categorySuggestion = inferCategory(parsed.title || '');
+
+  // Basic rating parse (simple regex for patterns like "4.6 de 5" or "4,6 de 5")
+  let ratingValue: number | undefined; let ratingCount: number | undefined;
+  try {
+    const ratingMatch = html.match(/(\d+[.,]\d+)\s+de\s+5/);
+    if (ratingMatch) {
+      ratingValue = parseFloat(ratingMatch[1].replace(',', '.'));
+    }
+    const countMatch = html.match(/(\d{1,3}(?:[.,]\d{3})*)\s+(?:avaliações|opiniões|classificaç|vendido|vendidos)/i);
+    if (countMatch) {
+      ratingCount = parseInt(countMatch[1].replace(/[.,]/g, ''));
+    }
+  } catch { /* ignore */ }
+
+  // Persist cache
+  const toSave = {
+    canonical_url: canonical,
+    domain,
+    title: parsed.title || 'Sem título',
+    raw_price_string: parsed.price || '',
+    price_cents: isFinite(numericPrice) ? Math.round(numericPrice * 100) : null,
+    currency: (parsed as any).currency || 'EUR',
+    image: parsed.image || '',
+    rating_value: ratingValue,
+    rating_count: ratingCount,
+    category_suggestion: categorySuggestion,
+    updated_at_ms: now,
+    updated_at: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  await cacheRef.set(toSave, {merge: true});
+  logger.info('enrichLink cache_miss_stored', {uid, cacheId, domain});
+
+  const result: EnrichmentResult = {
+    title: toSave.title,
+    price: toSave.price_cents ? toSave.price_cents / 100 : undefined,
+    currency: toSave.currency,
+    image: toSave.image,
+    ratingValue: ratingValue,
+    ratingCount: ratingCount,
+    categorySuggestion,
+    rawPriceString: parsed.price || '',
+    sourceDomain: domain,
+    canonicalUrl: canonical,
+    updatedAt: new Date(now).toISOString(),
+    // extra field (not in original interface) but safe for clients
+    cacheId,
+  };
+  return result;
+});
+
+function stripTrackingParams(u: string): string {
+  try {
+    const urlObj = new URL(u);
+    const trackingKeys = ['tag', 'ascsubtag', 'aff_platform', 'aff_trace_key', 'spm', 'fbclid', 'gclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'ref', 'ref_'];
+    trackingKeys.forEach(k => urlObj.searchParams.delete(k));
+    return urlObj.origin + urlObj.pathname + (urlObj.searchParams.toString() ? '?' + urlObj.searchParams.toString() : '');
+  } catch { return u; }
+}
+
+function canonicalCacheId(canonicalUrl: string): string {
+  // Simple hash (FNV-1a like) to keep doc ids small
+  let hash = 2166136261; for (let i=0;i<canonicalUrl.length;i++){ hash ^= canonicalUrl.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+  return 'u_' + (hash >>> 0).toString(16);
+}
+
+async function fetchHtmlWithLimits(url: string): Promise<string> {
+  const fetch = (await import('node-fetch')).default;
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 8000);
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'User-Agent': 'Mozilla/5.0 (WishlistApp Metadata Bot)' },
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const limit = 300 * 1024; // 300KB
+  // node-fetch v3 body is a web stream; convert via reader or fallback to arrayBuffer
+  let buf: Buffer;
+  try {
+    const arrBuf = await res.arrayBuffer();
+    buf = Buffer.from(arrBuf).subarray(0, limit);
+  } catch (e) {
+    const text = await res.text();
+    return text.slice(0, limit);
+  }
+  return buf.toString('utf8');
+}
+
+function inferCategory(title: string): string | undefined {
+  const t = title.toLowerCase();
+  if (/(bateria|battery)/.test(t)) return 'electronics_computer_accessory';
+  if (/bicicleta|bike/.test(t) && /luz|light/.test(t)) return 'sports_cycling';
+  if (/camisa|t[- ]?shirt|blusa|shirt/.test(t)) return 'fashion_apparel';
+  return undefined;
+}
 
 function validateAndNormalizeUrl(url: string): string {
   try {

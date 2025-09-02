@@ -17,6 +17,9 @@ class WishItem {
   final double? rating;
   final int quantity;
   final DateTime createdAt;
+  // Enrichment (link metadata) optional fields (added Sept 2025)
+  final String? enrichStatus; // pending | enriched | failed
+  final String? enrichMetadataRef; // reference id in link_metadata collection
 
   WishItem({
     required this.id,
@@ -29,6 +32,8 @@ class WishItem {
     this.rating,
   this.quantity = 1,
     required this.createdAt,
+    this.enrichStatus,
+    this.enrichMetadataRef,
   });
 
   factory WishItem.fromMap(Map<String, dynamic> data) {
@@ -54,6 +59,8 @@ class WishItem {
       rating: (data['rating'] as num?)?.toDouble(),
       quantity: _parseQuantity(data['quantity']),
       createdAt: createdAt,
+  enrichStatus: data['enrich_status'] as String?,
+  enrichMetadataRef: data['enrich_metadata_ref'] as String?,
     );
   }
 
@@ -81,6 +88,8 @@ class WishItem {
       'rating': rating,
   'quantity': quantity,
       'created_at': createdAt.toIso8601String(),
+  if (enrichStatus != null) 'enrich_status': enrichStatus,
+  if (enrichMetadataRef != null) 'enrich_metadata_ref': enrichMetadataRef,
     };
   }
 }

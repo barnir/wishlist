@@ -12,6 +12,7 @@ import 'package:wishlist_app/services/image_cache_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../widgets/selectable_image_preview.dart';
 import 'package:wishlist_app/services/web_scraper_service.dart';
+import 'package:wishlist_app/services/share_enrichment_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:wishlist_app/services/auth_service.dart';
 import 'package:wishlist_app/generated/l10n/app_localizations.dart';
@@ -43,6 +44,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _wishItemRepo = WishItemRepository();
   final _wishlistRepo = WishlistRepository();
   final _webScraperService = WebScraperServiceSecure();
+  final _shareService = ShareEnrichmentService();
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
@@ -67,8 +69,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   List<Wishlist> _wishlists = [];
   bool _isLoadingWishlists = false;
   bool _isCreatingWishlist = false;
-  bool _showCreateWishlistForm = false;
-
+  bool _pendingEnrichment = false; // indica enrichment pendente
+  String? _enrichmentCacheId; // recebido do backend
   @override
   void initState() {
     super.initState();
@@ -86,7 +88,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _handleSharedLink();
     }
 
-    if (widget.wishlistId == null) {
+  // Carrega listas apenas se não foi aberto a partir de uma wishlist E veio de um share (tem link)
+  if (widget.wishlistId == null && widget.link != null) {
       _loadWishlists();
     }
   }
@@ -98,99 +101,99 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   _isScraping = true;
   _scrapingStatus = l10n?.scrapingExtractingInfo;
       });
-      
       try {
-  final scrapedData = await _webScraperService.scrape(widget.link!);
-  if (!mounted) return; // Guard after async call
-        
+        // 1. Parse rápido (texto do link/título inicial share pode já vir em widget.name)
+        final shareResult = await _shareService.processSharedText(widget.link!);
+        final initial = shareResult.initial;
+        if (!mounted) return;
+        // Marcar enriquecimento pendente (só se link válido)
+        if (initial.url != null) {
+          // Guardamos internamente status; será persistido ao salvar se ainda pendente
+          _pendingEnrichment = true;
+          _enrichmentCacheId = null; // aguardará retorno
+        }
+        if (initial.title != null && initial.title!.isNotEmpty && _nameController.text.isEmpty) {
+          _nameController.text = initial.title!;
+        }
+        if (initial.price != null) {
+          _priceController.text = initial.price!;
+        }
+        // 2. Enrichment assíncrono (não bloquear UI)
+        final enrichmentFuture = shareResult.enrichmentFuture;
+        if (enrichmentFuture != null) {
+          enrichmentFuture.then((data) async {
+            if (!mounted) return;
+            // Captura cacheId para persistência futura
+            final cacheId = data['cacheId'] as String?;
+            if (cacheId != null && cacheId.isNotEmpty) {
+              _enrichmentCacheId = cacheId;
+            }
+            // Evitar sobrescrever se usuário já editou
+            if (_nameController.text.isEmpty && (data['title'] as String?)?.isNotEmpty == true) {
+              _nameController.text = data['title'];
+            }
+            final priceNum = data['price'];
+            if (priceNum is num && (double.tryParse(_priceController.text) ?? 0) == 0) {
+              _priceController.text = priceNum.toStringAsFixed(2);
+            }
+            // Rating
+            final ratingVal = data['ratingValue'];
+            if (ratingVal is num && (_rating == null || _rating == 0)) {
+              _rating = ratingVal.toDouble().clamp(0.0, 5.0);
+            }
+            // Categoria sugerida se usuário não alterou manualmente (ainda está primeira default)
+            final suggestedCat = data['categorySuggestion'] as String?;
+            if (suggestedCat != null && suggestedCat.isNotEmpty && _selectedCategory == categories.first.name) {
+              if (categories.any((c) => c.name == suggestedCat)) {
+                _selectedCategory = suggestedCat;
+              }
+            }
+            final img = data['image'] as String?;
+            if (img != null && img.isNotEmpty && _imageBytes == null && _existingImageUrl == null) {
+              try {
+                setState(()=> _scrapingStatus = l10n?.scrapingLoadingImage);
+                final response = await http.get(Uri.parse(img));
+                if (response.statusCode == 200) {
+                  final tempDir = await getTemporaryDirectory();
+                  final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+                  await tempFile.writeAsBytes(response.bodyBytes);
+                  if (mounted) {
+                    setState(() {
+                      _imageBytes = response.bodyBytes;
+                      _localPreviewPath = tempFile.path;
+                    });
+                  }
+                }
+              } catch (_) {}
+            }
+            setState(() {
+              _scrapingStatus = null; // concluiu
+              _pendingEnrichment = false; // enrichment finalizado
+            });
+          });
+        }
+
+        // Status inicial muda para preenchimento rápido
         setState(() {
           _scrapingStatus = l10n?.scrapingFillingFields;
         });
-        
-        _nameController.text = scrapedData['title'] ?? '';
-        _priceController.text = scrapedData['price'] ?? '0.00';
-        
-        // Atualizar descrição se foi extraída
-        if (scrapedData['description'] != null && scrapedData['description']!.isNotEmpty) {
-          _descriptionController.text = scrapedData['description'];
-        }
-        
-        // Atualizar categoria automaticamente se foi detectada
-        if (scrapedData['category'] != null && scrapedData['category']!.isNotEmpty) {
-          final detectedCategory = scrapedData['category'];
-          // Verificar se a categoria detectada existe na nossa lista
-          if (categories.any((cat) => cat.name == detectedCategory)) {
-            _selectedCategory = detectedCategory;
-          }
-        }
-        
-        // Atualizar rating se foi extraído
-        if (scrapedData['rating'] != null && scrapedData['rating']!.isNotEmpty) {
-          final ratingValue = double.tryParse(scrapedData['rating']);
-          if (ratingValue != null && ratingValue >= 0.0 && ratingValue <= 5.0) {
-            _rating = ratingValue;
-          }
-        }
-        
-        final imageUrl = scrapedData['image'];
-        if (imageUrl != null && imageUrl.isNotEmpty) {
-          setState(() {
-            _scrapingStatus = l10n?.scrapingLoadingImage;
+
+        // Ainda executamos fallback antigo se enrichment falhar e título vazio
+        if (enrichmentFuture != null) {
+          enrichmentFuture.catchError((_) async {
+            if (!mounted) return <String, dynamic>{};
+            if (_nameController.text.isEmpty) {
+              try {
+                final scrapedData = await _webScraperService.scrape(widget.link!);
+                if (mounted && scrapedData['title'] != null && scrapedData['title']!.isNotEmpty && _nameController.text.isEmpty) {
+                  _nameController.text = scrapedData['title'];
+                }
+              } catch (_) {}
+            }
+            _pendingEnrichment = false; // falhou
+            return <String, dynamic>{};
           });
-          
-          final response = await http.get(Uri.parse(imageUrl));
-          if (!mounted) return; // Guard in case widget disposed
-          if (response.statusCode == 200) {
-            final tempDir = await getTemporaryDirectory();
-            final tempFile = File(
-              '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg',
-            );
-            await tempFile.writeAsBytes(response.bodyBytes);
-            setState(() {
-              _imageBytes = response.bodyBytes; // for upload later
-              _localPreviewPath = tempFile.path;
-            });
-          }
         }
-        
-        // Preparar mensagem de status com detalhes do que foi extraído
-        final extractedFeatures = <String>[];
-        if (scrapedData['title'] != null && scrapedData['title']!.isNotEmpty) {
-          extractedFeatures.add(l10n?.scrapingFeatureTitle ?? 'title');
-        }
-        if (scrapedData['price'] != null && scrapedData['price'] != '0.00') {
-          extractedFeatures.add(l10n?.scrapingFeaturePrice ?? 'price');
-        }
-        if (scrapedData['description'] != null && scrapedData['description']!.isNotEmpty) {
-          extractedFeatures.add(l10n?.scrapingFeatureDescription ?? 'description');
-        }
-        if (scrapedData['category'] != null && scrapedData['category']!.isNotEmpty) {
-          extractedFeatures.add(l10n?.scrapingFeatureCategory ?? 'category');
-        }
-        if (scrapedData['rating'] != null && scrapedData['rating']!.isNotEmpty) {
-          extractedFeatures.add(l10n?.scrapingFeatureRating ?? 'rating');
-        }
-        if (scrapedData['image'] != null && scrapedData['image']!.isNotEmpty) {
-          extractedFeatures.add(l10n?.scrapingFeatureImage ?? 'image');
-        }
-        
-  final statusMessage = extractedFeatures.isNotEmpty 
-            ? (l10n?.scrapingExtractedPrefix(extractedFeatures.join(', ')) ?? 'Extracted: ${extractedFeatures.join(', ')}')
-            : (l10n?.scrapingCompletedAdjust ?? 'Done! Review and adjust if needed.');
-        
-        setState(() {
-          _scrapingStatus = statusMessage;
-        });
-        
-        // Clear status after 3 seconds
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            setState(() {
-              _scrapingStatus = null;
-            });
-          }
-        });
-        
       } catch (e) {
         setState(() {
           _scrapingStatus = l10n?.scrapingError;
@@ -268,7 +271,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           imageUrl: null,
         ));
         _selectedWishlistId = id;
-        _showCreateWishlistForm = false;
+  // quick create dialog handles visibility; legacy flag removed
       });
     } catch (e) {
       setState(() {
@@ -374,7 +377,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       }
     }
 
-    final data = {
+    final data = <String, dynamic>{
       'wishlist_id': finalWishlistId,
       'name': ValidationUtils.sanitizeTextInput(_nameController.text),
       'description': _descriptionController.text.trim().isNotEmpty 
@@ -382,11 +385,17 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       'price': double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
       'category': _selectedCategory!,
       'rating': _rating,
-  'link': (() { final s = ValidationUtils.sanitizeUrlForSave(_linkController.text); return s.isEmpty ? null : s; })(),
+      'link': (() { final s = ValidationUtils.sanitizeUrlForSave(_linkController.text); return s.isEmpty ? null : s; })(),
       'image_url': uploadedUrl ?? _existingImageUrl,
-  'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
+      'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
       'owner_id': AuthService.getCurrentUserId(), // ensure always present to satisfy rules & backfill legacy docs
     };
+    if (_enrichmentCacheId != null) data['enrich_metadata_ref'] = _enrichmentCacheId;
+    if (_enrichmentCacheId != null && !_pendingEnrichment) {
+      data['enrich_status'] = 'enriched';
+    } else if (_pendingEnrichment) {
+      data['enrich_status'] = 'pending';
+    }
     bool ok = true;
     if (widget.itemId == null) {
       final id = await _wishItemRepo.create(data);
@@ -505,7 +514,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         ),
                       ),
                     ],
-                    if (widget.wishlistId == null) ...[
+                    // Seleção de wishlist apenas quando veio de partilha (share) e não estamos dentro de uma wishlist específica
+                    if (widget.wishlistId == null && widget.link != null) ...[
                       if (_isLoadingWishlists)
                         const Center(
                           child: CircularProgressIndicator(
@@ -519,73 +529,65 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (_wishlists.isNotEmpty)
-                              DropdownButtonFormField<String>(
-                                initialValue: _selectedWishlistId,
-                                decoration: InputDecoration(
-                                  labelText: AppLocalizations.of(context)?.chooseWishlistLabel,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                ),
-                                items: _wishlists.map((wishlist) => DropdownMenuItem<String>(
-                                      value: wishlist.id,
-                                      child: Text(wishlist.name),
-                                    ))
-                                    .toList(),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    _selectedWishlistId = newValue;
-                                  });
-                                },
-                                validator: (value) => ValidationUtils.validateWishlistSelection(value, context),
-                              ),
-                            if (_wishlists.isEmpty && !_showCreateWishlistForm)
-                              Center(
-                                child: TextButton(
-                                  onPressed: () => setState(
-                                    () => _showCreateWishlistForm = true,
-                                  ),
-                                  child: Text(
-                                    AppLocalizations.of(context)?.noWishlistFoundCreateNew ?? 'Nenhuma wishlist encontrada. Crie uma nova.',
-                                  ),
-                                ),
-                              ),
-                            if (_showCreateWishlistForm ||
-                                (_wishlists.isEmpty && _showCreateWishlistForm))
-                              Column(
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const SizedBox(height: 16),
-                                  TextFormField(
-                                    controller: _newWishlistNameController,
-                                    decoration: InputDecoration(
-                                      labelText: AppLocalizations.of(context)?.newWishlistNameLabel,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      filled: true,
-                                    ),
-                                    validator: (value) {
-                                      if (_showCreateWishlistForm &&
-                                          (value == null || value.isEmpty)) {
-                                        return AppLocalizations.of(context)?.newWishlistNameRequired ?? 'Insira um nome para a wishlist';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _isCreatingWishlist
-                                      ? const CircularProgressIndicator(
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
-                                        )
-                                      : ElevatedButton(
-                                          onPressed: _createWishlist,
-                                          child: Text(AppLocalizations.of(context)?.createWishlistAction ?? 'Criar Wishlist'),
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      key: ValueKey('wishlist_dropdown_share'),
+                                      value: _selectedWishlistId,
+                                      decoration: InputDecoration(
+                                        labelText: AppLocalizations.of(context)?.chooseWishlistLabel,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
+                                        filled: true,
+                                      ),
+                                      items: _wishlists.map((wishlist) => DropdownMenuItem<String>(
+                                        value: wishlist.id,
+                                        child: Text(wishlist.name, overflow: TextOverflow.ellipsis),
+                                      )).toList(),
+                                      onChanged: (newValue) {
+                                        setState(() => _selectedWishlistId = newValue);
+                                      },
+                                      validator: (value) => ValidationUtils.validateWishlistSelection(value, context),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Tooltip(
+                                    message: AppLocalizations.of(context)?.createWishlistAction ?? 'Criar wishlist',
+                                    child: SizedBox(
+                                      height: 58,
+                                      width: 58,
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        onPressed: _isCreatingWishlist ? null : () => _showQuickCreateWishlistDialog(context),
+                                        child: _isCreatingWishlist
+                                          ? const SizedBox(width:20,height:20,child:CircularProgressIndicator(strokeWidth:2))
+                                          : const Icon(Icons.add),
+                                      ),
+                                    ),
+                                  )
                                 ],
+                              ),
+                            if (_wishlists.isEmpty)
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Text(AppLocalizations.of(context)?.noWishlistFoundCreateNew ?? 'Nenhuma wishlist encontrada. Crie uma nova.'),
+                                    const SizedBox(height: 12),
+                                    _isCreatingWishlist
+                                      ? const CircularProgressIndicator()
+                                      : ElevatedButton.icon(
+                                          onPressed: () => _showQuickCreateWishlistDialog(context),
+                                          icon: const Icon(Icons.add),
+                                          label: Text(AppLocalizations.of(context)?.createWishlistAction ?? 'Criar Wishlist'),
+                                        ),
+                                  ],
+                                ),
                               ),
                           ],
                         ),
@@ -732,5 +734,44 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               ),
       ),
     );
+  }
+
+  void _showQuickCreateWishlistDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    _newWishlistNameController.clear();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(l10n?.createWishlistAction ?? 'Criar Wishlist'),
+          content: TextField(
+            controller: _newWishlistNameController,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l10n?.newWishlistNameLabel,
+              border: const OutlineInputBorder(),
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _confirmCreateWishlist(ctx),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: _isCreatingWishlist ? null : () => _confirmCreateWishlist(ctx),
+              child: _isCreatingWishlist ? const SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2,color:Colors.white)) : Text(l10n?.createWishlistAction ?? 'Criar'),
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmCreateWishlist(BuildContext dialogCtx) async {
+    if (_newWishlistNameController.text.trim().isEmpty) return;
+    Navigator.of(dialogCtx).pop();
+    await _createWishlist();
   }
 }

@@ -118,4 +118,39 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// Lightweight enrichment (metadata + cache) - preferido para fluxo de share
+  Future<Map<String, dynamic>> enrichLink(String url) async {
+    try {
+      debugPrint('✨ Calling enrichLink Cloud Function for URL: $url');
+      final callable = _functions.httpsCallable('enrichLink');
+      final result = await callable.call({'url': url});
+      final data = Map<String, dynamic>.from(result.data);
+      return data;
+    } catch (e) {
+      debugPrint('❌ Error enriching URL: $e');
+      if (e is FirebaseFunctionsException && e.code == 'resource-exhausted') {
+        return {
+          'title': '',
+          'price': null,
+          'currency': 'EUR',
+          'image': '',
+          'sourceDomain': '',
+          'canonicalUrl': url,
+          'rateLimited': true,
+          'error': 'Limite de enriquecimentos atingido. Tente novamente mais tarde.'
+        };
+      }
+      // Fallback minimal structure; cliente pode continuar com campos manuais
+      return {
+        'title': '',
+        'price': null,
+        'currency': 'EUR',
+        'image': '',
+        'sourceDomain': '',
+        'canonicalUrl': url,
+        'error': e.toString(),
+      };
+    }
+  }
+
 }
