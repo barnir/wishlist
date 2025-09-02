@@ -49,7 +49,7 @@ class FavoritesService {
       return true;
     } catch (e) {
       MonitoringService.logErrorStatic('remove_favorite', e, stackTrace: StackTrace.current);
-      throw Exception('Erro ao remover favorito: $e');
+  throw Exception('Erro ao remover favorito: $e');
     }
   }
 

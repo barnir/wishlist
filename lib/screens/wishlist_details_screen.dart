@@ -227,7 +227,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       _showSnackBar(
-        AppLocalizations.of(context)?.itemDeleteError(e.toString()) ?? 'Erro ao eliminar item: $e',
+  AppLocalizations.of(context)?.itemDeleteError(e.toString()) ?? 'Erro ao eliminar item: $e',
         isError: true,
       );
     }
@@ -637,7 +637,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.deleteItemTitle ?? 'Eliminar item'),
+  title: Text(AppLocalizations.of(context)?.deleteItemTitle ?? 'Eliminar item'),
         content: Text(
           (AppLocalizations.of(context)?.deleteItemConfirmation(item.name) ?? 'Tens a certeza que queres eliminar "${item.name}"?'),
         ),

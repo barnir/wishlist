@@ -402,7 +402,7 @@ class SwipeAction {
   /// Factory for delete actions
   factory SwipeAction.delete({
     required VoidCallback onPressed,
-    String? label = 'Eliminar',
+  String? label = 'Eliminar',
   }) {
     return SwipeAction(
       icon: Icons.delete,
