@@ -53,7 +53,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar perfil: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)?.errorLoadingProfile(e.toString()) ?? 'Erro ao carregar perfil: $e')),
         );
       }
     }
@@ -461,7 +461,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)?.genericError(e.toString()) ?? 'Erro: $e')),
         );
       }
     }

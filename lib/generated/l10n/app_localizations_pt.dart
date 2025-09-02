@@ -9,6 +9,16 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String errorLoadingProfile(Object error) {
+    return 'Erro ao carregar perfil: $error';
+  }
+
+  @override
+  String genericError(Object error) {
+    return 'Erro: $error';
+  }
+
+  @override
   String get createWishlistError => 'Falha ao criar wishlist';
 
   @override
@@ -719,11 +729,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String shareProfileMessage(Object link) {
     return 'Vê o meu perfil no Wishlist App: $link';
-  }
-
-  @override
-  String errorLoadingProfile(Object error) {
-    return 'Erro ao carregar perfil: $error';
   }
 
   @override

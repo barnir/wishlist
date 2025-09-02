@@ -1,4 +1,6 @@
 {
+  "errorLoadingProfile": "Error loading profile: {error}",
+  "genericError": "Error: {error}",
   "createWishlistError": "Failed to create wishlist",
   "openItemLink": "Open item link",
   "openLink": "Open link",

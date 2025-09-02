@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('pt'),
   ];
 
+  /// No description provided for @errorLoadingProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading profile: {error}'**
+  String errorLoadingProfile(Object error);
+
+  /// No description provided for @genericError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String genericError(Object error);
+
   /// No description provided for @createWishlistError.
   ///
   /// In en, this message translates to:
@@ -1405,12 +1417,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check my profile on Wishlist App: {link}'**
   String shareProfileMessage(Object link);
-
-  /// No description provided for @errorLoadingProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'Error loading profile: {error}'**
-  String errorLoadingProfile(Object error);
 
   /// No description provided for @languageSettings.
   ///
