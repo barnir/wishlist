@@ -74,14 +74,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: const WishlistAppBar(title: 'Perfil'),
+        appBar: WishlistAppBar(title: AppLocalizations.of(context)?.profile ?? 'Perfil'),
         body: _buildProfileSkeleton(),
       );
     }
 
     if (_userProfile == null) {
       return Scaffold(
-        appBar: const WishlistAppBar(title: 'Perfil'),
+        appBar: WishlistAppBar(title: AppLocalizations.of(context)?.profile ?? 'Perfil'),
         body: WishlistEmptyState(
           icon: Icons.person_off,
           title: AppLocalizations.of(context)?.profileNotFoundTitle ?? 'Perfil não encontrado',

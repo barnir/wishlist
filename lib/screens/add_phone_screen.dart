@@ -5,6 +5,7 @@ import 'package:mywishstash/services/auth_service.dart';
 import 'package:mywishstash/screens/otp_screen.dart';
 import '../widgets/app_snack.dart';
 import 'package:mywishstash/utils/app_logger.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
 class AddPhoneScreen extends StatefulWidget {
   const AddPhoneScreen({super.key});
@@ -57,7 +58,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           ? user!.email!
           : user?.displayName?.isNotEmpty == true
               ? user!.displayName!
-              : 'Utilizador em processo de registo';
+              : AppLocalizations.of(context)?.registrationUserPlaceholder ?? 'Utilizador em processo de registo';
     });
   logD('Resolved userEmail', tag: 'UI', data: {'userEmail': _userEmail});
   }
@@ -68,20 +69,17 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Cancelar Registo'),
-          content: const Text(
-            'Tem a certeza que deseja cancelar o registo? '
-            'Perderá o progresso atual e terá de começar novamente.',
-          ),
+          title: Text(AppLocalizations.of(context)?.cancelRegistrationTitle ?? 'Cancelar Registo'),
+          content: Text(AppLocalizations.of(context)?.cancelRegistrationMessage ?? 'Tem a certeza que deseja cancelar o registo? Perderá o progresso atual e terá de começar novamente.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Continuar Registo'),
+              child: Text(AppLocalizations.of(context)?.continueRegistration ?? 'Continuar Registo'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: context.semanticColors.danger),
-              child: const Text('Cancelar Registo'),
+              child: Text(AppLocalizations.of(context)?.cancelRegistrationTitle ?? 'Cancelar Registo'),
             ),
           ],
         );
@@ -96,7 +94,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
         }
       } catch (e) {
         if (mounted) {
-          AppSnack.show(context, 'Erro ao cancelar registo: $e', type: SnackType.error);
+          AppSnack.show(context, (AppLocalizations.of(context)?.errorCancelRegistration(e.toString()) ?? 'Erro ao cancelar registo: $e'), type: SnackType.error);
         }
       }
     }
@@ -104,7 +102,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
 
   Future<void> _sendVerificationCode() async {
     if (_telefoneCompleto == null || _telefoneCompleto!.isEmpty) {
-  AppSnack.show(context, 'Por favor, insira um número de telemóvel válido.', type: SnackType.warning);
+  AppSnack.show(context, AppLocalizations.of(context)?.invalidPhoneWarning ?? 'Por favor, insira um número de telemóvel válido.', type: SnackType.warning);
       return;
     }
     setState(() {
@@ -145,7 +143,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Completar Registo'),
+          title: Text(AppLocalizations.of(context)?.completeRegistrationTitle ?? 'Completar Registo'),
           automaticallyImplyLeading: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -155,7 +153,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
             TextButton(
               onPressed: _cancelRegistration,
               child: Text(
-                'Cancelar',
+                AppLocalizations.of(context)?.cancel ?? 'Cancelar',
                 style: TextStyle(color: context.semanticColors.danger),
               ),
             ),
@@ -179,9 +177,9 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           color: Theme.of(context).colorScheme.primary,
         ),
         const SizedBox(height: 32),
-        const Text(
-          'Processo Incompleto',
-          style: TextStyle(
+        Text(
+          AppLocalizations.of(context)?.incompleteProcessTitle ?? 'Processo Incompleto',
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -204,7 +202,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                     Icon(Icons.check_circle, color: context.semanticColors.success),
                     const SizedBox(width: 8),
                     Text(
-                      'Continuando registo para:',
+                      AppLocalizations.of(context)?.continuingRegistrationFor ?? 'Continuando registo para:',
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -234,7 +232,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
           const SizedBox(height: 24),
         ],
     Text(
-          'Para completar o registo, é necessário verificar um número de telemóvel.',
+          AppLocalizations.of(context)?.phoneVerificationIntro ?? 'Para completar o registo, é necessário verificar um número de telemóvel.',
           style: TextStyle(
             fontSize: 16,
       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -253,9 +251,9 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: const Text(
-              'Continuar com Telemóvel',
-              style: TextStyle(fontSize: 16),
+            child: Text(
+              AppLocalizations.of(context)?.continueWithPhone ?? 'Continuar com Telemóvel',
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ),
@@ -278,9 +276,9 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: const Text(
-              'Escolher Outro Método',
-              style: TextStyle(fontSize: 16),
+            child: Text(
+              AppLocalizations.of(context)?.chooseAnotherMethod ?? 'Escolher Outro Método',
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ),
@@ -303,10 +301,10 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                 },
                 icon: const Icon(Icons.arrow_back),
               ),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Adicionar Telemóvel',
-                  style: TextStyle(
+                  AppLocalizations.of(context)?.addPhoneTitle ?? 'Adicionar Telemóvel',
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -315,20 +313,20 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
             ],
           ),
           const SizedBox(height: 32),
-      Text(
-            'Insira o seu número de telemóvel para receber um código de verificação.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
+  Text(
+    AppLocalizations.of(context)?.enterPhoneInstruction ?? 'Insira o seu número de telemóvel para receber um código de verificação.',
+    textAlign: TextAlign.center,
+    style: TextStyle(
+      fontSize: 16,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+      ),
           const SizedBox(height: 24),
           IntlPhoneField(
             initialCountryCode: 'PT',
-            decoration: const InputDecoration(
-              labelText: 'Número de Telemóvel',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)?.phoneNumberLabelLocal ?? 'Número de Telemóvel',
+              border: const OutlineInputBorder(),
             ),
             onChanged: (phone) {
               _telefoneCompleto = phone.completeNumber;
@@ -348,9 +346,9 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text(
-                  'Enviar Código',
-                  style: TextStyle(fontSize: 16),
+                child: Text(
+                  AppLocalizations.of(context)?.sendCode ?? 'Enviar Código',
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
             ),

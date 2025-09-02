@@ -39,9 +39,8 @@ android {
     applicationId = "com.mywishstash.app"
         minSdkVersion(24)
         targetSdk = 36
-    // Align with pubspec.yaml version: 0.1.1 -> bump versionCode
-    versionCode = 2
-    versionName = "0.1.1"
+    // versionName / versionCode agora derivados automaticamente de pubspec.yaml (0.1.2+3)
+    // Não definir manualmente para evitar divergência futura.
     }
 
     signingConfigs {

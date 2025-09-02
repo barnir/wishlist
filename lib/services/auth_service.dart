@@ -9,6 +9,7 @@ import 'package:mywishstash/services/cloudinary_service.dart';
 import 'package:mywishstash/services/notification_service.dart';
 import 'package:mywishstash/utils/app_logger.dart';
 import 'package:mywishstash/services/analytics/analytics_service.dart';
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
 enum GoogleSignInResult { success, missingPhoneNumber, cancelled, failed }
 
@@ -43,21 +44,22 @@ class AuthService {
     }
   }
 
-  Future<void> _validatePassword(String password) async {
+  Future<void> _validatePassword(String password, {BuildContext? context}) async {
+    final l10n = context != null ? AppLocalizations.of(context) : null;
     if (password.length < 6) {
-      throw Exception('A senha deve ter no mínimo 6 caracteres.');
+      throw Exception(l10n?.pwRuleMinLength ?? 'A senha deve ter no mínimo 6 caracteres.');
     }
     if (!password.contains(RegExp(r'[a-z]'))) {
-      throw Exception('A senha deve conter pelo menos uma letra minúscula.');
+      throw Exception(l10n?.pwRuleLower ?? 'A senha deve conter pelo menos uma letra minúscula.');
     }
     if (!password.contains(RegExp(r'[A-Z]'))) {
-      throw Exception('A senha deve conter pelo menos uma letra maiúscula.');
+      throw Exception(l10n?.pwRuleUpper ?? 'A senha deve conter pelo menos uma letra maiúscula.');
     }
     if (!password.contains(RegExp(r'[0-9]'))) {
-      throw Exception('A senha deve conter pelo menos um número.');
+      throw Exception(l10n?.pwRuleDigit ?? 'A senha deve conter pelo menos um número.');
     }
-    if (!password.contains(RegExp(r'[!@#\\$%^&*(),.?\":{}|<>]'))) {
-      throw Exception('A senha deve conter pelo menos um símbolo.');
+    if (!password.contains(RegExp(r'[!@#\\$%^&*(),.?":{}|<>]'))) {
+      throw Exception(l10n?.pwRuleSymbol ?? 'A senha deve conter pelo menos um símbolo.');
     }
   }
 
@@ -65,12 +67,13 @@ class AuthService {
     return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
   }
 
-  Future<firebase_auth.UserCredential> createUserWithEmailAndPassword(String email, String password, String displayName) async {
+  Future<firebase_auth.UserCredential> createUserWithEmailAndPassword(String email, String password, String displayName, {BuildContext? context}) async {
     try {
       logI('Email Registration', tag: 'AUTH');
-      await _validatePassword(password);
+      await _validatePassword(password, context: context);
       if (!_isValidEmail(email)) {
-        throw Exception('Formato de email inválido.');
+        final l10n = context != null ? AppLocalizations.of(context) : null;
+        throw Exception(l10n?.invalidEmailFormat ?? 'Formato de email inválido.');
       }
       final cred = await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);
       await AnalyticsService().identify(cred.user?.uid);

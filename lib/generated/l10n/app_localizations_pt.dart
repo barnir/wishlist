@@ -9,7 +9,107 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appTitle => 'Lista de Desejos';
+  String get appTitle => 'MyWishStash';
+
+  @override
+  String get cancelRegistrationTitle => 'Cancelar Registo';
+
+  @override
+  String get cancelRegistrationMessage =>
+      'Tem a certeza que deseja cancelar o registo? Perderá o progresso atual e terá de começar novamente.';
+
+  @override
+  String get continueRegistration => 'Continuar Registo';
+
+  @override
+  String errorCancelRegistration(Object error) {
+    return 'Erro ao cancelar registo: $error';
+  }
+
+  @override
+  String get registrationUserPlaceholder => 'Utilizador em processo de registo';
+
+  @override
+  String get completeRegistrationTitle => 'Completar Registo';
+
+  @override
+  String get incompleteProcessTitle => 'Processo Incompleto';
+
+  @override
+  String get continuingRegistrationFor => 'Continuando registo para:';
+
+  @override
+  String get phoneVerificationIntro =>
+      'Para completar o registo, é necessário verificar um número de telemóvel.';
+
+  @override
+  String get continueWithPhone => 'Continuar com Telemóvel';
+
+  @override
+  String get chooseAnotherMethod => 'Escolher Outro Método';
+
+  @override
+  String get addPhoneTitle => 'Adicionar Telemóvel';
+
+  @override
+  String get enterPhoneInstruction =>
+      'Insira o seu número de telemóvel para receber um código de verificação.';
+
+  @override
+  String get phoneNumberLabelLocal => 'Número de Telemóvel';
+
+  @override
+  String get sendCode => 'Enviar Código';
+
+  @override
+  String get invalidPhoneWarning =>
+      'Por favor, insira um número de telemóvel válido.';
+
+  @override
+  String logoutError(Object error) {
+    return 'Erro ao fazer logout: $error';
+  }
+
+  @override
+  String get pwRuleMinLength => 'A senha deve ter no mínimo 6 caracteres.';
+
+  @override
+  String get pwRuleLower =>
+      'A senha deve conter pelo menos uma letra minúscula.';
+
+  @override
+  String get pwRuleUpper =>
+      'A senha deve conter pelo menos uma letra maiúscula.';
+
+  @override
+  String get pwRuleDigit => 'A senha deve conter pelo menos um número.';
+
+  @override
+  String get pwRuleSymbol => 'A senha deve conter pelo menos um símbolo.';
+
+  @override
+  String get invalidEmailFormat => 'Formato de email inválido.';
+
+  @override
+  String get loadingInline => 'A carregar...';
+
+  @override
+  String wishlistDetailsLoadError(Object error) {
+    return 'Erro ao carregar detalhes da wishlist: $error';
+  }
+
+  @override
+  String itemsLoadError(Object error) {
+    return 'Erro ao carregar itens: $error';
+  }
+
+  @override
+  String get itemDeletedSuccess => 'Item eliminado com sucesso!';
+
+  @override
+  String itemDeleteError(Object error) {
+    return 'Erro ao eliminar item: $error';
+  }
 
   @override
   String get profile => 'Perfil';

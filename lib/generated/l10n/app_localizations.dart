@@ -104,6 +104,174 @@ abstract class AppLocalizations {
   /// **'MyWishStash'**
   String get appTitle;
 
+  /// Dialog title to cancel registration
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Registration'**
+  String get cancelRegistrationTitle;
+
+  /// Dialog body for cancel registration
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel registration? You will lose current progress and must start again.'**
+  String get cancelRegistrationMessage;
+
+  /// Action to continue registration instead of cancelling
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Registration'**
+  String get continueRegistration;
+
+  /// Error message when cancellation fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error cancelling registration: {error}'**
+  String errorCancelRegistration(Object error);
+
+  /// Placeholder when user email/displayName still not resolved
+  ///
+  /// In en, this message translates to:
+  /// **'User in registration process'**
+  String get registrationUserPlaceholder;
+
+  /// AppBar title for completing registration
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Registration'**
+  String get completeRegistrationTitle;
+
+  /// Title shown when registration not finished
+  ///
+  /// In en, this message translates to:
+  /// **'Incomplete Process'**
+  String get incompleteProcessTitle;
+
+  /// Label above user email
+  ///
+  /// In en, this message translates to:
+  /// **'Continuing registration for:'**
+  String get continuingRegistrationFor;
+
+  /// Intro message before phone verification
+  ///
+  /// In en, this message translates to:
+  /// **'To finish registration you need to verify a phone number.'**
+  String get phoneVerificationIntro;
+
+  /// Button to show phone form
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Phone'**
+  String get continueWithPhone;
+
+  /// Button to sign out and pick another method
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Another Method'**
+  String get chooseAnotherMethod;
+
+  /// Title of the phone form section
+  ///
+  /// In en, this message translates to:
+  /// **'Add Phone'**
+  String get addPhoneTitle;
+
+  /// Instruction above phone field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone number to receive a verification code.'**
+  String get enterPhoneInstruction;
+
+  /// Label for phone number field (avoid conflict with generic phone)
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get phoneNumberLabelLocal;
+
+  /// Button to send OTP code
+  ///
+  /// In en, this message translates to:
+  /// **'Send Code'**
+  String get sendCode;
+
+  /// Warning when phone invalid
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid phone number.'**
+  String get invalidPhoneWarning;
+
+  /// Error when logout fails from this screen
+  ///
+  /// In en, this message translates to:
+  /// **'Error logging out: {error}'**
+  String logoutError(Object error);
+
+  /// Password rule - min length
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters.'**
+  String get pwRuleMinLength;
+
+  /// Password rule - lowercase
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one lowercase letter.'**
+  String get pwRuleLower;
+
+  /// Password rule - uppercase
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one uppercase letter.'**
+  String get pwRuleUpper;
+
+  /// Password rule - digit
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one number.'**
+  String get pwRuleDigit;
+
+  /// Password rule - symbol
+  ///
+  /// In en, this message translates to:
+  /// **'Password must contain at least one symbol.'**
+  String get pwRuleSymbol;
+
+  /// Invalid email error message
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email format.'**
+  String get invalidEmailFormat;
+
+  /// Short inline loading text
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loadingInline;
+
+  /// Error when fetching wishlist details
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading wishlist details: {error}'**
+  String wishlistDetailsLoadError(Object error);
+
+  /// Error when fetching wishlist items
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading items: {error}'**
+  String itemsLoadError(Object error);
+
+  /// Snack success after deleting item
+  ///
+  /// In en, this message translates to:
+  /// **'Item deleted successfully!'**
+  String get itemDeletedSuccess;
+
+  /// Snack error deleting item
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting item: {error}'**
+  String itemDeleteError(Object error);
+
   /// Profile page title
   ///
   /// In en, this message translates to:

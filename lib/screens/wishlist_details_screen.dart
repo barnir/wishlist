@@ -35,7 +35,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   final _wishItemRepo = WishItemRepository();
   final _scrollController = ScrollController();
 
-  String _wishlistName = 'Carregando...';
+  String _wishlistName = '';
   bool _isPrivate = false;
   String? _selectedCategory;
   SortOptions _sortOption = SortOptions.nameAsc;
@@ -80,7 +80,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         });
       }
     } catch (e) {
-      _showSnackBar('Erro ao carregar detalhes da wishlist: $e', isError: true);
+      _showSnackBar(
+        AppLocalizations.of(context)?.wishlistDetailsLoadError(e.toString()) ?? 'Erro ao carregar detalhes da wishlist: $e',
+        isError: true,
+      );
     }
   }
 
@@ -146,7 +149,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         setState(() {
           _isLoading = false;
         });
-        _showSnackBar('Erro ao carregar itens: $e', isError: true);
+        _showSnackBar(
+          AppLocalizations.of(context)?.itemsLoadError(e.toString()) ?? 'Erro ao carregar itens: $e',
+          isError: true,
+        );
       }
     }
   }
@@ -211,7 +217,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       // Use repository delete (legacy service kept for other flows if needed)
       await _wishItemRepo.deleteItem(itemId);
       if (!mounted) return;
-      _showSnackBar('Item eliminado com sucesso!');
+  _showSnackBar(AppLocalizations.of(context)?.itemDeletedSuccess ?? 'Item eliminado com sucesso!');
       
       // Remove item from local list
       setState(() {
@@ -219,7 +225,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('Erro ao eliminar item: $e', isError: true);
+      _showSnackBar(
+        AppLocalizations.of(context)?.itemDeleteError(e.toString()) ?? 'Erro ao eliminar item: $e',
+        isError: true,
+      );
     }
   }
 
@@ -255,7 +264,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_wishlistName),
+          title: Text(_wishlistName.isEmpty ? (AppLocalizations.of(context)?.loadingInline ?? 'A carregar...') : _wishlistName),
         actions: [
           AccessibleIconButton(
             icon: Icons.filter_list,

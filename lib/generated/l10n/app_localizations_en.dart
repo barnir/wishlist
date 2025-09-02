@@ -12,6 +12,105 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'MyWishStash';
 
   @override
+  String get cancelRegistrationTitle => 'Cancel Registration';
+
+  @override
+  String get cancelRegistrationMessage =>
+      'Are you sure you want to cancel registration? You will lose current progress and must start again.';
+
+  @override
+  String get continueRegistration => 'Continue Registration';
+
+  @override
+  String errorCancelRegistration(Object error) {
+    return 'Error cancelling registration: $error';
+  }
+
+  @override
+  String get registrationUserPlaceholder => 'User in registration process';
+
+  @override
+  String get completeRegistrationTitle => 'Complete Registration';
+
+  @override
+  String get incompleteProcessTitle => 'Incomplete Process';
+
+  @override
+  String get continuingRegistrationFor => 'Continuing registration for:';
+
+  @override
+  String get phoneVerificationIntro =>
+      'To finish registration you need to verify a phone number.';
+
+  @override
+  String get continueWithPhone => 'Continue with Phone';
+
+  @override
+  String get chooseAnotherMethod => 'Choose Another Method';
+
+  @override
+  String get addPhoneTitle => 'Add Phone';
+
+  @override
+  String get enterPhoneInstruction =>
+      'Enter your phone number to receive a verification code.';
+
+  @override
+  String get phoneNumberLabelLocal => 'Phone Number';
+
+  @override
+  String get sendCode => 'Send Code';
+
+  @override
+  String get invalidPhoneWarning => 'Please enter a valid phone number.';
+
+  @override
+  String logoutError(Object error) {
+    return 'Error logging out: $error';
+  }
+
+  @override
+  String get pwRuleMinLength => 'Password must be at least 6 characters.';
+
+  @override
+  String get pwRuleLower =>
+      'Password must contain at least one lowercase letter.';
+
+  @override
+  String get pwRuleUpper =>
+      'Password must contain at least one uppercase letter.';
+
+  @override
+  String get pwRuleDigit => 'Password must contain at least one number.';
+
+  @override
+  String get pwRuleSymbol => 'Password must contain at least one symbol.';
+
+  @override
+  String get invalidEmailFormat => 'Invalid email format.';
+
+  @override
+  String get loadingInline => 'Loading...';
+
+  @override
+  String wishlistDetailsLoadError(Object error) {
+    return 'Error loading wishlist details: $error';
+  }
+
+  @override
+  String itemsLoadError(Object error) {
+    return 'Error loading items: $error';
+  }
+
+  @override
+  String get itemDeletedSuccess => 'Item deleted successfully!';
+
+  @override
+  String itemDeleteError(Object error) {
+    return 'Error deleting item: $error';
+  }
+
+  @override
   String get profile => 'Profile';
 
   @override
