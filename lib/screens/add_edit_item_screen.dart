@@ -130,7 +130,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             }
             if (data['rateLimited'] == true) {
               setState(() {
-                _scrapingStatus = 'Limite de enriquecimentos atingido.'; // l10n enrichmentRateLimited
+                _scrapingStatus = AppLocalizations.of(context)?.enrichmentRateLimited;
                 _pendingEnrichment = false;
               });
               return;
@@ -174,11 +174,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               } catch (_) {}
             }
             setState(() {
-              _scrapingStatus = 'Detalhes enriquecidos.'; // l10n enrichmentCompleted
+              _scrapingStatus = AppLocalizations.of(context)?.enrichmentCompleted;
               _pendingEnrichment = false; // enrichment finalizado
             });
             Future.delayed(const Duration(seconds: 2), () {
-              if (mounted && _scrapingStatus == 'Detalhes enriquecidos.') {
+              if (mounted && _scrapingStatus == AppLocalizations.of(context)?.enrichmentCompleted) {
                 setState(() => _scrapingStatus = null);
               }
             });
@@ -187,7 +187,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
         // Status inicial muda para preenchimento rápido
         setState(() {
-          _scrapingStatus = l10n?.scrapingFillingFields ?? 'A melhorar detalhes...'; // l10n enrichmentPending
+          _scrapingStatus = l10n?.scrapingFillingFields ?? AppLocalizations.of(context)?.enrichmentPending;
         });
 
         // Ainda executamos fallback antigo se enrichment falhar e título vazio
