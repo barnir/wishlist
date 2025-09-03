@@ -46,17 +46,36 @@ class UserSearchRepository {
           baseQuery = baseQuery.startAfterDocument(startAfter);
         }
 
-        final snap = await baseQuery.limit(limit * 2).get(); // overfetch for filtering
+        // Attempt the indexed query first. If Firestore rejects it because a
+        // composite index is required, fallback to an unordered scan (still
+        // scoped to is_private==false) and perform the prefix filtering client-side.
+        QuerySnapshot snap;
+        try {
+          snap = await baseQuery.limit(limit * 2).get(); // overfetch for filtering
+  } catch (e) {
+          // Common Firestore error when an index is missing: failed-precondition
+          // with message pointing to the console index creation URL. Fall back.
+          logW('User search indexed query failed, falling back to unordered scan: $e', tag: 'SEARCH');
+          var fallback = _firestore.collection('users').where('is_private', isEqualTo: false);
+          if (startAfter != null) fallback = fallback.startAfterDocument(startAfter);
+          // Increase fetch window when unordered to avoid excessive roundtrips.
+          snap = await fallback.limit(limit * 4).get();
+        }
         final docs = snap.docs;
         final matches = <UserProfile>[];
         for (final d in docs) {
-          final data = d.data();
-            final display = (data['display_name'] as String? ?? '').toLowerCase();
-            final email = (data['email'] as String? ?? '').toLowerCase();
-            if (display.startsWith(q) || email.startsWith(q)) {
-              matches.add(UserProfile.fromMap({'id': d.id, ...data}));
-            }
-            if (matches.length >= limit) break;
+          final dataObj = d.data();
+          final Map<String, dynamic>? data = dataObj is Map<String, dynamic> ? dataObj : null;
+          if (data == null) continue;
+          final display = (data['display_name'] as String? ?? '').toLowerCase();
+          final email = (data['email'] as String? ?? '').toLowerCase();
+          if (display.startsWith(q) || email.startsWith(q)) {
+            // Build a map safely from the Firestore map
+            final mp = <String, dynamic>{'id': d.id};
+            mp.addAll(data);
+            matches.add(UserProfile.fromMap(mp));
+          }
+          if (matches.length >= limit) break;
         }
 
         // Choose lastDoc based on the position of the final matched doc in the original docs

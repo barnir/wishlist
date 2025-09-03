@@ -138,7 +138,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
   final colorScheme = Theme.of(context).colorScheme;
   final textTheme = Theme.of(context).textTheme;
   final l10n = AppLocalizations.of(context);
-
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
@@ -148,140 +147,136 @@ class _FilterBottomSheetState extends State<FilterBottomSheet>
             alignment: Alignment.bottomCenter,
             child: Transform.translate(
               offset: Offset(0, _slideAnimation.value * 300),
-              child: Container(
-                width: double.infinity,
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.7,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: const BorderRadius.only(
+              child: Material(
+                color: colorScheme.surface,
+                elevation: 8,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(UIConstants.radiusL),
                     topRight: Radius.circular(UIConstants.radiusL),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Handle bar
-                    Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-
-                    // Header
-                    Padding(
-                      padding: UIConstants.paddingM,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.tune,
-                            color: colorScheme.primary,
-                            size: 24,
-                          ),
-                          Spacing.horizontalS,
-                          Text(
-                            l10n?.filtersAndSortingTitle ?? 'Filtros e Ordenação',
-                            style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: _handleReset,
-                            child: Text(l10n?.clear ?? 'Limpar'),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Divider(height: 1),
-
-                    // Current selection summary (helps user remember state)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _selectedSummary(l10n),
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.7,
+                    maxWidth: double.infinity,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Handle bar
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                    ),
-                    const Divider(height: 1),
 
-                    // Content
-                    Flexible(
-                      child: SingleChildScrollView(
+                      // Header
+                      Padding(
                         padding: UIConstants.paddingM,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            // Category Section
-                            _buildSectionTitle(l10n?.categoryLabel ?? 'Categoria', Icons.category),
-                            Spacing.s,
-                            _buildCategorySelector(),
-                            
-                            Spacing.l,
-
-                            // Sort Section
-                            _buildSectionTitle(l10n?.sortBy ?? 'Ordenar por', Icons.sort),
-                            Spacing.s,
-                            _buildSortSelector(),
+                            Icon(
+                              Icons.tune,
+                              color: colorScheme.primary,
+                              size: 24,
+                            ),
+                            Spacing.horizontalS,
+                            Text(
+                              l10n?.filtersAndSortingTitle ?? 'Filtros e Ordenação',
+                              style: textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: _handleReset,
+                              child: Text(l10n?.clear ?? 'Limpar'),
+                            ),
                           ],
                         ),
                       ),
-                    ),
 
-                    // Action buttons
-                    Container(
-                      padding: UIConstants.paddingM,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(UIConstants.radiusM),
-                          topRight: Radius.circular(UIConstants.radiusM),
+                      const Divider(height: 1),
+
+                      // Current selection summary (helps user remember state)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _selectedSummary(l10n),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _handleClose,
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(0, 48),
-                              ),
-                              child: Text(l10n?.cancel ?? 'Cancelar'),
-                            ),
+                      const Divider(height: 1),
+
+                      // Content
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: UIConstants.paddingM,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Category Section
+                              _buildSectionTitle(l10n?.categoryLabel ?? 'Categoria', Icons.category),
+                              Spacing.s,
+                              _buildCategorySelector(),
+
+                              Spacing.l,
+
+                              // Sort Section
+                              _buildSectionTitle(l10n?.sortBy ?? 'Ordenar por', Icons.sort),
+                              Spacing.s,
+                              _buildSortSelector(),
+                            ],
                           ),
-                          Spacing.horizontalM,
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _handleApply,
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(0, 48),
-                              ),
-                              child: Text(l10n?.applyFilters ?? 'Aplicar Filtros'),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+
+                      // Action buttons
+                      Container(
+                        padding: UIConstants.paddingM,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(UIConstants.radiusM),
+                            topRight: Radius.circular(UIConstants.radiusM),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _handleClose,
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 48),
+                                ),
+                                child: Text(l10n?.cancel ?? 'Cancelar'),
+                              ),
+                            ),
+                            Spacing.horizontalM,
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _handleApply,
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(0, 48),
+                                ),
+                                child: Text(l10n?.applyFilters ?? 'Aplicar Filtros'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

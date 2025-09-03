@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:mywishstash/widgets/optimized_cloudinary_image.dart';
@@ -76,12 +77,24 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     final l10n = AppLocalizations.of(context);
     try {
     final wishlist = await _wishlistRepo.fetchById(widget.wishlistId);
-    if (mounted && wishlist != null) {
+    if (wishlist == null) {
+      logW('Wishlist fetchById returned null', tag: 'DB');
+      if (mounted) {
         setState(() {
-      _wishlistName = wishlist.name;
-      _isPrivate = wishlist.isPrivate;
+          // Provide a useful fallback title so the appBar isn't stuck on the localized loading text
+          _wishlistName = 'Wishlist (${widget.wishlistId.substring(0, 6)})';
+          _isPrivate = false;
         });
       }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _wishlistName = wishlist.name.isNotEmpty ? wishlist.name : 'Wishlist (${widget.wishlistId.substring(0, 6)})';
+        _isPrivate = wishlist.isPrivate;
+      });
+    }
     } catch (e) {
       final msg = l10n?.wishlistDetailsLoadError(e.toString()) ?? 'Erro ao carregar detalhes da wishlist: $e';
       _showSnackBar(msg, isError: true);
