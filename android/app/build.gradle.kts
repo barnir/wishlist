@@ -39,8 +39,27 @@ android {
     applicationId = "com.mywishstash.app"
         minSdkVersion(24)
         targetSdk = 36
-    // versionName / versionCode agora derivados automaticamente de pubspec.yaml (0.1.2+3)
-    // Não definir manualmente para evitar divergência futura.
+    // versionName / versionCode: derive from pubspec.yaml (e.g. 0.1.2+3)
+    // This ensures the generated APK manifest contains a versionCode and versionName.
+    val pubspecFile = rootProject.file("../pubspec.yaml")
+    if (pubspecFile.exists()) {
+        val pubspecText = pubspecFile.readText()
+        // match lines like: version: 0.1.2+3
+        val versionRegex = Regex("version\\s*:\\s*([0-9]+(?:\\.[0-9]+)*(?:\\+[0-9]+)?)")
+        val match = versionRegex.find(pubspecText)
+        if (match != null) {
+            val versionFull = match.groupValues[1]
+            val parts = versionFull.split('+')
+            versionName = parts[0]
+            versionCode = parts.getOrNull(1)?.toIntOrNull() ?: 1
+        } else {
+            versionName = "0.0.0"
+            versionCode = 1
+        }
+    } else {
+        versionName = "0.0.0"
+        versionCode = 1
+    }
     }
 
     signingConfigs {
