@@ -72,6 +72,8 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
     final original = widget.originalUrl;
     if (original == null || original.isEmpty) {
       _currentUrl = null;
+      // Still setup local preview so freshly picked files show immediately
+      _setupLocalPreview();
       return;
     }
   _loadStart = DateTime.now();
@@ -121,6 +123,11 @@ class _OptimizedCloudinaryImageState extends State<OptimizedCloudinaryImage> {
   Widget build(BuildContext context) {
     final url = _currentUrl;
     final radius = widget.borderRadius ?? BorderRadius.circular(widget.circle ? (min(widget.width ?? 80, widget.height ?? 80) / 2) : 0);
+
+    // If there is no remote URL but a local preview provider exists, show the preview
+    if ((url == null || url.isEmpty) && _localPreviewProvider != null) {
+      return _buildPlaceholder(context);
+    }
 
     if (url == null || url.isEmpty) {
       return _buildFallback(context);

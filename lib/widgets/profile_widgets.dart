@@ -136,11 +136,26 @@ class ProfileHeaderCard extends StatelessWidget {
               Row(
                 children: [
                   // Use the new AnimatedProfileImage widget with stable key
-                  AnimatedProfileImage(
-                    key: ValueKey('profile_image_${profileImageUrl ?? 'no_image'}'),
-                    profileImageUrl: profileImageUrl,
-                    isUploading: isUploading,
-                    onImageTap: onImageTap,
+                  // Wrap with a subtle white backing and elevation so the avatar isn't visually washed by the card gradient
+                  Material(
+                    color: Colors.transparent,
+                    elevation: 2,
+                    shape: const CircleBorder(),
+                    child: Container(
+                      width: 84,
+                      height: 84,
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        shape: BoxShape.circle,
+                      ),
+                      child: AnimatedProfileImage(
+                        key: ValueKey('profile_image_${profileImageUrl ?? 'no_image'}'),
+                        profileImageUrl: profileImageUrl,
+                        isUploading: isUploading,
+                        onImageTap: onImageTap,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -452,23 +467,28 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
                   children: [
                     Opacity(
                       opacity: _fadeAnimation.value,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.15),
-                        ),
-                        foregroundDecoration: widget.isUploading
-                            ? BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.black.withValues(alpha: 0.25),
-                              )
-                            : null,
-                        child: effectiveProvider != null
-                            ? Ink.image(image: effectiveProvider, fit: BoxFit.cover)
-                            : Icon(Icons.person, size: 40, color: Colors.white.withValues(alpha: 0.9)),
-                      ),
+                      child: Builder(builder: (context) {
+                        final hasImage = _localPreviewProvider != null || _cachedImageUrlWithTimestamp != null;
+                        return Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            // Only show subtle background when there's no image to avoid washing out photos
+                            color: hasImage ? Colors.transparent : Colors.white.withValues(alpha: 0.06),
+                          ),
+                          foregroundDecoration: widget.isUploading
+                              ? BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  // Reduce upload overlay opacity so the image remains visible
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                )
+                              : null,
+                          child: hasImage
+                              ? Ink.image(image: effectiveProvider!, fit: BoxFit.cover)
+                              : Icon(Icons.person, size: 40, color: Colors.white.withValues(alpha: 0.9)),
+                        );
+                      }),
                     ),
                     if (widget.isUploading)
                       Positioned.fill(

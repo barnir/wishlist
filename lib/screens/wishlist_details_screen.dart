@@ -59,9 +59,23 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   void initState() {
     super.initState();
   _restoreSavedFilters();
-  _loadWishlistDetails();
     _loadInitialData();
     _scrollController.addListener(_onScroll);
+  }
+
+  bool _detailsLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Defer loading details that depend on InheritedWidgets (Localizations, Theme)
+    if (!_detailsLoaded) {
+      _detailsLoaded = true;
+      // schedule to run after the current frame to be safe
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadWishlistDetails();
+      });
+    }
   }
 
   @override
@@ -77,7 +91,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     final l10n = AppLocalizations.of(context);
     try {
     final wishlist = await _wishlistRepo.fetchById(widget.wishlistId);
-    if (wishlist == null) {
+  logD('Wishlist fetch result', tag: 'DB', data: {'id': widget.wishlistId, 'wishlist': wishlist?.toMap()});
+  if (wishlist == null) {
       logW('Wishlist fetchById returned null', tag: 'DB');
       if (mounted) {
         setState(() {
@@ -96,6 +111,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
       });
     }
     } catch (e) {
+      logE('Wishlist details load error', tag: 'DB', error: e);
+      // Ensure UI shows a useful title even on error
+      if (mounted) {
+        setState(() {
+          _wishlistName = 'Wishlist (${widget.wishlistId.substring(0, 6)})';
+          _isPrivate = false;
+        });
+      }
       final msg = l10n?.wishlistDetailsLoadError(e.toString()) ?? 'Erro ao carregar detalhes da wishlist: $e';
       _showSnackBar(msg, isError: true);
     }
