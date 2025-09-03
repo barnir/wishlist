@@ -7,16 +7,16 @@ class SkeletonLoader extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   const SkeletonLoader({
-    Key? key,
+    super.key,
     this.itemCount = 6,
     this.height = 56,
     this.borderRadius = 12,
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3);
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
     return ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
       itemCount: itemCount,

@@ -44,22 +44,21 @@ class AuthService {
     }
   }
 
-  Future<void> _validatePassword(String password, {BuildContext? context}) async {
-    final l10n = context != null ? AppLocalizations.of(context) : null;
+  Future<void> _validatePassword(String password, {AppLocalizations? l10n}) async {
     if (password.length < 6) {
       throw Exception(l10n?.pwRuleMinLength ?? 'A senha deve ter no mínimo 6 caracteres.');
     }
     if (!password.contains(RegExp(r'[a-z]'))) {
-      throw Exception(l10n?.pwRuleLower ?? 'A senha deve conter pelo menos uma letra minúscula.');
+  throw Exception(l10n?.pwRuleLower ?? 'A senha deve conter pelo menos uma letra minúscula.');
     }
     if (!password.contains(RegExp(r'[A-Z]'))) {
-      throw Exception(l10n?.pwRuleUpper ?? 'A senha deve conter pelo menos uma letra maiúscula.');
+  throw Exception(l10n?.pwRuleUpper ?? 'A senha deve conter pelo menos uma letra maiúscula.');
     }
     if (!password.contains(RegExp(r'[0-9]'))) {
-      throw Exception(l10n?.pwRuleDigit ?? 'A senha deve conter pelo menos um número.');
+  throw Exception(l10n?.pwRuleDigit ?? 'A senha deve conter pelo menos um número.');
     }
     if (!password.contains(RegExp(r'[!@#\\$%^&*(),.?":{}|<>]'))) {
-      throw Exception(l10n?.pwRuleSymbol ?? 'A senha deve conter pelo menos um símbolo.');
+  throw Exception(l10n?.pwRuleSymbol ?? 'A senha deve conter pelo menos um símbolo.');
     }
   }
 
@@ -70,9 +69,9 @@ class AuthService {
   Future<firebase_auth.UserCredential> createUserWithEmailAndPassword(String email, String password, String displayName, {BuildContext? context}) async {
     try {
       logI('Email Registration', tag: 'AUTH');
-      await _validatePassword(password, context: context);
+      final l10n = context != null ? AppLocalizations.of(context) : null;
+      await _validatePassword(password, l10n: l10n);
       if (!_isValidEmail(email)) {
-        final l10n = context != null ? AppLocalizations.of(context) : null;
         throw Exception(l10n?.invalidEmailFormat ?? 'Formato de email inválido.');
       }
       final cred = await _firebaseAuthService.createUserWithEmailAndPassword(email, password, displayName);

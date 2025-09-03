@@ -27,7 +27,7 @@ class AddEditItemScreen extends StatefulWidget {
   final String? name;
   final String? link;
 
-  const AddEditItemScreen({Key? key, this.wishlistId, this.itemId, this.name, this.link}) : super(key: key);
+  const AddEditItemScreen({super.key, this.wishlistId, this.itemId, this.name, this.link});
 
   @override
   State<AddEditItemScreen> createState() => _AddEditItemScreenState();
@@ -218,8 +218,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         }
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _erro = AppLocalizations.of(context)?.errorLoadingWishlists(e.toString()) ?? 'Erro ao carregar wishlists: $e';
+        _erro = l10n?.errorLoadingWishlists(e.toString()) ?? 'Erro ao carregar wishlists: $e';
       });
     } finally {
       if (mounted) {
@@ -230,6 +231,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
   Future<void> _createWishlist() async {
     if (_newWishlistNameController.text.trim().isEmpty) return;
+    final l10n = AppLocalizations.of(context);
     setState(() => _isCreatingWishlist = true);
     try {
       final userId = AuthService.getCurrentUserId()!;
@@ -240,7 +242,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         isPrivate: false,
         imageUrl: null,
       );
-  if (id == null) throw Exception(AppLocalizations.of(context)?.createWishlistError ?? 'Falha ao criar wishlist');
+  if (id == null) throw Exception(l10n?.createWishlistError ?? 'Falha ao criar wishlist');
       _newWishlistNameController.clear();
       setState(() {
         _wishlists.insert(0, Wishlist(
@@ -449,7 +451,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                   Expanded(
                                     child: DropdownButtonFormField<String>(
                                       key: const ValueKey('wishlist_dropdown_share'),
-                                      value: _selectedWishlistId,
+                                      initialValue: _selectedWishlistId,
                                       decoration: InputDecoration(
                                         labelText: l10n?.chooseWishlistLabel,
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -527,7 +529,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<String>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       decoration: InputDecoration(
                         labelText: l10n?.categoryLabel,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

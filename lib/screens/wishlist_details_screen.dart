@@ -73,6 +73,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
   // Ownership was previously checked via legacy database service. Removed after migration.
 
   Future<void> _loadWishlistDetails() async {
+    final l10n = AppLocalizations.of(context);
     try {
     final wishlist = await _wishlistRepo.fetchById(widget.wishlistId);
     if (mounted && wishlist != null) {
@@ -82,10 +83,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         });
       }
     } catch (e) {
-      _showSnackBar(
-        AppLocalizations.of(context)?.wishlistDetailsLoadError(e.toString()) ?? 'Erro ao carregar detalhes da wishlist: $e',
-        isError: true,
-      );
+      final msg = l10n?.wishlistDetailsLoadError(e.toString()) ?? 'Erro ao carregar detalhes da wishlist: $e';
+      _showSnackBar(msg, isError: true);
     }
   }
 
@@ -125,7 +124,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         startAfter: _lastDoc,
       );
       // Não aguardar ainda: permite preparar contexto se necessário
-      final page = await pageFuture;
+  final page = await pageFuture;
       final newItems = page.items;
 
   // Garantir que widget ainda está montado antes de qualquer uso de contexto posterior
@@ -144,7 +143,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
         }
       }
       // Prefetch thumbnails da próxima página (se houver mais dados)
-      if (page.hasMore && page.lastDoc != null) {
+  if (page.hasMore && page.lastDoc != null) {
         final nextPage = await _wishItemRepo.fetchPage(
           wishlistId: widget.wishlistId,
           limit: _pageSize,
@@ -162,18 +161,15 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
           CachedNetworkImageProvider(url).resolve(const ImageConfiguration());
         }
       }
-  // Lint falso-positivo: helper não usa BuildContext após async; apenas agenda cache sem contexto.
-  // ignore: use_build_context_synchronously
-  _scheduleFirstImagePrecache(newItems);
+      // Schedule first image precache without using BuildContext after awaits.
+      _scheduleFirstImagePrecache(newItems);
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        _showSnackBar(
-          AppLocalizations.of(context)?.itemsLoadError(e.toString()) ?? 'Erro ao carregar itens: $e',
-          isError: true,
-        );
+        final msg = AppLocalizations.of(context)?.itemsLoadError(e.toString()) ?? 'Erro ao carregar itens: $e';
+        _showSnackBar(msg, isError: true);
       }
     }
   }
@@ -606,7 +602,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       right: 4,
                       top: 4,
                       child: Material(
-                        color: Colors.black.withOpacity(0.35),
+                        color: Colors.black.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(20),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(20),

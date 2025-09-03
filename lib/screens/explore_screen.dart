@@ -130,7 +130,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         limit: _pageSize,
         startAfter: _lastDoc,
       );
-      if (mounted) {
         setState(() {
           _users.addAll(page.items);
           _lastDoc = page.lastDoc;
@@ -140,7 +139,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         if (!_hasMoreData) {
           _scrollController.removeListener(_onScroll);
         }
-      }
     } catch (e) {
     // Provide more precise feedback for common Firestore failure causes
     final errorText = _mapSearchError(e);
@@ -242,7 +240,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(AppLocalizations.of(context)?.contactsPermissionManual ?? 'Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente'),
-                    duration: Duration(seconds: 4),
+                    duration: const Duration(seconds: 4),
                   ),
                 );
               },

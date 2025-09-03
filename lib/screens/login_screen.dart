@@ -236,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
                   if (_isLoading)
                     Positioned.fill(
                       child: Container(
-                        color: theme.colorScheme.surface.withOpacity(0.6),
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
                         child: const Center(
                           child: SizedBox(
                             width: 120,
