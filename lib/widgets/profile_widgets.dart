@@ -115,132 +115,173 @@ class ProfileHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-              Theme.of(context).colorScheme.secondary.withValues(alpha: 0.6),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              Row(
+    // Use a Stack so the avatar can visually float above the card and its gradient
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Card(
+          elevation: 4,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                  Theme.of(context).colorScheme.secondary.withValues(alpha: 0.6),
+                ],
+              ),
+            ),
+            // Add left padding to leave room for the overlapping avatar
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(132.0, 20.0, 20.0, 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Use the new AnimatedProfileImage widget with stable key
-                  // Wrap with a subtle white backing and elevation so the avatar isn't visually washed by the card gradient
-                  Material(
-                    color: Colors.transparent,
-                    elevation: 2,
-                    shape: const CircleBorder(),
-                    child: Container(
-                      width: 84,
-                      height: 84,
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        shape: BoxShape.circle,
-                      ),
-                      child: AnimatedProfileImage(
-                        key: ValueKey('profile_image_${profileImageUrl ?? 'no_image'}'),
-                        profileImageUrl: profileImageUrl,
-                        isUploading: isUploading,
-                        onImageTap: onImageTap,
-                      ),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                name,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isPrivate ? Icons.lock : Icons.public,
-                                    size: 14,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                  isPrivate
-                    ? (AppLocalizations.of(context)?.privateLabel ?? 'Privada')
-                    : (AppLocalizations.of(context)?.publicLabel ?? 'Pública'),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        Icon(
+                          isPrivate ? Icons.lock : Icons.public,
+                          size: 14,
+                          color: Colors.white,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(width: 4),
                         Text(
-              bio.isNotEmpty
-                ? bio
-                : (AppLocalizations.of(context)?.addBio ?? 'Adicionar biografia...'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontStyle: bio.isEmpty ? FontStyle.italic : FontStyle.normal,
+                          isPrivate
+                              ? (AppLocalizations.of(context)?.privateLabel ?? 'Privada')
+                              : (AppLocalizations.of(context)?.publicLabel ?? 'Pública'),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    bio.isNotEmpty ? bio : (AppLocalizations.of(context)?.addBio ?? 'Adicionar biografia...'),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontStyle: bio.isEmpty ? FontStyle.italic : FontStyle.normal,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: onEditProfile,
+                      icon: const Icon(Icons.edit),
+                      label: Text(AppLocalizations.of(context)!.editProfile),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: onEditProfile,
-                  icon: const Icon(Icons.edit),
-                  label: Text(AppLocalizations.of(context)!.editProfile),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        // Positioned avatar that floats above the card
+        Positioned(
+          left: 20,
+          top: -28,
+          child: Material(
+            color: Colors.transparent,
+            elevation: 6,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              width: 100,
+              height: 100,
+              // Use a Stack so we can place a circular mask behind the avatar and an overlay badge
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  // Circular mask same size as avatar to tightly hug the image
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  // Actual avatar container with border and padding
+                  Container(
+                    width: 100,
+                    height: 100,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
+                    ),
+                    child: AnimatedProfileImage(
+                      key: ValueKey('profile_image_${profileImageUrl ?? 'no_image'}'),
+                      profileImageUrl: profileImageUrl,
+                      isUploading: isUploading,
+                      onImageTap: onImageTap,
+                      size: 92,
+                      showBadge: false, // hide internal badge; we'll render badge above everything here
+                    ),
+                  ),
+                  // Overlay badge positioned to be above all other children
+                  Positioned(
+                    bottom: -4,
+                    right: -4,
+                    child: Container(
+                      padding: EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.camera_alt,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -330,6 +371,8 @@ class AnimatedProfileImage extends StatefulWidget {
   final bool isUploading;
   final VoidCallback onImageTap;
   final String? localPreviewPath; // path do ficheiro local para preview imediato
+  final double size;
+  final bool showBadge;
 
   const AnimatedProfileImage({
     super.key,
@@ -337,6 +380,8 @@ class AnimatedProfileImage extends StatefulWidget {
     required this.isUploading,
     required this.onImageTap,
     this.localPreviewPath,
+  this.size = 80,
+  this.showBadge = true,
   });
 
   @override
@@ -470,8 +515,8 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
                       child: Builder(builder: (context) {
                         final hasImage = _localPreviewProvider != null || _cachedImageUrlWithTimestamp != null;
                         return Container(
-                          width: 80,
-                          height: 80,
+                          width: widget.size,
+                          height: widget.size,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             // Only show subtle background when there's no image to avoid washing out photos
@@ -485,8 +530,26 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
                                 )
                               : null,
                           child: hasImage
-                              ? Ink.image(image: effectiveProvider!, fit: BoxFit.cover)
-                              : Icon(Icons.person, size: 40, color: Colors.white.withValues(alpha: 0.9)),
+                              ? Container(
+                                  width: widget.size,
+                                  height: widget.size,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    image: DecorationImage(
+                                      image: effectiveProvider!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                )
+                              : SizedBox(
+                                  width: widget.size,
+                                  height: widget.size,
+                                  child: Icon(
+                                    Icons.person,
+                                    size: (widget.size * 0.5).clamp(24.0, 64.0),
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                ),
                         );
                       }),
                     ),
@@ -494,8 +557,8 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
                       Positioned.fill(
                         child: Center(
                           child: SizedBox(
-                            width: 26,
-                            height: 26,
+                            width: (widget.size * 0.33).clamp(18.0, 40.0),
+                            height: (widget.size * 0.33).clamp(18.0, 40.0),
                             child: CircularProgressIndicator(
                               strokeWidth: 2.2,
                               valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
@@ -508,22 +571,30 @@ class _AnimatedProfileImageState extends State<AnimatedProfileImage>
               );
             },
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.camera_alt,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
+          if (widget.showBadge)
+            Positioned(
+              bottom: 2,
+              right: 2,
+              child: Container(
+                padding: EdgeInsets.all((widget.size * 0.045).clamp(3.0, 6.0)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.camera_alt,
+                  size: (widget.size * 0.18).clamp(12.0, 20.0),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
