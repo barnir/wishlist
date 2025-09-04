@@ -757,6 +757,7 @@ class FirebaseAuthService {
           logI('Fallback strategy 1 succeeded', tag: 'AUTH');
           return user;
         } catch (e) {
+          logW('Fallback strategy 1 failed: $e', tag: 'AUTH');
         }
       }
       
@@ -773,6 +774,7 @@ class FirebaseAuthService {
           }
         }
       } catch (e) {
+        logW('Fallback strategy 2 failed: $e', tag: 'AUTH');
       }
       
       logW('All fallback strategies failed', tag: 'AUTH');

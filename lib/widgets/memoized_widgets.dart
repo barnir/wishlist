@@ -155,7 +155,7 @@ class MemoizedOptimizedImage extends StatelessWidget {
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return placeholder ??
-            Container(
+            SizedBox(
               width: width,
               height: height,
               child: const Center(child: CircularProgressIndicator()),
