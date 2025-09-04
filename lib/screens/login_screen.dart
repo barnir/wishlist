@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _showBlockingOverlay = false; // apenas para operações internas (email), não para Google
 
   @override
   void dispose() {
@@ -37,7 +38,10 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
     if (!_formKey.currentState!.validate()) return;
     final allowed = await checkRateLimit('login', _emailController.text.trim(), onBlocked: (m) => _showSnack(m, err: true));
     if (!allowed) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _showBlockingOverlay = true; // mostra overlay só para login interno
+    });
     try {
       await _auth.signInWithEmailAndPassword(_emailController.text.trim(), _passwordController.text);
   await ImagePrefetchService().warmUp();
@@ -47,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
     } catch (_) {
       _showSnack('Erro ao entrar', err: true);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() { _isLoading = false; _showBlockingOverlay = false; });
     }
   }
 
@@ -55,7 +59,10 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
     if (_isLoading) return;
     final allowed = await checkRateLimit('login', 'google', onBlocked: (m) => _showSnack(m, err: true));
     if (!allowed) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _showBlockingOverlay = false; // não mostrar overlay para evitar "quadrado" por trás do menu
+    });
     try {
       final r = await _auth.signInWithGoogle();
       switch (r) {
@@ -78,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
     } catch (_) {
       _showSnack('Erro no login Google', err: true);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+  if (mounted) setState(() { _isLoading = false; /* _showBlockingOverlay permanece false */ });
     }
   }
 
@@ -233,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
                       ],
                     ),
                   ),
-                  if (_isLoading)
+                  if (_showBlockingOverlay && _isLoading)
                     Positioned.fill(
                       child: Container(
                         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),

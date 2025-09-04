@@ -35,7 +35,6 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     
     // Firebase Auth has native SMS auto-fill, no custom implementation needed
-  logD('OTP screen init', tag: 'OTP', data: {'phone': widget.phoneNumber});
     
     // Check for stored phone number to validate consistency
     _checkStoredPhoneNumber();
@@ -64,7 +63,6 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-  logD('App resumed - rechecking stored phone', tag: 'OTP');
       _checkStoredPhoneNumber();
     }
   }
@@ -73,7 +71,6 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
     try {
       _storedPhoneNumber = await _firebaseAuthService.getStoredPhoneNumber();
       if (_storedPhoneNumber != null) {
-        logD('Stored phone number', tag: 'OTP', data: {'stored': _storedPhoneNumber});
         if (_storedPhoneNumber != widget.phoneNumber) {
           logW('Phone mismatch', tag: 'OTP', data: {'current': widget.phoneNumber, 'stored': _storedPhoneNumber});
         }
@@ -85,7 +82,6 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
 
   Future<void> _submitOTP() async {
     if (_hasSubmitted || _isLoading) {
-      logD('Submit ignored (busy)', tag: 'OTP');
       return;
     }
     
@@ -220,7 +216,6 @@ class _OTPScreenState extends State<OTPScreen> with WidgetsBindingObserver {
       // Add delay to ensure all text field updates are complete
       Future.delayed(const Duration(milliseconds: 150), () {
         if (mounted && !_isLoading && !_hasSubmitted) {
-          logD('Auto submit trigger', tag: 'OTP');
           _submitOTP();
         }
       });

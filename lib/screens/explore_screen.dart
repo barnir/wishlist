@@ -264,7 +264,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         _isLoadingContacts = true;
       });
 
-  logD('Start contacts load', tag: 'UI');
       
       // Verifica permissão novamente antes de prosseguir
       final stillHasPermission = await FlutterContacts.requestPermission(readonly: true);
@@ -284,11 +283,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         withPhoto: false, // Não precisamos de fotos para descoberta
       );
       
-  logD('Contacts fetched', tag: 'UI', data: {'contacts': contacts.length});
       
       // Filtra contactos que têm números de telefone
       final contactsWithPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
-  logD('Contacts with phones', tag: 'UI', data: {'withPhones': contactsWithPhones.length});
       
   // Implementação básica: todos os contactos ainda não mapeados na app são candidatos a convite
       final friends = <Map<String, dynamic>>[];
@@ -301,7 +298,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           _isLoadingContacts = false;
         });
         
-        logD('Contacts state updated', tag: 'UI', data: {'friends': friends.length, 'invite': inviteContacts.length});
       }
     } catch (e) {
       logE('Error loading contacts', tag: 'UI', error: e);

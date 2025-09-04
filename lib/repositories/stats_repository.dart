@@ -9,7 +9,6 @@ class StatsRepository {
     final sw = Stopwatch()..start();
     try {
       final r = await fn();
-      logD('StatsRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
       return r;
     } catch (e, st) {
       logE('StatsRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);

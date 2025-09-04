@@ -124,13 +124,13 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
               newId,
               oldImageUrl: null,
             );
+            await _wishlistRepo.update(newId, {'image_url': uploadedImageUrl});
+            _existingImageUrl = uploadedImageUrl;
             if (uploadedImageUrl != null) {
-              await _wishlistRepo.update(newId, {'image_url': uploadedImageUrl});
-              _existingImageUrl = uploadedImageUrl;
               await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
               MonitoringService.logImageUploadSuccess('wishlist', id: newId, bytes: _imageBytes?.length);
             }
-          } catch (e) {
+                    } catch (e) {
             MonitoringService.logImageUploadFail('wishlist', e, id: newId);
             _showError('Imagem criada mas falhou upload: $e');
           }
@@ -148,10 +148,8 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                 oldImageUrl: _existingImageUrl, // Pass existing image for cleanup
               );
               _existingImageUrl = uploadedImageUrl;
-              if (uploadedImageUrl != null) {
-                MonitoringService.logImageUploadSuccess('wishlist', id: id, bytes: _imageBytes?.length);
-              }
-            } catch (e) {
+              MonitoringService.logImageUploadSuccess('wishlist', id: id, bytes: _imageBytes?.length);
+                        } catch (e) {
               MonitoringService.logImageUploadFail('wishlist', e, id: id);
               _showError('Falha upload imagem: $e');
             }

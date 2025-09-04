@@ -15,7 +15,6 @@ class UserSearchRepository {
     final sw = Stopwatch()..start();
     try {
       final r = await fn();
-      logD('UserSearchRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'SEARCH');
       return r;
     } catch (e, st) {
       logE('UserSearchRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'SEARCH', error: e, stackTrace: st);

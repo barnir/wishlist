@@ -426,10 +426,24 @@ class WebScraperServiceSecure {
     final match = priceRegex.firstMatch(bodyText);
     if (match != null) return _parsePrice(match.group(1)!);
 
+    // Preço comum com símbolo € antes
+    final pricePatterns = [
+      RegExp(r'(\d+[\.,]\d{1,2})\s?€'),
+      RegExp(r'€\s?(\d+[\.,]\d{1,2})'),
+      RegExp(r'(\d{1,5})\s?€'),
+      RegExp(r'€\s?(\d{1,5})'),
+    ];
+    for (final p in pricePatterns) {
+      final m = p.firstMatch(bodyText);
+      if (m != null) {
+        return _parsePrice(m.group(1)!);
+      }
+    }
     return '0.00';
   }
 
   String _extractImage(Document document, String baseUrl) {
+    // Primary fallback: og:image
     var imageUrl = document
         .querySelector('meta[property="og:image"]')
         ?.attributes['content'];
@@ -437,14 +451,31 @@ class WebScraperServiceSecure {
       return _resolveUrl(imageUrl, baseUrl);
     }
 
-    // Verificar meta tags adicionais
-    imageUrl = document
-        .querySelector('meta[name="twitter:image"]')
-        ?.attributes['content'];
-    if (imageUrl != null && imageUrl.isNotEmpty) {
-      return _resolveUrl(imageUrl, baseUrl);
+    // Enhanced fallback meta tags
+    final metaSelectors = [
+      'meta[name="twitter:image"]',
+      'meta[name="twitter:image:src"]',
+      'meta[property="og:image:url"]',
+      'meta[property="og:image:secure_url"]',
+      'meta[name="image"]',
+      'meta[property="image"]',
+      'meta[itemprop="image"]',
+      'link[rel="image_src"]',
+      'link[rel="apple-touch-icon"]',
+      'meta[name="msapplication-TileImage"]',
+    ];
+
+    for (var selector in metaSelectors) {
+      final element = document.querySelector(selector);
+      if (element != null) {
+        imageUrl = element.attributes['content'] ?? element.attributes['href'];
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          return _resolveUrl(imageUrl, baseUrl);
+        }
+      }
     }
 
+    // Product-specific image containers (existing logic)
     const commonImageContainers = [
       'div.product-image',
       'div.product-gallery',
@@ -476,16 +507,23 @@ class WebScraperServiceSecure {
     for (var container in commonImageContainers) {
       final imageElement = document.querySelector(container);
       if (imageElement != null) {
-        imageUrl = imageElement.attributes['src'] ?? imageElement.attributes['data-src'];
+        imageUrl = imageElement.attributes['src'] ?? 
+                   imageElement.attributes['data-src'] ??
+                   imageElement.attributes['data-lazy'] ??
+                   imageElement.attributes['data-original'];
         if (imageUrl != null && imageUrl.isNotEmpty) {
           return _resolveUrl(imageUrl, baseUrl);
         }
       }
     }
 
+    // Final fallback: first available image
     final firstImg = document.querySelector('img');
     if (firstImg != null) {
-      imageUrl = firstImg.attributes['src'];
+      imageUrl = firstImg.attributes['src'] ?? 
+                 firstImg.attributes['data-src'] ??
+                 firstImg.attributes['data-lazy'] ??
+                 firstImg.attributes['data-original'];
       if (imageUrl != null && imageUrl.isNotEmpty) {
         return _resolveUrl(imageUrl, baseUrl);
       }

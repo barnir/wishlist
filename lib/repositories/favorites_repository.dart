@@ -16,7 +16,6 @@ class FavoritesRepository {
     final sw = Stopwatch()..start();
     try {
       final r = await fn();
-  logD('FavoritesRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
       return r;
     } catch (e, st) {
   logE('FavoritesRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);

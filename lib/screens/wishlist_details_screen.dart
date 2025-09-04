@@ -10,7 +10,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:mywishstash/widgets/optimized_cloudinary_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
-import 'package:mywishstash/services/cloudinary_service.dart';
+import 'package:mywishstash/services/cloudinary_service.dart' as cloudinary_service;
 import 'package:mywishstash/repositories/wishlist_repository.dart';
 import 'package:mywishstash/repositories/wish_item_repository.dart';
 import 'package:mywishstash/widgets/safe_navigation_wrapper.dart';
@@ -23,6 +23,7 @@ import '../constants/ui_constants.dart';
 import '../services/filter_preferences_service.dart';
 import '../widgets/app_snack.dart';
 import '../utils/validation_utils.dart';
+import 'package:mywishstash/utils/performance_utils.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -33,7 +34,7 @@ class WishlistDetailsScreen extends StatefulWidget {
   State<WishlistDetailsScreen> createState() => _WishlistDetailsScreenState();
 }
 
-class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
+class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with PerformanceOptimizedState {
   final _wishlistRepo = WishlistRepository();
   final _wishItemRepo = WishItemRepository();
   final _scrollController = ScrollController();
@@ -91,7 +92,6 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
     final l10n = AppLocalizations.of(context);
     try {
     final wishlist = await _wishlistRepo.fetchById(widget.wishlistId);
-  logD('Wishlist fetch result', tag: 'DB', data: {'id': widget.wishlistId, 'wishlist': wishlist?.toMap()});
   if (wishlist == null) {
       logW('Wishlist fetchById returned null', tag: 'DB');
       if (mounted) {
@@ -609,7 +609,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> {
                       ),
                       child: OptimizedCloudinaryImage(
                         originalUrl: item.imageUrl!,
-                        transformationType: ImageType.productLarge,
+                        transformationType: cloudinary_service.ImageType.productLarge,
                         width: double.infinity,
                         height: 120,
                         fit: BoxFit.cover,

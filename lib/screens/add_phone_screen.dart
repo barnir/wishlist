@@ -30,12 +30,6 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
   
   void _loadUserInfo() {
     final user = _authService.currentUser;
-    logD('Init user snapshot', tag: 'UI', data: {
-      'uid': user?.uid,
-      'email': user?.email,
-      'displayName': user?.displayName,
-      'phone': user?.phoneNumber,
-    });
     
     // Check for invalid state: user with phone only (shouldn't happen)
     if (user != null && 
@@ -44,10 +38,10 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
         (user.email == null || user.email!.isEmpty) &&
         (user.displayName == null || user.displayName!.isEmpty)) {
       
-  logW('Invalid phone-only state; forcing sign out', tag: 'UI');
+      logW('Invalid phone-only state; forcing sign out', tag: 'UI');
       _authService.signOut();
       if (mounted) {
-  Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushReplacementNamed('/login');
       }
       return;
     }
@@ -60,7 +54,6 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
               ? user!.displayName!
               : AppLocalizations.of(context)?.registrationUserPlaceholder ?? 'Utilizador em processo de registo';
     });
-  logD('Resolved userEmail', tag: 'UI', data: {'userEmail': _userEmail});
   }
 
   Future<void> _cancelRegistration() async {

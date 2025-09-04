@@ -25,7 +25,6 @@ class FCMService {
       // Código otimizado apenas para Android - verificação de plataforma removida
 
       final permissionResult = await _requestPermissions();
-  logD('Permission result', tag: 'FCM', data: {'result': permissionResult.name});
       
       if (permissionResult == NotificationPermissionResult.granted || 
           permissionResult == NotificationPermissionResult.provisional) {
@@ -44,7 +43,6 @@ class FCMService {
 
   Future<NotificationPermissionResult> _requestPermissions() async {
     try {
-      logD('Requesting permissions', tag: 'FCM');
       
       final settings = await _messaging.requestPermission(
         alert: true,
@@ -56,7 +54,6 @@ class FCMService {
         sound: true,
       );
 
-  logD('Permission status', tag: 'FCM', data: {'status': settings.authorizationStatus.name});
       
       switch (settings.authorizationStatus) {
         case AuthorizationStatus.authorized:
@@ -84,7 +81,6 @@ class FCMService {
 
   Future<void> _configureMessageHandling() async {
     try {
-      logD('Configuring message handling', tag: 'FCM');
 
       await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true,
@@ -102,7 +98,6 @@ class FCMService {
 
   Future<String?> _getAndCacheToken() async {
     try {
-      logD('Getting FCM token', tag: 'FCM');
       
       _cachedToken = await _messaging.getToken();
       
@@ -122,7 +117,6 @@ class FCMService {
 
   void _setupTokenRefreshListener() {
     try {
-      logD('Setting up token refresh listener', tag: 'FCM');
       
       _messaging.onTokenRefresh.listen((newToken) {
         logI('Token refreshed', tag: 'FCM');
@@ -139,17 +133,14 @@ class FCMService {
   }
 
   void _handleTokenRefresh(String newToken) {
-    logD('Handle token refresh', tag: 'FCM');
   }
 
   Future<String?> getToken() async {
     try {
       if (_cachedToken != null) {
-        logD('Returning cached token', tag: 'FCM');
         return _cachedToken;
       }
       
-      logD('Getting fresh token', tag: 'FCM');
       return await _getAndCacheToken();
     } catch (e) {
       logE('Get token error', tag: 'FCM', error: e);
@@ -202,7 +193,6 @@ class FCMService {
 
   Future<void> subscribeToTopic(String topic) async {
     try {
-      logD('Subscribing to topic', tag: 'FCM', data: {'topic': topic});
       await _messaging.subscribeToTopic(topic);
       logI('Subscribed to topic', tag: 'FCM', data: {'topic': topic});
     } catch (e) {
@@ -214,7 +204,6 @@ class FCMService {
 
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
-      logD('Unsubscribing from topic', tag: 'FCM', data: {'topic': topic});
       await _messaging.unsubscribeFromTopic(topic);
       logI('Unsubscribed from topic', tag: 'FCM', data: {'topic': topic});
     } catch (e) {
@@ -225,7 +214,6 @@ class FCMService {
   }
 
   void dispose() {
-    logD('Disposing resources', tag: 'FCM');
     _cachedToken = null;
   }
 }

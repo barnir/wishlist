@@ -93,7 +93,6 @@ class ProfileScreenState extends State<ProfileScreen> {
         _profileImageUrl = null;
       }
       
-  logD('Profile image loaded', tag: 'UI', data: {'hasImage': _profileImageUrl != null});
       
       // Se não tem nome na base de dados, usar do Firebase
       if (_displayName.isEmpty && user?.displayName != null) {
@@ -116,11 +115,9 @@ class ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUserStats(String userId) async {
     final now = DateTime.now();
     if (_statsLastUpdated != null && now.difference(_statsLastUpdated!) < _statsCacheDuration) {
-      logD('Stats cache hit', tag: 'UI', data: {'lastUpdated': _statsLastUpdated.toString()});
       return;
     }
     try {
-      logD('Loading fresh stats (repository)', tag: 'UI');
       final stats = await _statsRepository.loadUserStats(userId);
       _wishlistsCount = stats.wishlists;
       _itemsCount = stats.items;

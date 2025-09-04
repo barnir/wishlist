@@ -15,7 +15,6 @@ class UserProfileRepository {
     final sw = Stopwatch()..start();
     try {
       final res = await fn();
-  logD('UserProfileRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
       return res;
     } catch (e, st) {
   logE('UserProfileRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);

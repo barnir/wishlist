@@ -40,7 +40,6 @@ class WishItemRepository {
     final sw = Stopwatch()..start();
     try {
       final r = await fn();
-  logD('WishItemRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
       return r;
     } catch (e, st) {
   logE('WishItemRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);
@@ -163,11 +162,6 @@ class WishItemRepository {
               .where('wishlist_id', isEqualTo: wishlistId)
               .limit(5)
               .get();
-          logD('DIAG simple wishlist_id count=${simple.docs.length}', tag: 'DB');
-          for (final d in simple.docs) {
-            final data = d.data();
-            logD('DIAG doc(id=${d.id}) keys=${data.keys.join(',')}', tag: 'DB');
-          }
           if (simple.docs.isNotEmpty) {
             docs = simple.docs;
             items = docs.map((d) => WishItem.fromMap({'id': d.id, ...d.data() as Map<String,dynamic>})).toList();
@@ -184,11 +178,6 @@ class WishItemRepository {
                 .where('wishlistId', isEqualTo: wishlistId)
                 .limit(5)
                 .get();
-            logD('DIAG legacy wishlistId count=${legacy.docs.length}', tag: 'DB');
-            for (final d in legacy.docs) {
-              final data = d.data();
-              logD('DIAG legacy doc(id=${d.id}) keys=${data.keys.join(',')}', tag: 'DB');
-            }
             if (legacy.docs.isNotEmpty) {
               docs = legacy.docs;
               items = docs.map((d) => WishItem.fromMap({'id': d.id, ...d.data() as Map<String,dynamic>})).toList();

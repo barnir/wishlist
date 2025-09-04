@@ -43,7 +43,6 @@ class FirebaseDatabaseService {
   /// Get user's wishlists
   Future<List<Map<String, dynamic>>> getUserWishlists(String userId) async {
     try {
-      logD('Get user wishlists', tag: 'DB', data: {'userId': userId});
       
       final querySnapshot = await _firestore
           .collection('wishlists')
@@ -56,7 +55,7 @@ class FirebaseDatabaseService {
         ...doc.data(),
       }).toList();
       
-  logI('Wishlists retrieved', tag: 'DB', data: {'userId': userId, 'count': wishlists.length});
+      logI('Wishlists retrieved', tag: 'DB', data: {'userId': userId, 'count': wishlists.length});
       return wishlists;
     } catch (e) {
   logE('Error getting user wishlists', tag: 'DB', error: e, data: {'userId': userId});
@@ -155,7 +154,6 @@ class FirebaseDatabaseService {
       }
       
   logI('Wishlist deleted', tag: 'DB', data: {'wishlistId': wishlistId, 'itemsImages': productImageUrls.length});
-  logD('Scheduled product images cleanup', tag: 'IMG', data: {'count': productImageUrls.length, 'wishlistId': wishlistId});
     } catch (e) {
   logE('Error deleting wishlist', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
       rethrow;
@@ -165,7 +163,6 @@ class FirebaseDatabaseService {
   /// Get wishlist by ID
   Future<Map<String, dynamic>?> getWishlist(String wishlistId) async {
     try {
-      logD('Get wishlist', tag: 'DB', data: {'wishlistId': wishlistId});
       
       final doc = await _firestore.collection('wishlists').doc(wishlistId).get();
       
@@ -191,7 +188,6 @@ class FirebaseDatabaseService {
   /// Get wishlist items
   Future<List<Map<String, dynamic>>> getWishlistItems(String wishlistId) async {
     try {
-      logD('Get wishlist items', tag: 'DB', data: {'wishlistId': wishlistId});
       
       final querySnapshot = await _firestore
           .collection('wish_items')
@@ -276,7 +272,6 @@ class FirebaseDatabaseService {
         // Schedule image cleanup if item had an image
         if (imageUrl != null && imageUrl.isNotEmpty) {
           await _cloudinaryService.scheduleProductCleanup(imageUrl);
-          logD('Scheduled product image cleanup', tag: 'IMG', data: {'imageUrl': imageUrl});
         }
       } else {
         // Item doesn't exist
@@ -295,7 +290,6 @@ class FirebaseDatabaseService {
   /// Get wish item status
   Future<Map<String, dynamic>?> getWishItemStatus(String itemId, String userId) async {
     try {
-      logD('Get wish item status', tag: 'DB', data: {'itemId': itemId, 'userId': userId});
       
       final querySnapshot = await _firestore
           .collection('wish_item_statuses')
@@ -364,7 +358,6 @@ class FirebaseDatabaseService {
   /// Get user's friends
   Future<List<Map<String, dynamic>>> getUserFriends(String userId) async {
     try {
-      logD('Get user friends', tag: 'DB', data: {'userId': userId});
       
       final querySnapshot = await _firestore
           .collection('friendships')
@@ -558,7 +551,6 @@ class FirebaseDatabaseService {
     try {
       if (phoneNumbers.isEmpty || currentUserId == null) return [];
 
-  logD('Search users by phone numbers', tag: 'SEARCH', data: {'count': phoneNumbers.length});
 
       // Firestore 'in' queries are limited to 10 items, so we need to batch
       const batchSize = 10;
@@ -752,7 +744,6 @@ class FirebaseDatabaseService {
       if (startAfter == null && _firstPageCache.containsKey(cacheKey)) {
         final ts = _firstPageCacheTime[cacheKey];
         if (ts != null && DateTime.now().difference(ts) < _firstPageTtl) {
-          logD('Using cached first page', tag: 'DB', data: {'cacheKey': cacheKey});
           return _firstPageCache[cacheKey]!;
         }
       }
@@ -861,7 +852,6 @@ class FirebaseDatabaseService {
         'created_at': FieldValue.serverTimestamp(),
       });
       
-      logD('Analytics event logged', tag: 'ANALYTICS', data: {'eventType': eventType});
     } catch (e) {
       logE('Error logging analytics event', tag: 'ANALYTICS', error: e, data: {'eventType': eventType});
       // Don't rethrow - analytics shouldn't break app functionality
@@ -914,7 +904,6 @@ class FirebaseDatabaseService {
         return [];
       }
       
-  logD('Lookup users by phone numbers', tag: 'SEARCH', data: {'count': phoneNumbers.length});
       
       // Firestore não suporta consultas IN com mais de 10 valores
       // Por isso, dividimos em batches de 10

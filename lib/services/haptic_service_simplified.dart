@@ -63,13 +63,4 @@ class HapticService {
       // Fail silently - haptic is not critical
     }
   }
-
-  // Convenience methods for common UI actions
-  static Future<void> buttonPress() => lightImpact();
-  static Future<void> toggle() => selectionClick();
-  static Future<void> delete() => heavyImpact();
-  static Future<void> swipe() => mediumImpact();
-  static Future<void> refresh() => lightImpact();
-  static Future<void> longPress() => heavyImpact();
-  static Future<void> warning() => mediumImpact();
 }

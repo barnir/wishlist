@@ -11,7 +11,6 @@ class WishlistRepository {
     final sw = Stopwatch()..start();
     try {
       final r = await fn();
-  logD('WishlistRepository op=$op latency_ms=${sw.elapsedMilliseconds}', tag: 'DB');
       return r;
     } catch (e, st) {
   logE('WishlistRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);

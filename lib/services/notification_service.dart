@@ -73,7 +73,6 @@ class NotificationService {
 
   Future<void> _initializeLocalNotifications() async {
     try {
-      logD('Initializing local notifications', tag: 'NOTIF');
 
       const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
       const initSettings = InitializationSettings(android: androidSettings);
@@ -89,9 +88,9 @@ class NotificationService {
   // which already handles runtime permission via firebase_messaging.
 
       await _createNotificationChannels();
-  logI('Local notifications initialized', tag: 'NOTIF');
+      logI('Local notifications initialized', tag: 'NOTIF');
     } catch (e) {
-  logE('Local notifications error', tag: 'NOTIF', error: e);
+      logE('Local notifications error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_initializeLocalNotifications', e);
       rethrow;
     }
@@ -99,7 +98,6 @@ class NotificationService {
 
   Future<void> _createNotificationChannels() async {
     try {
-      logD('Creating notification channels', tag: 'NOTIF');
 
       const highImportanceChannel = AndroidNotificationChannel(
         'high_importance_channel',
@@ -150,7 +148,6 @@ class NotificationService {
 
   Future<void> _setupMessageListeners() async {
     try {
-      logD('Setting up message listeners', tag: 'NOTIF');
 
       _fcmService.onMessage.listen(_handleForegroundMessage);
       _fcmService.onMessageOpenedApp.listen(_handleMessageOpenedApp);
@@ -169,15 +166,8 @@ class NotificationService {
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     try {
-      logD('Foreground message', tag: 'NOTIF', data: {
-        'title': message.notification?.title,
-        'body': message.notification?.body,
-        'type': message.data['type']
-      });
-
       final payload = NotificationPayload.fromRemoteMessage(message);
       await _showLocalNotification(payload);
-
       HapticService.lightImpact();
     } catch (e) {
       logE('Foreground message error', tag: 'NOTIF', error: e);
@@ -187,7 +177,6 @@ class NotificationService {
 
   Future<void> _handleMessageOpenedApp(RemoteMessage message) async {
     try {
-      logD('Message opened app', tag: 'NOTIF');
       final payload = NotificationPayload.fromRemoteMessage(message);
       await _handleNotificationAction(payload);
     } catch (e) {
@@ -198,7 +187,6 @@ class NotificationService {
 
   Future<void> _handleInitialMessage(RemoteMessage message) async {
     try {
-      logD('Initial message', tag: 'NOTIF');
       final payload = NotificationPayload.fromRemoteMessage(message);
       await _handleNotificationAction(payload);
     } catch (e) {
@@ -209,11 +197,6 @@ class NotificationService {
 
   Future<void> _showLocalNotification(NotificationPayload payload) async {
     try {
-      logD('Show local notification', tag: 'NOTIF', data: {
-        'type': payload.type.name,
-        'title': payload.title
-      });
-
       final channelId = _getChannelIdForType(payload.type);
       final notificationId = DateTime.now().millisecondsSinceEpoch.remainder(100000);
 
@@ -238,9 +221,9 @@ class NotificationService {
         payload: _encodePayload(payload),
       );
 
-  logI('Local notification shown', tag: 'NOTIF');
+      logI('Local notification shown', tag: 'NOTIF');
     } catch (e) {
-  logE('Show local notification error', tag: 'NOTIF', error: e);
+      logE('Show local notification error', tag: 'NOTIF', error: e);
       MonitoringService.logErrorStatic('NotificationService_showLocalNotification', e);
     }
   }
@@ -292,7 +275,6 @@ class NotificationService {
   }
 
   void _onNotificationTap(NotificationResponse response) {
-  logD('Notification tapped', tag: 'NOTIF');
     final payload = _decodePayload(response.payload);
     if (payload != null) {
       _handleNotificationAction(payload);
@@ -300,12 +282,10 @@ class NotificationService {
   }
 
   static void _onBackgroundNotificationTap(NotificationResponse response) {
-  logD('Background notification tapped', tag: 'NOTIF');
   }
 
   Future<void> _handleNotificationAction(NotificationPayload payload) async {
     try {
-      logD('Handle notification action', tag: 'NOTIF', data: {'type': payload.type.name});
 
       HapticService.selectionClick();
 
@@ -333,23 +313,18 @@ class NotificationService {
   }
 
   Future<void> _handlePriceDropAction(NotificationPayload payload) async {
-  logD('Price drop action', tag: 'NOTIF');
   }
 
   Future<void> _handleWishlistShareAction(NotificationPayload payload) async {
-  logD('Wishlist share action', tag: 'NOTIF');
   }
 
   Future<void> _handleNewFavoriteAction(NotificationPayload payload) async {
-  logD('New favorite action', tag: 'NOTIF');
   }
 
   Future<void> _handleGiftHintAction(NotificationPayload payload) async {
-  logD('Gift hint action', tag: 'NOTIF');
   }
 
   Future<void> _handleGeneralAction(NotificationPayload payload) async {
-  logD('General notification action', tag: 'NOTIF');
   }
 
   Future<String?> getDeviceToken() async {
@@ -448,7 +423,6 @@ class NotificationService {
   bool get isInitialized => _isInitialized;
 
   void dispose() {
-  logD('Disposing resources', tag: 'NOTIF');
     _fcmService.dispose();
     _isInitialized = false;
   }

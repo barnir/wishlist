@@ -234,7 +234,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _isCreatingWishlist = true);
     try {
-      final userId = AuthService.getCurrentUserId()!;
+      final userId = AuthService.getCurrentUserId();
+      if (userId == null) {
+        setState(() {
+          _erro = 'É necessário autenticar para criar uma wishlist.';
+        });
+        return;
+      }
       final name = _newWishlistNameController.text.trim();
       final id = await _wishlistRepo.create(
         name: name,
@@ -339,15 +345,24 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         _existingImageUrl = uploadedUrl;
         if (uploadedUrl != null) {
           await ImageCacheService.putFile(uploadedUrl, _imageBytes!);
-          MonitoringService.logImageUploadSuccess('item', id: targetId, bytes: _imageBytes?.length);
         }
-      } catch (e) {
+        MonitoringService.logImageUploadSuccess('item', id: targetId, bytes: _imageBytes?.length);
+            } catch (e) {
         MonitoringService.logImageUploadFail('item', e);
         setState(() => _erro = AppLocalizations.of(context)?.imageUploadFailed(e.toString()) ?? 'Falha upload imagem: $e');
       } finally {
         if (mounted) setState(() => _isUploading = false);
       }
     }
+    final ownerId = AuthService.getCurrentUserId();
+    if (ownerId == null) {
+      setState(() {
+        _erro = 'É necessário autenticar para guardar itens.';
+        _isSaving = false;
+      });
+      return;
+    }
+
     final data = <String, dynamic>{
       'wishlist_id': finalWishlistId,
       'name': ValidationUtils.sanitizeTextInput(_nameController.text),
@@ -355,7 +370,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           ? ValidationUtils.sanitizeTextInput(_descriptionController.text)
           : null,
       'price': double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
-      'category': _selectedCategory!,
+  'category': _selectedCategory ?? categories.first.name,
       'rating': _rating,
       'link': (() {
         final s = ValidationUtils.sanitizeUrlForSave(_linkController.text);
@@ -363,7 +378,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       })(),
       'image_url': uploadedUrl ?? _existingImageUrl,
       'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
-      'owner_id': AuthService.getCurrentUserId(),
+  'owner_id': ownerId,
     };
     if (_enrichmentCacheId != null) data['enrich_metadata_ref'] = _enrichmentCacheId;
     if (_enrichmentCacheId != null && !_pendingEnrichment) {
@@ -457,6 +472,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                         filled: true,
                                       ),
+                                      isExpanded: true,
+                                      borderRadius: BorderRadius.circular(12),
+                                      dropdownColor: Theme.of(context).colorScheme.surface,
                                       items: _wishlists
                                           .map((w) => DropdownMenuItem<String>(
                                                 value: w.id,
@@ -535,6 +553,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         filled: true,
                       ),
+                      isExpanded: true,
+                      borderRadius: BorderRadius.circular(12),
+                      dropdownColor: Theme.of(context).colorScheme.surface,
                       items: categories
                           .map((c) => DropdownMenuItem<String>(
                                 value: c.name,

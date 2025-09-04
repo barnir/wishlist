@@ -4,6 +4,7 @@ import 'package:mywishstash/services/auth_service.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:mywishstash/utils/validation_utils.dart';
 import 'package:mywishstash/utils/app_logger.dart';
+import 'package:mywishstash/utils/performance_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,7 +13,7 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen> with PerformanceOptimizedState {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
   final _emailController = TextEditingController();
@@ -22,36 +23,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _isLoading = false;
   String? _erro;
+  bool _hasPasswordRequirements = false;
 
   @override
   void initState() {
     super.initState();
-    _passwordController.addListener(() {
-      setState(() {}); // Atualiza a UI quando a password muda
-    });
+    // Use performance-optimized debounced setState para password validation
+    _passwordController.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    final hasRequirements = _passwordController.text.length >= 6;
+    if (hasRequirements != _hasPasswordRequirements) {
+      PerformanceUtils.debounce(() {
+        safeSetState(() {
+          _hasPasswordRequirements = hasRequirements;
+        });
+      }, PerformanceUtils.fastAnimation);
+    }
   }
 
   Future<void> _registar() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    safeSetState(() => _isLoading = true);
 
     try {
       await _authService.createUserWithEmailAndPassword(
-  _emailController.text.trim(),
-  _passwordController.text,
-  ValidationUtils.sanitizeTextInput(_nomeController.text),
+        _emailController.text.trim(),
+        _passwordController.text,
+        ValidationUtils.sanitizeTextInput(_nomeController.text),
+        context: context,
       );
 
       if (!mounted) return; // Guard against context use after async gap
 
       // No need to navigate manually - StreamBuilder will handle it
       // User will be automatically taken to AddPhoneScreen since no profile exists yet
-  logI('Email registration success (navigation via stream)', tag: 'UI');
+      logI('Email registration success (navigation via stream)', tag: 'UI');
       
     } catch (e) {
       if (!mounted) return; // If widget disposed during await
-  logE('Registration error', tag: 'UI', error: e);
+      logE('Registration error', tag: 'UI', error: e);
       final l10n = AppLocalizations.of(context);
       String errorMessage = l10n?.registerErrorPrefix ?? 'Erro ao registar: ';
       final errStr = e.toString();
@@ -66,10 +79,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else {
         errorMessage += errStr;
       }
-      setState(() => _erro = errorMessage);
+      safeSetState(() => _erro = errorMessage);
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        safeSetState(() => _isLoading = false);
       }
     }
   }
@@ -115,6 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _passwordController.removeListener(_onPasswordChanged);
     _nomeController.dispose();
     _emailController.dispose();
     _passwordController.dispose();

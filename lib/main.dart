@@ -38,72 +38,109 @@ import 'screens/user_profile_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
-
-  // Initialize Firebase
-  await Firebase.initializeApp();
-
-  // Enable Firestore offline persistence (safe to call once; ignore if already enabled)
-  try {
-  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
-  appLog('Firestore offline persistence enabled', tag: 'INIT');
-  } catch (e) {
-  appLog('Could not enable offline persistence: $e', tag: 'INIT');
-  }
-
-  // Set up background message handler for FCM
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-  // Initialize Firestore (for database)
-  // Note: Firestore is automatically initialized with Firebase.initializeApp()
-  appLog('Firebase Firestore initialized', tag: 'INIT');
-
-  // Initialize theme service
-  await ThemeService().initialize();
-
-  // Initialize language service
-  await LanguageService().initialize();
-
-  // Initialize notification service
-  await NotificationService().initialize();
-
-  // Configure analytics provider
-  AnalyticsService().configure(FirebaseAnalyticsProvider(analytics: FirebaseAnalytics.instance));
-  // Identify current user if already authenticated (cold start with persisted session)
-  final existingUser = firebase_auth.FirebaseAuth.instance.currentUser;
-  if (existingUser != null) {
-    await AnalyticsService().identify(existingUser.uid);
-
-    // Bootstrap user properties (theme, locale, registration status) after identify
+void main() {
+  // Colocamos tudo dentro do mesmo zone para evitar "Zone mismatch".
+  runZonedGuarded(() async {
     try {
-      final themeService = ThemeService();
-      final languageService = LanguageService();
-      final props = <String, Object?>{
-        'theme_mode': themeService.currentThemeModeName,
-        'locale': languageService.currentLocale.languageCode,
-        'language_auto_detect': languageService.isAutoDetect,
-      };
-      // Attempt to fetch registration_complete flag
-      try {
-        final profile = await UserProfileRepository().fetchById(existingUser.uid);
-        if (profile != null) {
-          props['registration_complete'] = profile.registrationComplete;
-        }
-      } catch (_) {
-        // Ignore profile fetch error for analytics bootstrap
-      }
-      await AnalyticsService().setUserProps(props);
-    } catch (_) {
-      // Non-fatal: ignore analytics bootstrap errors
-    }
+      WidgetsFlutterBinding.ensureInitialized();
+      await dotenv.load(fileName: '.env');
 
-    // Prefetch imagens ao entrar na app
-    await ImagePrefetchService().warmUp();
-  }
+      FlutterError.onError = (details) {
+        appLog('FlutterError: ${details.exceptionAsString()}', tag: 'FATAL');
+      };
+      // Initialize Firebase
+      await Firebase.initializeApp();
+
+      // Enable Firestore offline persistence (safe to call once; ignore if already enabled)
+      try {
+        FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+        appLog('Firestore offline persistence enabled', tag: 'INIT');
+      } catch (e) {
+        appLog('Could not enable offline persistence: $e', tag: 'INIT');
+      }
+
+      // Set up background message handler for FCM
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      // Initialize Firestore (for database)
+      // Note: Firestore is automatically initialized with Firebase.initializeApp()
+      appLog('Firebase Firestore initialized', tag: 'INIT');
+
+      // Initialize theme service
+      await ThemeService().initialize();
+
+      // Initialize language service
+      await LanguageService().initialize();
+
+      // Initialize notification service
+      await NotificationService().initialize();
+
+      // Configure analytics provider
+      AnalyticsService().configure(FirebaseAnalyticsProvider(analytics: FirebaseAnalytics.instance));
+
+      // Identify current user if already authenticated (cold start with persisted session)
+      final existingUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (existingUser != null) {
+        await AnalyticsService().identify(existingUser.uid);
+
+        // Bootstrap user properties (theme, locale, registration status) after identify
+        try {
+          final themeService = ThemeService();
+          final languageService = LanguageService();
+          final props = <String, Object?>{
+            'theme_mode': themeService.currentThemeModeName,
+            'locale': languageService.currentLocale.languageCode,
+            'language_auto_detect': languageService.isAutoDetect,
+          };
+          // Attempt to fetch registration_complete flag
+          try {
+            final profile = await UserProfileRepository().fetchById(existingUser.uid);
+            if (profile != null) {
+              props['registration_complete'] = profile.registrationComplete;
+            }
+          } catch (_) {
+            // Ignore profile fetch error for analytics bootstrap
+          }
+          await AnalyticsService().setUserProps(props);
+        } catch (_) {
+          // Non-fatal: ignore analytics bootstrap errors
+        }
+
+        // Prefetch imagens ao entrar na app
+        await ImagePrefetchService().warmUp();
+      }
 
   runApp(const MyApp());
+    } catch (e, st) {
+      appLog('Initialization error: $e\n$st', tag: 'FATAL');
+      // Show a minimal error UI so the developer can inspect logs instead of
+      // the app crashing silently.
+      runApp(ErrorApp(error: e.toString()));
+    }
+  }, (error, stack) {
+    appLog('Uncaught error: $error', tag: 'UNCAUGHT');
+  });
+}
+
+// Minimal error app shown when initialization fails
+class ErrorApp extends StatelessWidget {
+  final String error;
+  const ErrorApp({super.key, required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Init Error')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(error, style: const TextStyle(color: Colors.red)),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -191,7 +228,7 @@ class _MyAppState extends State<MyApp> {
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
-            // GlobalCupertinoLocalizations removido - Android-only app
+            GlobalCupertinoLocalizations.delegate, // Mantido para evitar warning
           ],
           supportedLocales: const [
             Locale('en', ''), // Inglês

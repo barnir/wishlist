@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mywishstash/repositories/user_profile_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/utils/app_logger.dart';
+import 'package:mywishstash/services/analytics/analytics_service.dart';
 
 /// Structured result for phone verification (Android only)
 /// success: phone linked / verified
@@ -27,21 +27,29 @@ class FirebaseAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final UserProfileRepository _userProfileRepo = UserProfileRepository();
   bool _googleInitialized = false;
-
+  
+  // Fallback tracking for Google Sign-In
+  int _consecutiveGoogleCancels = 0;
+  DateTime? _lastGoogleCancelTime;
+  static const int _maxConsecutiveCancels = 3;
+  static const Duration _cancelResetDuration = Duration(minutes: 5);
+  
+  // Authentication metrics
+  int _totalGoogleSignInAttempts = 0;
+  int _totalGoogleSignInSuccesses = 0;
+  int _totalGoogleSignInCancels = 0;
+  int _totalFallbackSuccesses = 0;
   Future<void> _ensureGoogleInitialized() async {
     if (_googleInitialized) return;
-    // Use singleton instance per v7 API
     final signIn = GoogleSignIn.instance;
-    await signIn.initialize();
-    // Start lightweight auth attempt (may or may not return a Future)
+    try { await signIn.initialize(); } catch (_) {}
+    // tentativa leve (não fatal) – algumas plataformas retornam Future
     try {
-      final future = signIn.attemptLightweightAuthentication();
-      if (future is Future) {
-        await future; // Only await if a future was returned (non-web)
+      final attempt = signIn.attemptLightweightAuthentication();
+      if (attempt is Future) {
+        await attempt;
       }
-    } catch (_) {
-      // Non-fatal
-    }
+    } catch (_) {}
     _googleInitialized = true;
   }
 
@@ -53,17 +61,26 @@ class FirebaseAuthService {
   /// Google Sign-In with fallback for type casting errors
   Future<UserCredential?> signInWithGoogle() async {
     try {
-  logI('Google Sign-In started', tag: 'AUTH');
+      _totalGoogleSignInAttempts++;
+      final sw = Stopwatch()..start();
+      logI('Google Sign-In started (attempt #$_totalGoogleSignInAttempts)', tag: 'AUTH');
+      
+      // Track authentication attempt
+      await AnalyticsService().log('google_signin_attempt', properties: {
+        'attempt_number': _totalGoogleSignInAttempts,
+        'consecutive_cancels': _consecutiveGoogleCancels,
+      });
       
       await _ensureGoogleInitialized();
       final signIn = GoogleSignIn.instance;
-
+      final supportsAuth = signIn.supportsAuthenticate();
       GoogleSignInAccount? googleUser;
+      bool retried = false;
+      
       try {
-        if (signIn.supportsAuthenticate()) {
+        if (supportsAuth) {
           googleUser = await signIn.authenticate();
         } else {
-          // attemptLightweightAuthentication already run in initializer; if it returned a user it would have been via Future
           final attempt = signIn.attemptLightweightAuthentication();
           if (attempt is Future<GoogleSignInAccount?>) {
             googleUser = await attempt;
@@ -71,18 +88,79 @@ class FirebaseAuthService {
         }
       } on GoogleSignInException catch (e) {
         if (e.code == GoogleSignInExceptionCode.canceled) {
-          logI('Google sign-in cancelled by user', tag: 'AUTH');
-          return null;
+          sw.stop();
+          // Distinguish fast cancellations (likely framework / credential manager errors) from genuine user action
+          final ms = sw.elapsedMilliseconds;
+          logW('Google sign-in reported CANCELLED (elapsed=${ms}ms) error=${e.toString()} details=${e.details}', tag: 'AUTH');
+          
+          if (ms < 1200) {
+            logW('Quick cancellation detected (<1200ms) - likely Credential Manager failure', tag: 'AUTH');
+            _trackQuickCancel();
+            
+            // Track quick cancel analytics event
+            await AnalyticsService().log('google_signin_quick_cancel', properties: {
+              'elapsed_ms': ms,
+              'consecutive_cancels': _consecutiveGoogleCancels,
+              'total_cancels': _totalGoogleSignInCancels,
+            });
+            
+            // Try fallback strategies based on consecutive cancels
+            if (_consecutiveGoogleCancels < _maxConsecutiveCancels && !retried) {
+              retried = true;
+              googleUser = await _attemptGoogleFallback(signIn, supportsAuth);
+              if (googleUser != null) {
+                _totalFallbackSuccesses++;
+                logI('Fallback authentication succeeded (fallback #$_totalFallbackSuccesses)', tag: 'AUTH');
+                _resetCancelTracking();
+                
+                // Track successful fallback
+                await AnalyticsService().log('google_signin_fallback_success', properties: {
+                  'fallback_count': _totalFallbackSuccesses,
+                  'total_attempts': _totalGoogleSignInAttempts,
+                  'strategy_used': 'fallback_after_quick_cancel',
+                });
+                
+                // Continue with authentication flow below
+              } else {
+                logW('All fallback strategies failed', tag: 'AUTH');
+                return null;
+              }
+            } else {
+              logW('Max consecutive cancels reached ($_consecutiveGoogleCancels/$_maxConsecutiveCancels) - suggest user action', tag: 'AUTH');
+              
+              // Track when max consecutive cancels reached
+              await AnalyticsService().log('google_signin_max_cancels_reached', properties: {
+                'consecutive_cancels': _consecutiveGoogleCancels,
+                'max_consecutive_cancels': _maxConsecutiveCancels,
+                'total_attempts': _totalGoogleSignInAttempts,
+              });
+              
+              throw Exception('Múltiplos cancelamentos detectados. Tente limpar os dados das contas Google nas Definições do dispositivo ou use uma conta diferente.');
+            }
+          } else {
+            // Longer cancellation - likely genuine user cancellation
+            logI('User likely cancelled Google sign-in (elapsed=${ms}ms)', tag: 'AUTH');
+            _resetCancelTracking(); // Reset on genuine user cancel
+            
+            // Track genuine user cancellation
+            await AnalyticsService().log('google_signin_user_cancel', properties: {
+              'elapsed_ms': ms,
+              'total_attempts': _totalGoogleSignInAttempts,
+            });
+            
+            return null;
+          }
         }
         rethrow;
       }
 
       if (googleUser == null) {
-        logI('No Google user obtained', tag: 'AUTH');
+        sw.stop();
+        logW('No Google user obtained (elapsed=${sw.elapsedMilliseconds}ms) - treating as null result', tag: 'AUTH');
         return null;
       }
 
-      final tokenData = googleUser.authentication; // Provides idToken only in v7
+      final tokenData = googleUser.authentication; // idToken only
       final credential = GoogleAuthProvider.credential(
         idToken: tokenData.idToken,
       );
@@ -90,32 +168,39 @@ class FirebaseAuthService {
       final userCredential = await _firebaseAuth.signInWithCredential(credential);
       
       if (userCredential.user != null) {
-  logI('Google sign-in successful: ${userCredential.user!.email}', tag: 'AUTH');
-  logW('Profile NOT created yet - waiting for phone number', tag: 'AUTH');
+        sw.stop();
+        _totalGoogleSignInSuccesses++;
+        logI('Google sign-in successful: ${userCredential.user!.email} (success #$_totalGoogleSignInSuccesses)', tag: 'AUTH');
+        
+        // Track successful Google sign-in
+        await AnalyticsService().log('google_signin_success', properties: {
+          'success_count': _totalGoogleSignInSuccesses,
+          'total_attempts': _totalGoogleSignInAttempts,
+          'elapsed_ms': sw.elapsedMilliseconds,
+          'used_fallback': _totalFallbackSuccesses > 0 && 
+              _totalFallbackSuccesses == _totalGoogleSignInSuccesses,
+        });
+        
+        // Reset cancel tracking on successful authentication
+        _resetCancelTracking();
         
         // Clear any old OTP verification data for fresh start
         await _clearVerificationData();
-  logD('Cleared old OTP verification data for fresh user', tag: 'OTP');
       }
       
       return userCredential;
     } catch (e) {
-  logE('Google sign-in error', tag: 'AUTH', error: e);
-  logD('Current user after error: ${_firebaseAuth.currentUser?.email}', tag: 'AUTH');
+      logE('Google sign-in error', tag: 'AUTH', error: e);
       
       // Check if user is actually logged in despite the error
       if (_firebaseAuth.currentUser != null) {
-  logW('Error occurred but user is logged in - fallback path', tag: 'AUTH');
-        final user = _firebaseAuth.currentUser!;
+        logW('Error occurred but user is logged in - fallback path', tag: 'AUTH');
         
         try {
-          logI('Fallback: User authenticated successfully', tag: 'AUTH');
-          logI('Fallback Google sign-in successful: ${user.email}', tag: 'AUTH');
-          logW('Fallback: Profile NOT created yet - waiting for phone number', tag: 'AUTH');
+          logI('Fallback: User authenticated successfully despite error', tag: 'AUTH');
           
           // Clear any old OTP verification data for fresh start
           await _clearVerificationData();
-          logD('Cleared old OTP verification data (fallback)', tag: 'OTP');
           
           // Return null to indicate successful login, auth_service.dart will handle this
           return null;
@@ -132,8 +217,8 @@ class FirebaseAuthService {
   /// Phone Authentication - Send OTP
   Future<void> sendPhoneOtp(String phoneNumber) async {
     try {
-  logI('Phone OTP send started', tag: 'OTP');
-  logD('Phone number: $phoneNumber | len=${phoneNumber.length}', tag: 'OTP');
+      logI('Phone OTP send started', tag: 'OTP');
+      
       if (_lastOtpSentAt != null) {
         final diff = DateTime.now().difference(_lastOtpSentAt!);
         if (diff < _otpResendMinInterval) {
@@ -141,6 +226,7 @@ class FirebaseAuthService {
           throw Exception('Aguarde ${wait.inSeconds}s para reenviar o código.');
         }
       }
+      
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 40),
@@ -164,7 +250,6 @@ class FirebaseAuthService {
         },
         codeSent: (String verificationId, int? resendToken) async {
           logI('SMS code sent', tag: 'OTP');
-          logD('verificationId=$verificationId resendToken=$resendToken phone=$phoneNumber', tag: 'OTP');
           _resendToken = resendToken;
           _lastOtpSentAt = DateTime.now();
           _currentVerificationId = verificationId;
@@ -177,7 +262,7 @@ class FirebaseAuthService {
         },
       );
     } catch (e) {
-  logE('Phone OTP send error (type ${e.runtimeType})', tag: 'OTP', error: e);
+      logE('Phone OTP send error (type ${e.runtimeType})', tag: 'OTP', error: e);
       rethrow;
     }
   }
@@ -192,8 +277,7 @@ class FirebaseAuthService {
   /// Phone Authentication - Verify OTP
   Future<UserCredential?> verifyPhoneOtp(String phoneNumber, String smsCode) async {
     try {
-  logI('Phone OTP verify started', tag: 'OTP');
-  logD('phone=$phoneNumber codeLen=${smsCode.length} verId=$_currentVerificationId', tag: 'OTP');
+      logI('Phone OTP verify started', tag: 'OTP');
 
       if (_currentVerificationId == null) {
         // Try to retrieve from persistent storage
@@ -202,29 +286,21 @@ class FirebaseAuthService {
           logE('No verification ID found (memory/storage)', tag: 'OTP');
           throw Exception('No verification ID found. Please request OTP again.');
         }
-  logD('Retrieved verification ID from storage: $_currentVerificationId', tag: 'OTP');
       }
-
-  logD('Creating PhoneAuthCredential verId=$_currentVerificationId codeLen=${smsCode.length}', tag: 'OTP');
 
       final credential = PhoneAuthProvider.credential(
         verificationId: _currentVerificationId!,
         smsCode: smsCode,
       );
-
-  logD('Credential created', tag: 'OTP');
       
       final currentUser = _firebaseAuth.currentUser;
       UserCredential? userCredential;
       
       if (currentUser != null) {
-  logD('Current user exists - attempting linking (uid=${currentUser.uid})', tag: 'OTP');
-  logD('Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}', tag: 'OTP');
         
-    try {
+        try {
           userCredential = await currentUser.linkWithCredential(credential);
           logI('Linking successful uid=${userCredential.user?.uid}', tag: 'OTP');
-          logD('Updated providers: ${userCredential.user?.providerData.map((p) => p.providerId).join(", ")}', tag: 'OTP');
         } catch (linkError) {
           logW('Linking failed: $linkError', tag: 'OTP');
           
@@ -245,7 +321,6 @@ class FirebaseAuthService {
           final updatedUser = _firebaseAuth.currentUser;
           if (updatedUser != null && updatedUser.phoneNumber == phoneNumber) {
             logI('Linking fallback succeeded uid=${updatedUser.uid}', tag: 'OTP');
-            logD('Updated providers: ${updatedUser.providerData.map((p) => p.providerId).join(", ")}', tag: 'OTP');
             
             // Create user profile for successful linking
             await _createOrUpdateUserProfile(updatedUser, phoneNumber: phoneNumber);
@@ -259,8 +334,6 @@ class FirebaseAuthService {
           rethrow;
         }
       } else {
-  logD('No current user - signInWithCredential path', tag: 'OTP');
-        
         try {
           userCredential = await _firebaseAuth.signInWithCredential(credential);
           logI('Sign-in success phone-only uid=${userCredential.user?.uid}', tag: 'OTP');
@@ -286,19 +359,18 @@ class FirebaseAuthService {
       }
       
       if (userCredential.user != null) {
-  logI('Phone verification success: ${userCredential.user!.uid}', tag: 'OTP');
+        logI('Phone verification success: ${userCredential.user!.uid}', tag: 'OTP');
         
         // Check if this is completing an email registration
-  final profileObj = await _userProfileRepo.fetchById(userCredential.user!.uid);
-  if (profileObj != null && profileObj.registrationComplete == false) {
-          logD('Completing email registration adding phone', tag: 'OTP');
+        final profileObj = await _userProfileRepo.fetchById(userCredential.user!.uid);
+        if (profileObj != null && profileObj.registrationComplete == false) {
           await _userProfileRepo.update(userCredential.user!.uid, {
             'phone_number': phoneNumber,
             'registration_complete': true,
             'phone_verified': true,
           });
           logI('Email registration completed (phone added)', tag: 'OTP');
-  } else if (profileObj == null) {
+        } else if (profileObj == null) {
           logW('No profile after phone verification – creating new', tag: 'OTP');
           // Create complete profile if missing entirely
           final profileData = {
@@ -319,16 +391,14 @@ class FirebaseAuthService {
         
         await _clearVerificationData(); // Clear stored verification data after success
       } else {
-  logW('User credential null after verification', tag: 'OTP');
+        logW('User credential null after verification', tag: 'OTP');
       }
 
       return userCredential;
     } catch (e) {
-  logE('Phone verification error (type ${e.runtimeType})', tag: 'OTP', error: e);
+      logE('Phone verification error (type ${e.runtimeType})', tag: 'OTP', error: e);
       
-      if (e is FirebaseAuthException) {
-  logD('Auth error code=${e.code} message=${e.message}', tag: 'OTP');
-        
+      if (e is FirebaseAuthException) {        
         if (e.code == 'invalid-verification-code') {
           logW('Invalid verification code (possible expiry)', tag: 'OTP');
         }
@@ -341,9 +411,8 @@ class FirebaseAuthService {
   /// Enhanced phone verification returning a structured enum result
   Future<PhoneVerificationResult> verifyPhoneOtpEnhanced(String phoneNumber, String smsCode) async {
     try {
-  await verifyPhoneOtp(phoneNumber, smsCode);
-  logD('Enhanced verification success', tag: 'OTP');
-  // Any non-exception path is success (including null fallback path)
+      await verifyPhoneOtp(phoneNumber, smsCode);
+      // Any non-exception path is success (including null fallback path)
       return PhoneVerificationResult.success;
     } catch (e) {
       if (e is FirebaseAuthException) {
@@ -376,7 +445,7 @@ class FirebaseAuthService {
       }
     }
     try {
-  logI('Phone OTP resend started (force token)', tag: 'OTP');
+      logI('Phone OTP resend started (force token)', tag: 'OTP');
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         forceResendingToken: _resendToken,
@@ -411,7 +480,7 @@ class FirebaseAuthService {
         },
       );
     } catch (e) {
-  logE('Phone OTP resend error', tag: 'OTP', error: e);
+      logE('Phone OTP resend error', tag: 'OTP', error: e);
       rethrow;
     }
   }
@@ -423,8 +492,7 @@ class FirebaseAuthService {
     String displayName
   ) async {
     try {
-  logI('Email Sign-Up started', tag: 'AUTH');
-  logD('Email: $email', tag: 'AUTH');
+      logI('Email Sign-Up started', tag: 'AUTH');
 
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
@@ -433,11 +501,11 @@ class FirebaseAuthService {
 
       if (userCredential.user != null) {
         await userCredential.user!.updateDisplayName(displayName);
-  logI('Email sign-up success: ${userCredential.user!.email}', tag: 'AUTH');
+        logI('Email sign-up success: ${userCredential.user!.email}', tag: 'AUTH');
         
         // Create a temporary minimal user profile to prevent orphaned account detection
         // This profile will be updated when phone verification is completed
-  await _userProfileRepo.create(userCredential.user!.uid, {
+        await _userProfileRepo.create(userCredential.user!.uid, {
           'email': email,
             // Nome inicial já fornecido no ecrã de registo, pode ser ajustado depois
           'display_name': displayName,
@@ -448,16 +516,13 @@ class FirebaseAuthService {
           'created_at': FieldValue.serverTimestamp(),
           'updated_at': FieldValue.serverTimestamp(),
         });
-        
-  logD('Temporary user profile created (awaiting phone)', tag: 'AUTH');
       }
 
       return userCredential;
     } catch (e, stackTrace) {
-  logE('Email sign-up error (type ${e.runtimeType})', tag: 'AUTH', error: e, stackTrace: stackTrace);
+      logE('Email sign-up error (type ${e.runtimeType})', tag: 'AUTH', error: e, stackTrace: stackTrace);
       
       if (e is FirebaseAuthException) {
-  logD('Auth error code=${e.code} message=${e.message}', tag: 'AUTH');
       }
       
       rethrow;
@@ -467,8 +532,7 @@ class FirebaseAuthService {
   /// Email/Password Sign-In
   Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
     try {
-  logI('Email Sign-In started', tag: 'AUTH');
-  logD('Email: $email', tag: 'AUTH');
+      logI('Email Sign-In started', tag: 'AUTH');
 
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
@@ -476,13 +540,12 @@ class FirebaseAuthService {
       );
 
       if (userCredential.user != null) {
-  logI('Email sign-in success: ${userCredential.user!.email}', tag: 'AUTH');
-  logW('Profile NOT created yet - waiting for phone number', tag: 'AUTH');
+        logI('Email sign-in success: ${userCredential.user!.email}', tag: 'AUTH');
       }
 
       return userCredential;
     } catch (e) {
-  logE('Email sign-in error', tag: 'AUTH', error: e);
+      logE('Email sign-in error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -490,12 +553,12 @@ class FirebaseAuthService {
   /// Sign Out
   Future<void> signOut() async {
     try {
-  logI('Firebase Sign Out started', tag: 'AUTH');
-  try { await GoogleSignIn.instance.signOut(); } catch (_) {}
+      logI('Firebase Sign Out started', tag: 'AUTH');
+      try { await GoogleSignIn.instance.signOut(); } catch (_) {}
       await _firebaseAuth.signOut();
-  logI('Firebase sign out success', tag: 'AUTH');
+      logI('Firebase sign out success', tag: 'AUTH');
     } catch (e) {
-  logE('Firebase sign out error', tag: 'AUTH', error: e);
+      logE('Firebase sign out error', tag: 'AUTH', error: e);
       rethrow;
     }
   }
@@ -507,13 +570,10 @@ class FirebaseAuthService {
     String? displayName,
   }) async {
     try {
-  logI('Sync user to DB (enhanced)', tag: 'PROFILE');
-  logD('uid=${user.uid} email=${user.email} phone=${user.phoneNumber ?? phoneNumber}', tag: 'PROFILE');
+      logI('Sync user to DB (enhanced)', tag: 'PROFILE');
 
-  logD('Check existing profile', tag: 'PROFILE');
-  final existingProfileProfile = await _userProfileRepo.fetchById(user.uid);
-  final existingProfile = existingProfileProfile?.toMap();
-  logD('Existing profile found=${existingProfile != null}', tag: 'PROFILE');
+      final existingProfileProfile = await _userProfileRepo.fetchById(user.uid);
+      final existingProfile = existingProfileProfile?.toMap();
       
       final profileData = <String, dynamic>{
         'email': user.email,
@@ -522,10 +582,8 @@ class FirebaseAuthService {
         'is_private': false,  // Default to public profile
         'registration_complete': true,  // Mark registration as complete
       };
-  logD('Profile sync data prepared', tag: 'PROFILE');
 
       if (existingProfile != null) {
-  logD('Profile exists - evaluating updates', tag: 'PROFILE');
         // Update existing profile, preserving existing data
         final updateData = <String, dynamic>{};
         
@@ -540,29 +598,19 @@ class FirebaseAuthService {
           updateData['phone_number'] = profileData['phone_number'];
         }
         
-  logD('Update diff: $updateData', tag: 'PROFILE');
-        
         if (updateData.isNotEmpty) {
-          logD('Calling updateUserProfile', tag: 'PROFILE');
           await _userProfileRepo.update(user.uid, updateData);
           logI('Profile updated', tag: 'PROFILE');
-        } else {
-          logD('No profile changes needed', tag: 'PROFILE');
         }
       } else {
-  logD('No existing profile - creating new', tag: 'PROFILE');
-  await _userProfileRepo.create(user.uid, profileData);
-  logI('New profile created', tag: 'PROFILE');
+        await _userProfileRepo.create(user.uid, profileData);
+        logI('New profile created', tag: 'PROFILE');
       }
       
-  logI('Profile sync complete', tag: 'PROFILE');
+      logI('Profile sync complete', tag: 'PROFILE');
     } catch (e, stackTrace) {
-  logE('Profile sync error (type ${e.runtimeType})', tag: 'PROFILE', error: e, stackTrace: stackTrace);
+      logE('Profile sync error (type ${e.runtimeType})', tag: 'PROFILE', error: e, stackTrace: stackTrace);
       // Não voltamos a lançar a exceção para não quebrar o fluxo de OTP / login.
-      // Se for necessário reativar comportamento anterior em debug:
-      if (kDebugMode) {
-  logD('Erro ignorado para não interromper fluxo (debug mode)', tag: 'PROFILE');
-      }
     }
   }
 
@@ -581,8 +629,8 @@ class FirebaseAuthService {
     if (user.phoneNumber != null) return true;
     
     // Check Firebase database
-  final profile = await _userProfileRepo.fetchById(user.uid);
-  return profile != null && profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty;
+    final profile = await _userProfileRepo.fetchById(user.uid);
+    return profile != null && profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty;
   }
 
   /// Check if user has email
@@ -597,9 +645,8 @@ class FirebaseAuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_verificationIdKey, verificationId);
       await prefs.setString(_phoneNumberKey, phoneNumber);
-  logD('Verification ID stored', tag: 'OTP');
     } catch (e) {
-  logW('Error storing verification ID: $e', tag: 'OTP');
+      logW('Error storing verification ID: $e', tag: 'OTP');
     }
   }
 
@@ -624,13 +671,12 @@ class FirebaseAuthService {
     }
 
     try {
-  logI('Sync existing Firebase user', tag: 'PROFILE');
-  logD('uid=${currentUser.uid} providers=${currentUser.providerData.map((p) => p.providerId).join(", ")}', tag: 'PROFILE');
+      logI('Sync existing Firebase user', tag: 'PROFILE');
       
       await _createOrUpdateUserProfile(currentUser);
-  logI('Existing user profile synced', tag: 'PROFILE');
+      logI('Existing user profile synced', tag: 'PROFILE');
     } catch (e) {
-  logE('Error syncing existing user profile', tag: 'PROFILE', error: e);
+      logE('Error syncing existing user profile', tag: 'PROFILE', error: e);
       rethrow;
     }
   }
@@ -653,11 +699,10 @@ class FirebaseAuthService {
       await prefs.remove(_verificationIdKey);
       await prefs.remove(_phoneNumberKey);
       _currentVerificationId = null;
-  _resendToken = null;
-  _lastOtpSentAt = null;
-  logD('Verification data cleared', tag: 'OTP');
+      _resendToken = null;
+      _lastOtpSentAt = null;
     } catch (e) {
-  logW('Error clearing verification data: $e', tag: 'OTP');
+      logW('Error clearing verification data: $e', tag: 'OTP');
     }
   }
 
@@ -665,9 +710,185 @@ class FirebaseAuthService {
   Future<void> clearAllStoredData() async {
     try {
       await _clearVerificationData();
-  logD('All stored authentication data cleared', tag: 'OTP');
     } catch (e) {
-  logW('Error clearing all stored data: $e', tag: 'OTP');
+      logW('Error clearing all stored data: $e', tag: 'OTP');
+    }
+  }
+
+  /// Track a quick Google Sign-In cancellation
+  void _trackQuickCancel() {
+    final now = DateTime.now();
+    _totalGoogleSignInCancels++;
+    
+    // Reset count if last cancel was too long ago
+    if (_lastGoogleCancelTime != null) {
+      final timeSinceLastCancel = now.difference(_lastGoogleCancelTime!);
+      if (timeSinceLastCancel > _cancelResetDuration) {
+        _consecutiveGoogleCancels = 0;
+      }
+    }
+    
+    _consecutiveGoogleCancels++;
+    _lastGoogleCancelTime = now;
+    logW('Quick cancel tracked: $_consecutiveGoogleCancels/$_maxConsecutiveCancels (total cancels: $_totalGoogleSignInCancels)', tag: 'AUTH');
+  }
+
+  /// Reset cancel tracking on successful authentication
+  void _resetCancelTracking() {
+    if (_consecutiveGoogleCancels > 0) {
+      _consecutiveGoogleCancels = 0;
+      _lastGoogleCancelTime = null;
+    }
+  }
+
+  /// Attempt Google Sign-In fallback strategies
+  Future<GoogleSignInAccount?> _attemptGoogleFallback(GoogleSignIn signIn, bool supportsAuth) async {
+    logI('Attempting Google Sign-In fallback strategies', tag: 'AUTH');
+    
+    try {
+      // Strategy 1: Clean disconnect + reconnect
+      await signIn.signOut();
+      await signIn.disconnect();
+      await Future.delayed(const Duration(milliseconds: 500)); // Allow cleanup
+      
+      if (supportsAuth) {
+        try {
+          final user = await signIn.authenticate();
+          logI('Fallback strategy 1 succeeded', tag: 'AUTH');
+          return user;
+        } catch (e) {
+        }
+      }
+      
+      // Strategy 2: Try lightweight authentication for cached credentials  
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      try {
+        final lightweightResult = signIn.attemptLightweightAuthentication();
+        if (lightweightResult is Future<GoogleSignInAccount?>) {
+          final user = await lightweightResult;
+          if (user != null) {
+            logI('Fallback strategy 2 (lightweight) succeeded', tag: 'AUTH');
+            return user;
+          }
+        }
+      } catch (e) {
+      }
+      
+      logW('All fallback strategies failed', tag: 'AUTH');
+      return null;
+      
+    } catch (e) {
+      logE('Fallback strategies error', tag: 'AUTH', error: e);
+      return null;
+    }
+  }
+
+  /// Get authentication metrics for debugging/monitoring
+  Map<String, dynamic> getAuthMetrics() {
+    final successRate = _totalGoogleSignInAttempts > 0 
+        ? (_totalGoogleSignInSuccesses / _totalGoogleSignInAttempts * 100).toStringAsFixed(1)
+        : '0.0';
+    final fallbackRate = _totalGoogleSignInAttempts > 0
+        ? (_totalFallbackSuccesses / _totalGoogleSignInAttempts * 100).toStringAsFixed(1)
+        : '0.0';
+        
+    return {
+      'total_attempts': _totalGoogleSignInAttempts,
+      'total_successes': _totalGoogleSignInSuccesses,
+      'total_cancels': _totalGoogleSignInCancels,
+      'fallback_successes': _totalFallbackSuccesses,
+      'success_rate_percent': successRate,
+      'fallback_rate_percent': fallbackRate,
+      'consecutive_cancels': _consecutiveGoogleCancels,
+      'last_cancel_time': _lastGoogleCancelTime?.toIso8601String(),
+    };
+  }
+
+  /// Log current authentication metrics
+  void logAuthMetrics() {
+    final metrics = getAuthMetrics();
+    logI('Auth Metrics: ${metrics.toString()}', tag: 'METRICS');
+  }
+
+  /// Send authentication metrics to Firebase Analytics
+  Future<void> sendAuthMetricsToAnalytics() async {
+    try {
+      final metrics = getAuthMetrics();
+      
+      // Convert string percentages back to double for Firebase Analytics
+      double? successRate;
+      double? fallbackRate;
+      
+      try {
+        successRate = double.parse(metrics['success_rate_percent'].toString());
+        fallbackRate = double.parse(metrics['fallback_rate_percent'].toString());
+      } catch (e) {
+        logW('Error parsing metrics rates for analytics: $e', tag: 'METRICS');
+      }
+      
+      // Send comprehensive authentication metrics
+      await AnalyticsService().log('auth_metrics_snapshot', properties: {
+        'total_attempts': metrics['total_attempts'],
+        'total_successes': metrics['total_successes'],  
+        'total_cancels': metrics['total_cancels'],
+        'fallback_successes': metrics['fallback_successes'],
+        'success_rate': successRate,
+        'fallback_rate': fallbackRate,
+        'consecutive_cancels': metrics['consecutive_cancels'],
+        'has_recent_cancel': metrics['last_cancel_time'] != null,
+      });
+      
+      logI('Authentication metrics sent to Firebase Analytics', tag: 'METRICS');
+    } catch (e) {
+      logE('Error sending auth metrics to analytics', tag: 'METRICS', error: e);
+      // Non-fatal - don't disrupt authentication flow
+    }
+  }
+
+  /// Send periodic authentication health report
+  Future<void> sendAuthHealthReport() async {
+    // Only send if we have meaningful data
+    if (_totalGoogleSignInAttempts < 3) {
+      return;
+    }
+    
+    try {
+      final metrics = getAuthMetrics();
+      
+      double? successRate;
+      double? fallbackRate;
+      try {
+        successRate = double.parse(metrics['success_rate_percent'].toString());
+        fallbackRate = double.parse(metrics['fallback_rate_percent'].toString());
+      } catch (e) {
+        logW('Error parsing metrics rates for health report: $e', tag: 'METRICS');
+      }
+      
+      // Determine authentication health status
+      String healthStatus = 'healthy';
+      if (successRate != null) {
+        if (successRate < 50.0) {
+          healthStatus = 'critical';
+        } else if (successRate < 75.0) {
+          healthStatus = 'poor';
+        } else if (successRate < 90.0) {
+          healthStatus = 'fair';
+        }
+      }
+      
+      await AnalyticsService().log('auth_health_report', properties: {
+        'health_status': healthStatus,
+        'success_rate': successRate,
+        'fallback_rate': fallbackRate,
+        'total_attempts': metrics['total_attempts'],
+        'consecutive_cancel_issues': metrics['consecutive_cancels'] >= 2,
+        'using_fallbacks': metrics['fallback_successes'] > 0,
+      });
+      
+      logI('Authentication health report sent: $healthStatus', tag: 'METRICS');
+    } catch (e) {
+      logE('Error sending auth health report', tag: 'METRICS', error: e);
     }
   }
 }

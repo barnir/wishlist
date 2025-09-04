@@ -1,0 +1,5 @@
+[info] Empty catch block (D:\Dev\wishlist_app\lib\services\firebase_auth_service.dart:759:21)
+[info] Empty catch block (D:\Dev\wishlist_app\lib\services\firebase_auth_service.dart:775:19)
+[info] Use 'const' for final variables initialized to a constant value (D:\Dev\wishlist_app\test\services\auth_analytics_integration_test.dart:92:7)
+[info] Use 'const' for final variables initialized to a constant value (D:\Dev\wishlist_app\test\services\auth_analytics_integration_test.dart:93:7)
+[info] Use 'const' for final variables initialized to a constant value (D:\Dev\wishlist_app\test\services\auth_analytics_integration_test.dart:102:7)

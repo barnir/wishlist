@@ -120,6 +120,21 @@ class AuthService {
     }
   }
 
+  /// Get current authentication metrics for debugging/monitoring
+  Map<String, dynamic> getAuthMetrics() {
+    return _firebaseAuthService.getAuthMetrics();
+  }
+
+  /// Send authentication metrics to Firebase Analytics
+  Future<void> sendAuthMetricsToAnalytics() async {
+    await _firebaseAuthService.sendAuthMetricsToAnalytics();
+  }
+
+  /// Send authentication health report
+  Future<void> sendAuthHealthReport() async {
+    await _firebaseAuthService.sendAuthHealthReport();
+  }
+
   Future<GoogleSignInResult> signInWithGoogle() async {
     try {
   logI('Google Sign-In', tag: 'AUTH');
@@ -157,6 +172,10 @@ class AuthService {
       await AnalyticsService().log('login', properties: {'method': 'google'});
       
       await _updateFCMTokenOnSignIn(user.uid);
+      
+      // Send authentication metrics to Firebase Analytics periodically
+      await _firebaseAuthService.sendAuthHealthReport();
+      
       return GoogleSignInResult.success;
     } catch (e) {
   logE('Google sign-in error', tag: 'AUTH', error: e);
@@ -168,11 +187,10 @@ class AuthService {
     try {
       final fcmToken = await NotificationService().getDeviceToken();
       if (fcmToken != null) {
-  await _userProfileRepo.update(userId, {'fcm_token': fcmToken});
-  logD('FCM token updated on sign in', tag: 'AUTH');
+        await _userProfileRepo.update(userId, {'fcm_token': fcmToken});
       }
     } catch (e) {
-  logW('FCM token update error: $e', tag: 'AUTH');
+      logW('FCM token update error: $e', tag: 'AUTH');
     }
   }
 
@@ -238,11 +256,10 @@ class AuthService {
       // Get current photo URL before uploading new one for cleanup
       String? oldPhotoUrl;
       try {
-  final userProfile = await _userProfileRepo.fetchById(user.uid);
-  oldPhotoUrl = userProfile?.photoUrl;
-  logD('Current photo URL for cleanup: $oldPhotoUrl', tag: 'AUTH');
+        final userProfile = await _userProfileRepo.fetchById(user.uid);
+        oldPhotoUrl = userProfile?.photoUrl;
       } catch (e) {
-  logW('Could not retrieve current photo URL: $e', tag: 'AUTH');
+        logW('Could not retrieve current photo URL: $e', tag: 'AUTH');
       }
       
       final imageUrl = await _cloudinaryService.uploadProfileImage(
@@ -264,7 +281,6 @@ class AuthService {
         // Always update Firestore profile regardless of Firebase Auth result
   await _userProfileRepo.update(user.uid, {'photo_url': imageUrl});
   logI('Profile photo URL saved to Firestore', tag: 'AUTH');
-  logD('Old image scheduled for cleanup: $oldPhotoUrl', tag: 'AUTH');
       }
       return imageUrl;
     } catch (e) {
@@ -372,7 +388,6 @@ class AuthService {
     
     try {
   logI('Complete Account Deletion', tag: 'AUTH');
-  logD('User ID: ${user.uid}', tag: 'AUTH');
       
       // Step 1: Log Cloudinary images that need cleanup (client-side can't delete)
       try {
@@ -468,19 +483,12 @@ class AuthService {
         // If account was created less than 10 minutes ago and has email, 
         // it's likely in the registration flow (waiting for phone verification)
         if (accountAge.inMinutes < 10) {
-              logD('New email registration in progress (${accountAge.inMinutes}m old), not orphaned', tag: 'AUTH');
-              logD('User ID: ${user.uid}', tag: 'AUTH');
-              logD('Email: ${user.email}', tag: 'AUTH');
-              logD('Created: ${user.metadata.creationTime}', tag: 'AUTH');
           return false;
         }
       }
       
       // Otherwise, truly orphaned
   logW('Orphaned account detected: Auth user exists but no Firestore profile', tag: 'AUTH');
-  logD('User ID: ${user.uid}', tag: 'AUTH');
-  logD('Email: ${user.email}', tag: 'AUTH');
-  logD('Phone: ${user.phoneNumber}', tag: 'AUTH');
       
       return true;
     } catch (e) {
@@ -496,8 +504,6 @@ class AuthService {
     
     try {
   logI('Cleaning up orphaned Firebase Auth account', tag: 'AUTH');
-  logD('User ID: ${user.uid}', tag: 'AUTH');
-  logD('Email: ${user.email}', tag: 'AUTH');
       
       await user.delete();
   logI('Orphaned Firebase Auth account deleted successfully', tag: 'AUTH');
