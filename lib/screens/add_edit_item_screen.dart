@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mywishstash/repositories/wish_item_repository.dart';
 import 'package:mywishstash/repositories/wishlist_repository.dart';
 import 'package:mywishstash/models/wishlist.dart';
-import 'package:mywishstash/services/cloudinary_service.dart';
+import 'package:mywishstash/services/cloudinary_service.dart' as cloudinary_service;
 import 'package:mywishstash/services/monitoring_service.dart';
 import 'package:mywishstash/services/image_cache_service.dart';
 import 'package:mywishstash/services/web_scraper_service.dart';
@@ -14,6 +14,7 @@ import 'package:mywishstash/services/share_enrichment_service.dart';
 import 'package:mywishstash/services/auth_service.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:mywishstash/utils/validation_utils.dart';
+import 'package:mywishstash/utils/performance_utils.dart';
 import 'package:mywishstash/widgets/status_chip.dart';
 import '../models/category.dart';
 import 'package:mywishstash/services/category_usage_service.dart';
@@ -33,13 +34,13 @@ class AddEditItemScreen extends StatefulWidget {
   State<AddEditItemScreen> createState() => _AddEditItemScreenState();
 }
 
-class _AddEditItemScreenState extends State<AddEditItemScreen> {
+class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceOptimizedState {
   final _formKey = GlobalKey<FormState>();
   final _wishItemRepo = WishItemRepository();
   final _wishlistRepo = WishlistRepository();
   final _webScraperService = WebScraperServiceSecure();
   final _shareService = ShareEnrichmentService();
-  final _cloudinaryService = CloudinaryService();
+  final _cloudinaryService = cloudinary_service.CloudinaryService();
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
@@ -90,7 +91,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _handleSharedLink() async {
     if (widget.link == null || widget.link!.isEmpty) return;
     final l10n = AppLocalizations.of(context);
-    setState(() {
+    safeSetState(() {
       _isScraping = true;
       _scrapingStatus = l10n?.scrapingExtractingInfo;
     });
@@ -117,7 +118,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             _enrichmentCacheId = cacheId;
           }
           if (data['rateLimited'] == true) {
-            setState(() {
+            safeSetState(() {
               _scrapingStatus = AppLocalizations.of(context)?.enrichmentRateLimited;
               _pendingEnrichment = false;
             });
@@ -143,14 +144,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             final img = data['image'] as String?;
             if (img != null && img.isNotEmpty && _imageBytes == null && _existingImageUrl == null) {
               try {
-                setState(()=> _scrapingStatus = l10n?.scrapingLoadingImage);
+                safeSetState(()=> _scrapingStatus = l10n?.scrapingLoadingImage);
                 final response = await http.get(Uri.parse(img));
                 if (response.statusCode == 200) {
                   final tempDir = await getTemporaryDirectory();
                   final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg');
                   await tempFile.writeAsBytes(response.bodyBytes);
                   if (mounted) {
-                    setState(() {
+                    safeSetState(() {
                       _imageBytes = response.bodyBytes;
                       _localPreviewPath = tempFile.path;
                     });
@@ -158,18 +159,18 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                 }
               } catch (_) {}
             }
-            setState(() {
+            safeSetState(() {
               _scrapingStatus = AppLocalizations.of(context)?.enrichmentCompleted;
               _pendingEnrichment = false;
             });
             Future.delayed(const Duration(seconds: 2), () {
               if (mounted && _scrapingStatus == AppLocalizations.of(context)?.enrichmentCompleted) {
-                setState(() => _scrapingStatus = null);
+                safeSetState(() => _scrapingStatus = null);
               }
             });
         });
       }
-      setState(() {
+      safeSetState(() {
         _scrapingStatus = l10n?.scrapingFillingFields ?? AppLocalizations.of(context)?.enrichmentPending;
       });
       if (enrichmentFuture != null) {
@@ -188,30 +189,30 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         });
       }
     } catch (e) {
-      setState(() {
+      safeSetState(() {
         _scrapingStatus = l10n?.scrapingError;
       });
       Future.delayed(const Duration(seconds: 5), () {
         if (mounted) {
-          setState(() => _scrapingStatus = null);
+          safeSetState(() => _scrapingStatus = null);
         }
       });
     } finally {
       if (mounted) {
-        setState(() => _isScraping = false);
+        safeSetState(() => _isScraping = false);
       }
     }
   }
 
   Future<void> _loadWishlists() async {
-    setState(() => _isLoadingWishlists = true);
+    safeSetState(() => _isLoadingWishlists = true);
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId == null) return;
       final page = await _wishlistRepo.fetchUserWishlists(ownerId: userId, limit: 50);
       final wishlists = page.items;
       if (!mounted) return;
-      setState(() {
+      safeSetState(() {
         _wishlists = wishlists;
         if (_wishlists.isNotEmpty) {
           _selectedWishlistId = _wishlists.first.id;
@@ -219,12 +220,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       });
     } catch (e) {
       final l10n = AppLocalizations.of(context);
-      setState(() {
+      safeSetState(() {
         _erro = l10n?.errorLoadingWishlists(e.toString()) ?? 'Erro ao carregar wishlists: $e';
       });
     } finally {
       if (mounted) {
-        setState(() => _isLoadingWishlists = false);
+        safeSetState(() => _isLoadingWishlists = false);
       }
     }
   }
@@ -232,11 +233,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   Future<void> _createWishlist() async {
     if (_newWishlistNameController.text.trim().isEmpty) return;
     final l10n = AppLocalizations.of(context);
-    setState(() => _isCreatingWishlist = true);
+    safeSetState(() => _isCreatingWishlist = true);
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId == null) {
-        setState(() {
+        safeSetState(() {
           _erro = 'É necessário autenticar para criar uma wishlist.';
         });
         return;
@@ -250,7 +251,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       );
   if (id == null) throw Exception(l10n?.createWishlistError ?? 'Falha ao criar wishlist');
       _newWishlistNameController.clear();
-      setState(() {
+      safeSetState(() {
         _wishlists.insert(0, Wishlist(
           id: id,
           name: name,
@@ -262,16 +263,16 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         _selectedWishlistId = id;
       });
     } catch (e) {
-      setState(() {
+      safeSetState(() {
         _erro = AppLocalizations.of(context)?.errorCreatingWishlist(e.toString()) ?? 'Erro ao criar wishlist: $e';
       });
     } finally {
-      if (mounted) setState(() => _isCreatingWishlist = false);
+      if (mounted) safeSetState(() => _isCreatingWishlist = false);
     }
   }
 
   Future<void> _loadItemData() async {
-    setState(() => _isSaving = true);
+    safeSetState(() => _isSaving = true);
     try {
       final item = await _wishItemRepo.fetchById(widget.itemId!);
       if (!mounted) return;
@@ -284,9 +285,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         _existingImageUrl = item.imageUrl;
       }
     } catch (e) {
-      setState(() => _erro = AppLocalizations.of(context)?.errorLoadingItem(e.toString()) ?? 'Erro ao carregar item: $e');
+      safeSetState(() => _erro = AppLocalizations.of(context)?.errorLoadingItem(e.toString()) ?? 'Erro ao carregar item: $e');
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) safeSetState(() => _isSaving = false);
     }
   }
 
@@ -299,7 +300,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     );
     if (pickedFile != null) {
       final imageBytes = await pickedFile.readAsBytes();
-      setState(() {
+      safeSetState(() {
         _imageBytes = imageBytes;
         _localPreviewPath = pickedFile.path;
       });
@@ -321,15 +322,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     if (!_formKey.currentState!.validate()) return;
     final finalWishlistId = widget.wishlistId ?? _selectedWishlistId;
     if (finalWishlistId == null) {
-      setState(() {
+      safeSetState(() {
         _erro = AppLocalizations.of(context)?.selectOrCreateWishlistPrompt ?? 'Por favor, selecione ou crie uma wishlist.';
       });
       return;
     }
-    setState(() => _isSaving = true);
+    safeSetState(() => _isSaving = true);
     String? uploadedUrl;
     if (_imageBytes != null) {
-      setState(() => _isUploading = true);
+      safeSetState(() => _isUploading = true);
       try {
         final tempFileForUpload = await File(
           '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
@@ -343,20 +344,20 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         );
         if (!mounted) return;
         _existingImageUrl = uploadedUrl;
-        if (uploadedUrl != null) {
-          await ImageCacheService.putFile(uploadedUrl, _imageBytes!);
+        if (uploadedUrl?.isNotEmpty == true) {
+          await ImageCacheService.putFile(uploadedUrl!, _imageBytes!);
         }
         MonitoringService.logImageUploadSuccess('item', id: targetId, bytes: _imageBytes?.length);
             } catch (e) {
         MonitoringService.logImageUploadFail('item', e);
-        setState(() => _erro = AppLocalizations.of(context)?.imageUploadFailed(e.toString()) ?? 'Falha upload imagem: $e');
+        safeSetState(() => _erro = AppLocalizations.of(context)?.imageUploadFailed(e.toString()) ?? 'Falha upload imagem: $e');
       } finally {
-        if (mounted) setState(() => _isUploading = false);
+        if (mounted) safeSetState(() => _isUploading = false);
       }
     }
     final ownerId = AuthService.getCurrentUserId();
     if (ownerId == null) {
-      setState(() {
+      safeSetState(() {
         _erro = 'É necessário autenticar para guardar itens.';
         _isSaving = false;
       });
@@ -395,7 +396,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     }
     if (!ok) {
       if (!mounted) return;
-      setState(() {
+      safeSetState(() {
         _erro = 'Falha ao guardar alterações';
         _isSaving = false;
       });
@@ -408,7 +409,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     } catch (_) {}
     if (!mounted) return;
     Navigator.of(context).pop(true);
-    if (mounted) setState(() => _isSaving = false);
+    if (mounted) safeSetState(() => _isSaving = false);
   }
 
   @override
@@ -481,7 +482,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                                 child: Text(w.name, overflow: TextOverflow.ellipsis),
                                               ))
                                           .toList(),
-                                      onChanged: (newValue) => setState(() => _selectedWishlistId = newValue),
+                                      onChanged: (newValue) => safeSetState(() => _selectedWishlistId = newValue),
                                       validator: (value) => ValidationUtils.validateWishlistSelection(value, context),
                                     ),
                                   ),
@@ -530,7 +531,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                       localPreviewPath: _localPreviewPath,
                       onTap: _pickImage,
                       isUploading: _isUploading,
-                      transformationType: ImageType.productThumbnail,
+                      transformationType: cloudinary_service.ImageType.productThumbnail,
                       size: 100,
                       circle: true,
                       fallbackIcon: const Icon(Icons.add_a_photo, size: 42),
@@ -562,7 +563,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                                 child: Row(children: [Icon(c.icon), const SizedBox(width: 10), Text(c.name)]),
                               ))
                           .toList(),
-                      onChanged: (newValue) => setState(() => _selectedCategory = newValue),
+                      onChanged: (newValue) => safeSetState(() => _selectedCategory = newValue),
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
