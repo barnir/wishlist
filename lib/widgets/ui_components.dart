@@ -20,20 +20,26 @@ class WishlistAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AppBar(
       title: Text(
         title,
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        style: theme.textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.15,
         ),
       ),
       centerTitle: true,
       elevation: 0,
-      scrolledUnderElevation: 0,
+      scrolledUnderElevation: 2, // Material 3 standard for scrolled content
+      surfaceTintColor: theme.colorScheme.surfaceTint,
+      backgroundColor: theme.colorScheme.surface,
+      foregroundColor: theme.colorScheme.onSurface,
       leading: showBackButton
           ? IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.arrow_back, size: 24), // Standardized icon size
               onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             )
           : null,
       actions: actions,
@@ -59,21 +65,29 @@ class WishlistCard extends StatelessWidget {
     this.padding = UIConstants.paddingM,
     this.onTap,
     this.backgroundColor,
-    this.elevation = UIConstants.elevationM,
+    this.elevation,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Material 3 standard: reduced elevation, prefer surface tint
+    final cardElevation = elevation ?? 1.0;
+    
     return Card(
       margin: margin,
-      elevation: elevation,
+      elevation: cardElevation,
       color: backgroundColor,
+      surfaceTintColor: theme.colorScheme.surfaceTint,
+      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.1), // Reduced shadow intensity
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        borderRadius: BorderRadius.circular(16), // Material 3 standard radius
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        borderRadius: BorderRadius.circular(16),
+        splashColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+        highlightColor: theme.colorScheme.primary.withValues(alpha: 0.05),
         child: Padding(
           padding: padding!,
           child: child,
@@ -100,7 +114,7 @@ class WishlistButton extends StatelessWidget {
     this.isPrimary = true,
     this.icon,
     this.width,
-    this.height = UIConstants.buttonHeightM,
+    this.height = 48.0, // Material 3 minimum touch target
   });
 
   void _handlePress() {
@@ -112,20 +126,47 @@ class WishlistButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    // Material 3 button styling
     final buttonStyle = isPrimary
-        ? AppButtonStyles.primaryButton(context)
-        : AppButtonStyles.secondaryButton(context);
+        ? ElevatedButton.styleFrom(
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+            elevation: isLoading ? 0 : 1,
+            shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.1),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), // Pill shape
+            minimumSize: Size(width ?? 120, height),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            textStyle: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.1,
+            ),
+          )
+        : OutlinedButton.styleFrom(
+            foregroundColor: theme.colorScheme.primary,
+            side: BorderSide(color: theme.colorScheme.outline, width: 1),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), // Pill shape
+            minimumSize: Size(width ?? 120, height),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            textStyle: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.1,
+            ),
+          );
+
+    final buttonContent = _buildButtonContent(theme);
 
     final button = isPrimary
         ? ElevatedButton(
             onPressed: isLoading ? null : _handlePress,
             style: buttonStyle,
-            child: _buildButtonContent(),
+            child: buttonContent,
           )
         : OutlinedButton(
             onPressed: isLoading ? null : _handlePress,
             style: buttonStyle,
-            child: _buildButtonContent(),
+            child: buttonContent,
           );
 
     return SizedBox(
@@ -135,12 +176,15 @@ class WishlistButton extends StatelessWidget {
     );
   }
 
-  Widget _buildButtonContent() {
+  Widget _buildButtonContent(ThemeData theme) {
     if (isLoading) {
-      return const SizedBox(
+      return SizedBox(
         width: 20,
         height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: isPrimary ? theme.colorScheme.onPrimary : theme.colorScheme.primary,
+        ),
       );
     }
 
@@ -148,8 +192,8 @@ class WishlistButton extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: UIConstants.iconSizeS),
-          Spacing.horizontalS,
+          Icon(icon, size: 20), // Standardized icon size
+          const SizedBox(width: 8),
           Text(text),
         ],
       );
@@ -245,13 +289,14 @@ class _WishlistEmptyStateState extends State<WishlistEmptyState>
   void initState() {
     super.initState();
     
+    // Material 3 standard animation durations
     _iconController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     
     _textController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
@@ -305,9 +350,11 @@ class _WishlistEmptyStateState extends State<WishlistEmptyState>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Center(
       child: Padding(
-        padding: UIConstants.paddingL,
+        padding: const EdgeInsets.all(32.0), // More generous padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -315,16 +362,21 @@ class _WishlistEmptyStateState extends State<WishlistEmptyState>
               opacity: _iconFadeAnimation,
               child: ScaleTransition(
                 scale: _iconScaleAnimation,
-                child: Icon(
-                  widget.icon,
-                  size: UIConstants.iconSizeXXL,
-                  color: Theme.of(context).colorScheme.primary.withAlpha(
-                    (255 * UIConstants.opacityLight).round(),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    size: 64, // Material 3 standard icon size for empty states
+                    color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
               ),
             ),
-            Spacing.l,
+            const SizedBox(height: 32),
             AnimatedBuilder(
               animation: _textController,
               builder: (context, child) {
@@ -336,19 +388,24 @@ class _WishlistEmptyStateState extends State<WishlistEmptyState>
                       children: [
                         Text(
                           widget.title,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                            letterSpacing: 0.0,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        Spacing.m,
-                        Text(
-                          widget.subtitle,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        const SizedBox(height: 16),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: Text(
+                            widget.subtitle,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -357,7 +414,7 @@ class _WishlistEmptyStateState extends State<WishlistEmptyState>
               },
             ),
             if (widget.actionText != null && widget.onAction != null) ...[
-              Spacing.l,
+              const SizedBox(height: 32),
               AnimatedBuilder(
                 animation: _textController,
                 builder: (context, child) {
@@ -367,6 +424,7 @@ class _WishlistEmptyStateState extends State<WishlistEmptyState>
                       text: widget.actionText!,
                       onPressed: widget.onAction,
                       width: 200,
+                      isPrimary: true,
                     ),
                   );
                 },

@@ -3,6 +3,63 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
 
+/// Micro-interaction animation widget for enhanced visual feedback
+class PulseAnimation extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+  final VoidCallback? onTap;
+  
+  const PulseAnimation({
+    super.key,
+    required this.child,
+    this.duration = const Duration(milliseconds: 150),
+    this.onTap,
+  });
+
+  @override
+  State<PulseAnimation> createState() => _PulseAnimationState();
+}
+
+class _PulseAnimationState extends State<PulseAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(duration: widget.duration, vsync: this);
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        child: widget.child,
+        builder: (context, child) {
+          return Transform.scale(scale: _scaleAnimation.value, child: child);
+        },
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+}
+
 class ProfileStatsCard extends StatelessWidget {
   final int wishlistsCount;
   final int itemsCount;
@@ -20,75 +77,119 @@ class ProfileStatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildStatItem(
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.05),
+            blurRadius: 8.0,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Expanded(
+            child: _buildStatItem(
               context,
               l10n.wishlists,
               wishlistsCount.toString(),
-              Icons.list_alt,
+              Icons.list_alt_outlined,
             ),
-            _buildDivider(),
-            _buildStatItem(
+          ),
+          _buildDivider(context),
+          Expanded(
+            child: _buildStatItem(
               context,
               l10n.items,
               itemsCount.toString(),
-              Icons.inventory_2,
+              Icons.inventory_2_outlined,
             ),
-            _buildDivider(),
-            _buildStatItem(
+          ),
+          _buildDivider(context),
+          Expanded(
+            child: _buildStatItem(
               context,
               l10n.favorites,
               favoritesCount.toString(),
-              Icons.favorite,
+              Icons.favorite_outline,
             ),
-            _buildDivider(),
-            _buildStatItem(
+          ),
+          _buildDivider(context),
+          Expanded(
+            child: _buildStatItem(
               context,
               l10n.shared,
               sharedCount.toString(),
-              Icons.share,
+              Icons.share_outlined,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildStatItem(BuildContext context, String label, String value, IconData icon) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-          size: 24,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+    final theme = Theme.of(context);
+    return PulseAnimation(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Ícone primeiro, pequeno e discreto
+          Icon(
+            icon,
+            size: 22.0,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
+          const SizedBox(height: 8.0),
+          // Número grande e prominente
+          Text(
+            value,
+            style: theme.textTheme.displayMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: theme.colorScheme.onSurface,
+              fontSize: 36.0,
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(height: 4.0),
+          // Label pequeno em baixo
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              fontSize: 12.0,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildDivider() {
+  Widget _buildDivider(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      height: 40,
-      width: 1,
-      color: Colors.grey.withValues(alpha: 0.3),
+      width: 1.0,
+      height: 40.0,
+      margin: const EdgeInsets.symmetric(horizontal: 12.0),
+      color: theme.colorScheme.outline.withValues(alpha: 0.15),
     );
   }
 }
@@ -115,173 +216,184 @@ class ProfileHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use a Stack so the avatar can visually float above the card and its gradient
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Card(
-          elevation: 4,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                  Theme.of(context).colorScheme.secondary.withValues(alpha: 0.6),
-                ],
-              ),
-            ),
-            // Add left padding to leave room for the overlapping avatar
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(132.0, 20.0, 20.0, 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isPrivate ? Icons.lock : Icons.public,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isPrivate
-                              ? (AppLocalizations.of(context)?.privateLabel ?? 'Privada')
-                              : (AppLocalizations.of(context)?.publicLabel ?? 'Pública'),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    bio.isNotEmpty ? bio : (AppLocalizations.of(context)?.addBio ?? 'Adicionar biografia...'),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontStyle: bio.isEmpty ? FontStyle.italic : FontStyle.normal,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: onEditProfile,
-                      icon: const Icon(Icons.edit),
-                      label: Text(AppLocalizations.of(context)!.editProfile),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 3, // Reduced elevation following Material 3 guidelines
+      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          // Simplified gradient for better contrast and modern look
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.85),
+            ],
+            stops: const [0.0, 1.0],
           ),
         ),
-        // Positioned avatar that floats above the card
-        Positioned(
-          left: 20,
-          top: -28,
-          child: Material(
-            color: Colors.transparent,
-            elevation: 6,
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: SizedBox(
-              width: 100,
-              height: 100,
-              // Use a Stack so we can place a circular mask behind the avatar and an overlay badge
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  // Circular mask same size as avatar to tightly hug the image
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      shape: BoxShape.circle,
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Row(
+            children: [
+              // Enhanced Avatar - more compact
+              PulseAnimation(
+                onTap: onImageTap,
+                child: Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.colorScheme.onPrimary.withValues(alpha: 0.8), width: 2.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15), // Reduced shadow intensity
+                        blurRadius: 6, // Slightly reduced
+                        offset: const Offset(0, 2), // Less dramatic
+                      ),
+                    ],
                   ),
-                  // Actual avatar container with border and padding
-                  Container(
-                    width: 100,
-                    height: 100,
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
-                    ),
-                    child: AnimatedProfileImage(
-                      key: ValueKey('profile_image_${profileImageUrl ?? 'no_image'}'),
-                      profileImageUrl: profileImageUrl,
-                      isUploading: isUploading,
-                      onImageTap: onImageTap,
-                      size: 92,
-                      showBadge: false, // hide internal badge; we'll render badge above everything here
-                    ),
+                  child: Stack(
+                    children: [
+                      ClipOval(
+                        child: AnimatedProfileImage(
+                          key: ValueKey('profile_image_${profileImageUrl ?? 'no_image'}'),
+                          profileImageUrl: profileImageUrl,
+                          isUploading: isUploading,
+                          onImageTap: onImageTap,
+                          size: 65, // 70 - border width
+                          showBadge: false,
+                        ),
+                      ),
+                      // Enhanced camera badge - smaller
+                      Positioned(
+                        bottom: 1,
+                        right: 1,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onPrimary, // Use theme color instead of hardcoded white
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12), // Softer shadow
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.camera_alt_outlined,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  // Overlay badge positioned to be above all other children
-                  Positioned(
-                    bottom: -4,
-                    right: -4,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Enhanced Profile info - more compact
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 22, // Slightly larger for better hierarchy
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onPrimary, // Use theme color
+                        letterSpacing: 0.3, // Reduced for better readability
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Enhanced privacy indicator - smaller
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.12),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.2), // Use theme-based transparency
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.25),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isPrivate ? Icons.lock_outline : Icons.public_outlined,
+                            size: 14, // Increased from 12 for better visibility
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isPrivate
+                                ? (AppLocalizations.of(context)?.privateLabel ?? 'Privada')
+                                : (AppLocalizations.of(context)?.publicLabel ?? 'Pública'),
+                            style: TextStyle(
+                              fontSize: 12, // Increased from 11 for better readability
+                              color: theme.colorScheme.onPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.camera_alt,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      bio.isNotEmpty ? bio : (AppLocalizations.of(context)?.addBio ?? 'Adicionar biografia...'),
+                      style: TextStyle(
+                        fontSize: 14, // Increased from 13 for better readability
+                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.9), // Use theme color
+                        fontStyle: bio.isEmpty ? FontStyle.italic : FontStyle.normal,
+                        height: 1.4, // Better line height for readability
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    // Enhanced edit button - more compact
+                    PulseAnimation(
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: onEditProfile,
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: Text(
+                            AppLocalizations.of(context)!.editProfile,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.colorScheme.onPrimary, // Use theme color
+                            foregroundColor: theme.colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20), // Improved touch target
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16), // Consistent with card radius
+                            ),
+                            elevation: 1, // Reduced elevation
+                            shadowColor: Colors.black.withValues(alpha: 0.1), // Softer shadow
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -300,36 +412,68 @@ class ProfileSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+      elevation: 4,
+      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.surface,
+              theme.colorScheme.surface.withValues(alpha: 0.95),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: theme.colorScheme.onPrimaryContainer,
+                      size: 24,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ...children,
-          ],
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...children,
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
 
 class ProfileListTile extends StatelessWidget {
   final IconData icon;
@@ -351,16 +495,57 @@ class ProfileListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: iconColor ?? Theme.of(context).colorScheme.primary,
-      ),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle!) : null,
-      trailing: trailing,
+    final theme = Theme.of(context);
+    return PulseAnimation(
       onTap: onTap,
-      contentPadding: EdgeInsets.zero,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        child: ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (iconColor ?? theme.colorScheme.primary).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor ?? theme.colorScheme.primary,
+              size: 20,
+            ),
+          ),
+          title: Text(
+            title,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: subtitle != null 
+              ? Text(
+                  subtitle!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ) 
+              : null,
+          trailing: trailing ?? (onTap != null 
+              ? Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ) 
+              : null),
+          onTap: onTap,
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+        ),
+      ),
     );
   }
 }

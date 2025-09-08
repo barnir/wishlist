@@ -96,39 +96,53 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48), // More generous padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
+              // Material 3 style app branding
               Center(
                 child: Container(
-                  width: 80,
-                  height: 80,
+                  width: 96,
+                  height: 96,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(20),
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(24), // Material 3 standard radius
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.shadow.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Icon(
                     Icons.card_giftcard_rounded,
-                    color: theme.colorScheme.onPrimary,
-                    size: 40,
+                    color: theme.colorScheme.onPrimaryContainer,
+                    size: 48,
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               Text(
                 'Bem-vindo de volta!',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 'Acede à tua conta para gerir as tuas wishlists',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
               Stack(
                 children: [
                   Form(
@@ -136,83 +150,163 @@ class _LoginScreenState extends State<LoginScreen> with RateLimited {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Material 3 outlined text field
                         TextFormField(
                           controller: _emailController,
                           enabled: !_isLoading,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Email',
                             hintText: 'email@exemplo.com',
-                            prefixIcon: Icon(Icons.email_outlined),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              size: 24,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.outline,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              ),
+                            ),
                           ),
                           validator: (v) => ValidationUtils.validateEmail(v, context),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         TextFormField(
                           controller: _passwordController,
                           enabled: !_isLoading,
                           obscureText: true,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Password',
-                            hintText: '********',
-                            prefixIcon: Icon(Icons.lock_outline),
+                            hintText: '••••••••',
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              size: 24,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.outline,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              ),
+                            ),
                           ),
                           validator: (v) => ValidationUtils.validatePassword(v, context),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
+                        // Material 3 filled button
                         FilledButton(
                           onPressed: _isLoading ? null : _loginEmail,
                           style: FilledButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            minimumSize: const Size(double.infinity, 56), // Material 3 standard height
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: theme.colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
                           ),
                           child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
+                              ? SizedBox(
+                                  width: 24,
+                                  height: 24,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    color: theme.colorScheme.onPrimary,
                                   ),
                                 )
-                              : const Text(
+                              : Text(
                                   'Entrar com Email',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.1,
+                                  ),
                                 ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
+                        // Material 3 divider
                         Row(
                           children: [
-                            Expanded(child: Divider(color: theme.colorScheme.outline)),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text('ou'),
+                            Expanded(
+                              child: Divider(
+                                color: theme.colorScheme.outlineVariant,
+                                thickness: 1,
+                              ),
                             ),
-                            Expanded(child: Divider(color: theme.colorScheme.outline)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'ou',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: theme.colorScheme.outlineVariant,
+                                thickness: 1,
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
+                        // Material 3 outlined button for Google
                         OutlinedButton.icon(
                           onPressed: _isLoading ? null : _loginGoogle,
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 56),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            side: BorderSide(
+                              color: theme.colorScheme.outline,
+                              width: 1,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            backgroundColor: theme.colorScheme.surface,
+                            foregroundColor: theme.colorScheme.onSurface,
                           ),
                           icon: Padding(
                             padding: const EdgeInsets.all(2),
                             child: Image.asset(
                               'assets/images/google_logo.png',
-                              width: 20,
-                              height: 20,
-                              errorBuilder: (c, e, s) => Icon(Icons.g_mobiledata, color: theme.colorScheme.primary),
+                              width: 24,
+                              height: 24,
+                              errorBuilder: (c, e, s) => Icon(
+                                Icons.g_mobiledata,
+                                color: theme.colorScheme.primary,
+                                size: 24,
+                              ),
                             ),
                           ),
                           label: Text(
                             'Continuar com Google',
-                            style: TextStyle(
-                              fontSize: 16,
+                            style: theme.textTheme.labelLarge?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onSurface,
+                              letterSpacing: 0.1,
                             ),
                           ),
                         ),

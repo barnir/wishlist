@@ -51,66 +51,11 @@ class MemoizedStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _StatRow(
-              icon: Icons.list_alt,
-              label: 'Wishlists',
-              value: wishlistsCount,
-            ),
-            const SizedBox(height: 8),
-            _StatRow(
-              icon: Icons.card_giftcard,
-              label: 'Items',
-              value: itemsCount,
-            ),
-            const SizedBox(height: 8),
-            _StatRow(
-              icon: Icons.favorite,
-              label: 'Favoritos',
-              value: favoritesCount,
-            ),
-            const SizedBox(height: 8),
-            _StatRow(
-              icon: Icons.share,
-              label: 'Partilhados',
-              value: sharedCount,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int value;
-
-  const _StatRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 20),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label)),
-        Text(
-          value.toString(),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+    return ProfileStatsCard(
+      wishlistsCount: wishlistsCount,
+      itemsCount: itemsCount,
+      favoritesCount: favoritesCount,
+      sharedCount: sharedCount,
     );
   }
 }
