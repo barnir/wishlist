@@ -1892,17 +1892,17 @@ abstract class AppLocalizations {
   /// **'Invalid quantity'**
   String get quantityInvalid;
 
-  /// Label for price input field
+  /// Label campo preço
   ///
   /// In en, this message translates to:
   /// **'Price'**
   String get priceLabel;
 
-  /// Validation: price parse failed
+  /// Helper text indicating image was optimized via Cloudinary
   ///
   /// In en, this message translates to:
-  /// **'Invalid price'**
-  String get priceInvalid;
+  /// **'Image optimized by Cloudinary'**
+  String get cloudinary_optimized_image;
 
   /// Prompt shown when user must either select an existing wishlist or create one
   ///
@@ -2065,6 +2065,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'URL too long'**
   String get urlTooLong;
+
+  /// Validation: price parse failed
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid price'**
+  String get priceInvalid;
 
   /// Validation: price < 0
   ///

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mywishstash/services/cloudinary_service.dart' as cloudinary_service;
+import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:mywishstash/utils/performance_utils.dart';
 import '../theme_extensions.dart';
 
@@ -71,17 +72,26 @@ class FastCloudinaryImage extends StatelessWidget {
       maxHeightDiskCache: (height?.toInt() ?? 400) * 2,
     );
 
+    // Apply semantics for accessibility using localized string
+  final semanticsLabel = AppLocalizations.of(context)?.cloudinary_optimized_image ?? 'Image optimized';
+
+    Widget wrapped = Semantics(
+      label: semanticsLabel,
+      image: true,
+      child: imageWidget,
+    );
+
     // Aplicar forma circular ou bordas arredondadas
     if (circle) {
-      return ClipOval(child: imageWidget);
+      return ClipOval(child: wrapped);
     } else if (borderRadius != null) {
       return ClipRRect(
         borderRadius: borderRadius!,
-        child: imageWidget,
+        child: wrapped,
       );
     }
 
-    return imageWidget;
+    return wrapped;
   }
 
   Widget _buildShimmerPlaceholder(BuildContext context) {

@@ -146,6 +146,8 @@ app.*.symbols
 # IDE specific
 .idea/
 .claude/
+.github
+
 
 # Claude AI assistant directories
 .claude_temp/
@@ -154,10 +156,12 @@ claude_work/
 
 # Documentation files - EXCLUDED FROM GIT
 PROGRESS_SESSION.md
-SESSION_*.md  
+# Documentation files - EXCLUDED FROM GIT (explicit only)
+# keep specific session/progress files ignored, but do NOT ignore all markdown files
+PROGRESS_SESSION.md
+SESSION_*.md
 PROMPT_PROXIMA_SESSAO.md
 PROGRESSO_DESENVOLVIMENTO.md
-*.md
 
 # Supabase
 supabase/.temp/
@@ -181,3 +185,8 @@ functions/firebase-debug.*.log
 android/NDH6SA~M
 supabase/migrations/20250825000001_add_fcm_token_to_users.sql
 .flutter_input
+checklist.md
+claude-context.md
+PROMPT_GUARDAR_SESSAO.md
+/docs
+/scrips

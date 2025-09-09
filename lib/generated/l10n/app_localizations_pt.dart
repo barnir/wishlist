@@ -982,7 +982,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get priceLabel => 'Preço';
 
   @override
-  String get priceInvalid => 'Preço inválido';
+  String get cloudinary_optimized_image => 'Imagem otimizada pelo Cloudinary';
 
   @override
   String get selectOrCreateWishlistPrompt =>
@@ -1075,6 +1075,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get urlTooLong => 'URL demasiado longo';
+
+  @override
+  String get priceInvalid => 'Preço inválido';
 
   @override
   String get priceNegative => 'Preço não pode ser negativo';
