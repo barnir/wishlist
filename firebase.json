@@ -16,7 +16,7 @@
     "indexes": "firestore.indexes.json"
   },
   "appDistribution": {
-    "app": "1:515293340951:android:c9caa6afc7bcfd5f040352",
+    "app": "1:515293340951:android:63eb4dfb8d828c8c040352",
     "releaseNotesFile": "release_notes.txt",
     "groups": ["wishlist-beta-testers"]
   }
