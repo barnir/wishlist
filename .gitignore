@@ -15,9 +15,11 @@
 functions/.env
 functions/.env.*
 
-# Claude documentation files
-CLAUDE_MIGRATION_SUMMARY.md
-PROMPT_PROXIMA_SESSAO.md
+# Claude / session documentation files (moved to dedicated folder)
+# ignore all session docs placed under .github/instructions/sessions/
+.github/instructions/sessions/
+# keep the repo memory file tracked
+!.github/instructions/memory.instruction.md
 
 
 # Flutter repo-specific
