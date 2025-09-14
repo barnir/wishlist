@@ -3,12 +3,14 @@
 ## 📋 Índice
 
 ### 🚀 **Início Rápido**
-- [README Principal](../README.md) - Visão geral do projeto
-- [Guia de Desenvolvimento](DEVELOPMENT_GUIDE.md) - Como começar a desenvolver
-- [Troubleshooting](TROUBLESHOOTING.md) - Resolução de problemas
+- [README Principal](../README.md) — visão geral do projeto
+- [Guia de Desenvolvimento](DEVELOPMENT_GUIDE.md) — como começar a desenvolver
+- [Troubleshooting](TROUBLESHOOTING.md) — resolução de problemas
+- [Improvements Overview](IMPROVEMENTS_OVERVIEW.md) — resumo consolidado das melhorias
+- [Performance Report](PERFORMANCE_REPORT.md) — detalhamento técnico de performance
 
 ### 🔧 **Documentação Técnica**
-- [API Documentation](API_DOCUMENTATION.md) - Documentação completa da API
+- [API Documentation](API_DOCUMENTATION.md) — Documentação completa da API
 
 ### 📁 **Estrutura da Documentação**
 
@@ -17,7 +19,9 @@ docs/
 ├── README.md                   # Este arquivo (índice)
 ├── DEVELOPMENT_GUIDE.md        # Guia de desenvolvimento
 ├── API_DOCUMENTATION.md        # Documentação da API
-└── TROUBLESHOOTING.md          # Guia de troubleshooting
+├── TROUBLESHOOTING.md          # Guia de troubleshooting
+├── IMPROVEMENTS_OVERVIEW.md    # Resumo consolidado de melhorias
+└── PERFORMANCE_REPORT.md       # Relatório técnico de performance
 ```
 
 ## 🎯 **Por Onde Começar**
@@ -38,23 +42,23 @@ docs/
 
 ## 🔍 **Busca Rápida**
 
-### 🔐 **Autenticação**
+### 🔐 **Autenticação (Firebase Auth)**
 - [AuthService](API_DOCUMENTATION.md#autenticação)
 - [Google Sign-In](TROUBLESHOOTING.md#problema-erro-no-google-sign-in)
 - [OTP/SMS](TROUBLESHOOTING.md#problema-otp-não-chega-via-sms)
 
-### 📊 **Base de Dados**
-- [SupabaseDatabaseService](API_DOCUMENTATION.md#base-de-dados)
-- [RLS Policies](TROUBLESHOOTING.md#problema-erro-de-permissão-rls)
-- [Conexão](TROUBLESHOOTING.md#problema-erro-de-conexão-com-supabase)
+### 📊 **Base de Dados (Cloud Firestore)**
+- [Repositórios/Serviços](API_DOCUMENTATION.md#base-de-dados)
+- [Regras/Permissões](TROUBLESHOOTING.md#problema-erro-de-permissão)
+- [Conexão](TROUBLESHOOTING.md#problema-erro-de-conexão)
 
-### 📸 **Storage**
-- [SupabaseStorageService](API_DOCUMENTATION.md#storage)
+### 📸 **Imagens (Cloudinary)**
+- [CloudinaryService](API_DOCUMENTATION.md#imagens)
 - [Upload de Imagens](TROUBLESHOOTING.md#problema-upload-de-imagem-falha)
-- [Lazy Loading](TROUBLESHOOTING.md#problema-imagem-não-carrega)
+- [Lazy Loading / Otimizações](TROUBLESHOOTING.md#problema-imagem-não-carrega)
 
-### 🛍️ **Web Scraping**
-- [WebScraperService](API_DOCUMENTATION.md#web-scraping)
+### 🛍️ **Web Scraping (Cloud Functions)**
+- [Secure Scraper (callable)](API_DOCUMENTATION.md#web-scraping)
 - [Rate Limiting](TROUBLESHOOTING.md#problema-rate-limiting)
 - [Domínios Permitidos](TROUBLESHOOTING.md#problema-scraping-não-funciona)
 
@@ -68,19 +72,17 @@ docs/
 - [APK Size](TROUBLESHOOTING.md#problema-apk-muito-grande)
 - [Google Play](DEVELOPMENT_GUIDE.md#google-play-store)
 
-## 📞 **Suporte**
+### 📞 **Suporte**
 
 ### 🆘 **Problemas Técnicos**
-- **Email**: suporte@wishlistapp.com
-- **Issues**: [GitHub Issues](https://github.com/seu-usuario/wishlist_app/issues)
-- **Documentação**: [Wiki](https://github.com/seu-usuario/wishlist_app/wiki)
+- **Issues**: https://github.com/barnir/wishlist/issues
 
 ### 📊 **Informações do Projeto**
-- **Versão**: 1.0.0
-- **Flutter**: ^3.8.1
-- **Supabase**: ^2.9.1
+- **Versão**: consulte CHANGELOG.md
+- **Flutter**: 3.35.1+
+- **Stack**: Firebase (Auth, Firestore, Functions, Messaging, Analytics) + Cloudinary
 - **Plataforma**: Android
-- **Última atualização**: Janeiro 2025
+- **Última atualização**: Setembro 2025
 
 ## 🔄 **Contribuição**
 

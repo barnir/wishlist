@@ -133,6 +133,8 @@ flutter test
 cd functions && npm run build && firebase deploy --only functions
 ```
 
+Para conhecer as melhorias e o estado atual de otimizações, veja também: docs/IMPROVEMENTS_OVERVIEW.md
+
 ---
 
 ## 📁 Estrutura do Projeto
