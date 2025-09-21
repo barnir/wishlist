@@ -133,6 +133,8 @@
   "@enrichmentPending": {"description":"Shown while metadata enrichment is pending"},
   "enrichmentRateLimited": "Enrichment limit reached. Try later.",
   "@enrichmentRateLimited": {"description":"Shown when user is rate limited for enrich link"},
+  "enrichmentFailed": "Enrichment failed",
+  "@enrichmentFailed": {"description":"Shown when enrichment fails to fetch data"},
   "enrichmentCompleted": "Details enriched.",
   "@enrichmentCompleted": {"description":"Shown when enrichment finishes"},
 

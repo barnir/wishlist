@@ -8,6 +8,8 @@ import 'package:mywishstash/repositories/wish_item_repository.dart';
 import 'package:mywishstash/repositories/wishlist_repository.dart';
 import 'package:mywishstash/services/auth_service.dart';
 import 'package:mywishstash/utils/app_logger.dart';
+import 'package:mywishstash/services/share_enrichment_service.dart';
+import 'package:mywishstash/services/firebase_functions_service.dart';
 
 class WishlistExportResult {
   const WishlistExportResult({
@@ -215,6 +217,13 @@ class WishlistBackupService {
             continue;
           }
           itemsCreated += 1;
+
+          // Post-import enrichment: if item has link but no image, fetch metadata/image asynchronously
+          final hasLink = (item.link != null && item.link!.trim().isNotEmpty);
+          final hasImage = (item.imageUrl != null && item.imageUrl!.trim().isNotEmpty);
+          if (hasLink && !hasImage) {
+            _scheduleItemEnrichment(createdItemId, item);
+          }
         }
       }
 
@@ -242,5 +251,108 @@ class WishlistBackupService {
   Future<WishlistImportSummary> importFromFile(File file) async {
     final content = await file.readAsString();
     return importFromJson(content);
+  }
+
+  // Schedules enrichment for an imported item and updates its document with results (image/price/link/status).
+  void _scheduleItemEnrichment(String newItemId, WishItem importedItem) {
+    try {
+      final link = importedItem.link;
+      if (link == null || link.trim().isEmpty) return;
+
+      Future.microtask(() async {
+        try {
+          final svc = ShareEnrichmentService();
+          final res = await svc.processSharedText(link);
+          final data = await res.enrichmentFuture; // may be null if parsing failed
+          if (data == null) {
+            await _wishItemRepository.update(newItemId, {'enrich_status': 'failed'});
+            return;
+          }
+
+          final image = (data['image'] ?? '').toString().trim();
+          final priceRaw = data['price'];
+          final canonicalUrl = (data['canonicalUrl'] ?? '').toString().trim();
+          final isRateLimited = data['rateLimited'] == true;
+
+          final update = <String, dynamic>{};
+          var enriched = false;
+
+          if (image.isNotEmpty) {
+            var finalImageUrl = image;
+            if (!_isCloudinaryUrl(image)) {
+              try {
+                final mirror = await FirebaseFunctionsService().mirrorToCloudinary(
+                  url: image,
+                  folder: 'wishlist/products',
+                  publicIdHint: 'import_$newItemId',
+                );
+                final secureUrl = (mirror['secure_url'] ?? '').toString().trim();
+                if (secureUrl.isNotEmpty) {
+                  finalImageUrl = secureUrl;
+                }
+              } catch (mirrorErr, mirrorSt) {
+                logE(
+                  'Mirror to Cloudinary failed',
+                  tag: 'BACKUP',
+                  error: mirrorErr,
+                  stackTrace: mirrorSt,
+                  data: {'itemId': newItemId},
+                );
+              }
+            }
+            update['image_url'] = finalImageUrl;
+            enriched = true;
+          }
+
+          final price = _parsePrice(priceRaw);
+          if (price != null && importedItem.price == null) {
+            update['price'] = price;
+            enriched = true;
+          }
+
+          if (canonicalUrl.isNotEmpty) {
+            update['link'] = canonicalUrl;
+          }
+
+          if (isRateLimited) {
+            update['enrich_status'] = 'rate_limited';
+          } else {
+            update['enrich_status'] = enriched ? 'enriched' : 'failed';
+          }
+
+          final ok = await _wishItemRepository.update(newItemId, update);
+          if (!ok) {
+            appLog('Post-import enrichment update failed', tag: 'BACKUP', data: {'itemId': newItemId});
+          }
+        } catch (e, st) {
+          logE('Post-import enrichment error', tag: 'BACKUP', error: e, stackTrace: st, data: {'itemId': newItemId});
+          try {
+            await _wishItemRepository.update(newItemId, {'enrich_status': 'failed'});
+          } catch (_) {}
+        }
+      });
+    } catch (e) {
+      // non-fatal; import should succeed regardless
+      appLog('Failed to schedule enrichment', tag: 'BACKUP', data: {'itemId': newItemId, 'err': e.toString()});
+    }
+  }
+
+  double? _parsePrice(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    if (v is String) {
+      final s = v.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll('.', '').replaceAll(',', '.');
+      return double.tryParse(s);
+    }
+    return null;
+  }
+
+  bool _isCloudinaryUrl(String url) {
+    try {
+      final host = Uri.parse(url).host.toLowerCase();
+      return host.contains('res.cloudinary.com');
+    } catch (_) {
+      return false;
+    }
   }
 }

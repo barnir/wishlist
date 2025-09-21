@@ -152,5 +152,33 @@ class FirebaseFunctionsService {
       };
     }
   }
+  /// Mirror remote image URL to Cloudinary (best-effort helper).
+  Future<Map<String, dynamic>> mirrorToCloudinary({
+    required String url,
+    String folder = 'wishlist/products',
+    String? publicIdHint,
+  }) async {
+    try {
+      debugPrint('? Calling mirrorToCloudinary Cloud Function for URL: $url');
+      final callable = _functions.httpsCallable('mirrorToCloudinary');
+      final payload = <String, dynamic>{
+        'url': url,
+        'folder': folder,
+      };
+      if (publicIdHint != null) {
+        payload['publicIdHint'] = publicIdHint;
+      }
+
+      final result = await callable.call(payload);
+      return Map<String, dynamic>.from(result.data as Map);
+    } catch (e) {
+      debugPrint('? Error mirroring image to Cloudinary: $e');
+      return {
+        'secure_url': null,
+        'error': e.toString(),
+      };
+    }
+  }
+
 
 }

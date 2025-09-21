@@ -1,6 +1,8 @@
 import * as admin from "firebase-admin";
 import { logger } from "firebase-functions";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { v2 as cloudinary } from "cloudinary";
+import * as functions from "firebase-functions";
 import { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } from "firebase-functions/v2/firestore";
 
 // Initialize admin SDK once
@@ -518,6 +520,98 @@ export const deleteUser = onCall<DeletionSummary>(async (request) => {
   } catch (e:any) {
     logger.error('deleteUser error', {uid, error: String(e)});
     throw new HttpsError('internal', 'Falha ao apagar dados do utilizador');
+  }
+});
+
+// mirrorToCloudinary: Downloads a remote image URL on the server side (via Cloudinary) and
+// stores it in your Cloudinary account, returning the secure_url and public_id.
+// This is a skeleton implementation: make sure to set Cloudinary credentials
+// using Firebase Functions config (never commit secrets):
+//   firebase functions:config:set cloudinary.cloud_name="..." cloudinary.api_key="..." cloudinary.api_secret="..."
+// Optionally add domain allowlist and rate limiting as needed.
+export const mirrorToCloudinary = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated.');
+  }
+
+  const { url, folder, publicIdHint } = (request.data ?? {}) as {
+    url?: string;
+    folder?: string;
+    publicIdHint?: string;
+  };
+
+  if (!url || typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+    throw new HttpsError('invalid-argument', 'A valid http(s) url is required.');
+  }
+
+  // Basic SSRF guard: block localhost/private ranges. Consider adding an allowlist per your needs.
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    const blocked = [
+      'localhost', '127.0.0.1', '::1',
+    ];
+    if (blocked.includes(host) || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host)) {
+      throw new HttpsError('permission-denied', 'Target host is not allowed.');
+    }
+  } catch (_) {
+    throw new HttpsError('invalid-argument', 'Malformed URL.');
+  }
+
+  const allowedFolders = new Set([
+    'wishlist/products', 'wishlist/wishlists', 'wishlist/profiles',
+  ]);
+  const targetFolder = allowedFolders.has(folder ?? '') ? folder! : 'wishlist/products';
+
+  // Load Cloudinary credentials from Functions config (set via CLI). Do NOT commit secrets.
+  const cfg = (functions.config().cloudinary || {}) as any;
+  const cloudName: string | undefined = cfg.cloud_name || process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey: string | undefined = cfg.api_key || process.env.CLOUDINARY_API_KEY;
+  const apiSecret: string | undefined = cfg.api_secret || process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    logger.error('Cloudinary not configured');
+    throw new HttpsError('failed-precondition', 'Cloudinary is not configured.');
+  }
+
+  cloudinary.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+    secure: true,
+  });
+
+  // Build a stable public_id hint
+  const ts = Date.now();
+  const safeHint = (publicIdHint && /^[a-zA-Z0-9_\-/]+$/.test(publicIdHint)) ? publicIdHint : undefined;
+  const publicId = safeHint ?? `mirrored_${uid}_${ts}`;
+
+  try {
+    // Cloudinary can fetch remote URLs directly server-side
+    const result = await cloudinary.uploader.upload(url, {
+      folder: targetFolder,
+      public_id: publicId,
+      resource_type: 'image',
+      overwrite: false,
+      unique_filename: true,
+      use_filename: false,
+    });
+
+    logger.info('mirrorToCloudinary success', { uid, folder: targetFolder, publicId: result.public_id });
+    return {
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+      width: result.width,
+      height: result.height,
+      bytes: result.bytes,
+      format: result.format,
+      folder: result.folder,
+    };
+  } catch (e: any) {
+    logger.error('mirrorToCloudinary error', { uid, error: String(e) });
+    // Map common errors to HttpsError
+    throw new HttpsError('internal', e?.message ?? 'Upload failed');
   }
 });
 

@@ -179,6 +179,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enrichmentRateLimited => 'Enrichment limit reached. Try later.';
 
   @override
+  String get enrichmentFailed => 'Enrichment failed';
+
+  @override
   String get enrichmentCompleted => 'Details enriched.';
 
   @override

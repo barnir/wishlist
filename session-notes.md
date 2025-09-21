@@ -121,5 +121,56 @@ Serviços core: AuthService/FirebaseAuthService, ResourceManager, CloudinaryServ
 
 ---
 
-> Para automatizar: copie e cole este conteúdo aqui e eu salvarei automaticamente em `session-notes.md`.
-> Salve este documento como `session-notes.md` ao finalizar a sessão. Adicione links para PRs, commits ou issues relevantes.
+ > Para automatizar: copie e cole este conteúdo aqui e eu salvarei automaticamente em `session-notes.md`.
+ > Salve este documento como `session-notes.md` ao finalizar a sessão. Adicione links para PRs, commits ou issues relevantes.
+
+---
+## Resumo da Sessão
+- Principais tarefas realizadas:
+  - Validação e limpeza completa da documentação (docs folder)
+  - Criação de templates de sessão automatizados (PROMPT_GUARDAR_SESSAO.md e PROMPT_PROXIMA_SESSAO.md)
+  - Adição da funcionalidade Export/Import de Wishlists ao backlog de desenvolvimento
+- Decisões importantes:
+  - Funcionalidade Export/Import será implementada em JSON (sem imagens inicialmente)
+  - Foco na página de perfil para interface do utilizador
+  - Manter padrões enterprise já estabelecidos no projeto
+- Dificuldades encontradas:
+  - Nenhuma - sessão fluiu sem problemas técnicos
+
+## Próximos Passos
+- Implementar Export/Import Wishlists Feature (prioridade máxima)
+- Performance Monitoring Integration (se tempo permitir)
+- Repository Pattern Expansion (backlog)
+
+## Referências/Links
+- TODO List atualizado com 8 itens priorizados
+- Templates de sessão criados para automação
+- Memory file atualizado com histórico
+
+---
+
+---
+## Resumo da Sessao
+- Principais tarefas realizadas:
+  - MirrorToCloudinary integrado no fluxo de importacao (enrich_status e fallback)
+  - StatusChip ajustado com estado failed e l10n regenerado
+  - Doc de melhorias actualizado com plano opcional de mirror server-side
+  - Funcoes Firebase rebuild + deploy (incluindo mirrorToCloudinary)
+  - flutter analyze --no-fatal-infos executado (0 issues)
+- Decisoes importantes:
+  - Mirror roda em best-effort na importacao; mantem-se fallback se Cloudinary indisponivel
+  - Itens rate limited permanecem com enrich_status=rate_limited para feedback ao utilizador
+- Dificuldades encontradas:
+  - Nenhuma
+
+## Proximos Passos
+- Adicionar testes unitarios para serializacao/enrichment do backup service
+- Considerar UI snackbar/status pos-importacao para informar enriquecimento em progresso
+- Avaliar mirror para imagens de wishlist/profile (folder dinamico)
+
+## Referencias/Links
+- functions/src/index.ts#mirrorToCloudinary
+- Deploy: firebase deploy --only functions (wishlistapp-b2b9a)
+- flutter analyze --no-fatal-infos
+
+---

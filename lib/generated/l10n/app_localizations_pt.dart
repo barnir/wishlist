@@ -181,6 +181,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Limite de enriquecimentos atingido. Tente mais tarde.';
 
   @override
+  String get enrichmentFailed => 'Falha no enriquecimento';
+
+  @override
   String get enrichmentCompleted => 'Detalhes enriquecidos.';
 
   @override

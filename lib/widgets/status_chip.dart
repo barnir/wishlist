@@ -73,6 +73,14 @@ class StatusChip extends StatelessWidget {
           bgColor: semantic.dangerContainer,
           fgColor: semantic.onDangerContainer,
         );
+      case StatusChipStatus.failed:
+        return _StatusChipVisual(
+          label: l10n?.enrichmentFailed ?? 'Enrichment failed',
+          semanticLabel: l10n?.enrichmentFailed ?? 'Enrichment failed',
+          icon: Icons.error_outline,
+          bgColor: semantic.dangerContainer,
+          fgColor: semantic.onDangerContainer,
+        );
       case StatusChipStatus.completed:
         return _StatusChipVisual(
           label: l10n?.enrichmentCompleted ?? 'Completed',
@@ -85,7 +93,7 @@ class StatusChip extends StatelessWidget {
   }
 }
 
-enum StatusChipStatus { pending, rateLimited, completed }
+enum StatusChipStatus { pending, rateLimited, failed, completed }
 
 class _StatusChipVisual {
   final String label;

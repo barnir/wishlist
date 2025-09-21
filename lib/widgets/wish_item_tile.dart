@@ -8,6 +8,7 @@ import 'package:mywishstash/services/image_cache_service.dart';
 import 'package:mywishstash/services/haptic_service.dart';
 import '../models/wish_item.dart';
 import '../models/category.dart';
+import 'status_chip.dart';
 
 class WishItemTile extends StatelessWidget {
   final WishItem item;
@@ -204,59 +205,77 @@ class WishItemTile extends StatelessWidget {
   }
 
   Widget _buildProductImage(BuildContext context, dynamic category) {
-    return Container(
+    final border = BorderRadius.circular(12);
+    final chipStatus = _chipStatusFor(item.enrichStatus);
+    return SizedBox(
       width: 80,
       height: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-      child: FutureBuilder<File?>(
-        future: item.imageUrl != null && item.imageUrl!.isNotEmpty
-            ? ImageCacheService.getFile(item.imageUrl!)
-            : Future.value(null),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: border,
+            child: FutureBuilder<File?>(
+              future: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                  ? ImageCacheService.getFile(item.imageUrl!)
+                  : Future.value(null),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Container(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  );
+                } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                  // Fallback to category icon
+                  return Container(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Icon(
+                      category.icon,
+                      size: 32,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  );
+                } else {
+                  // Display the actual image
+                  return Image(
+                    image: FileImage(snapshot.data!),
+                    fit: BoxFit.cover,
+                  );
+                }
+              },
+            ),
+          ),
+          if (chipStatus != null)
+            Positioned(
+              top: 6,
+              left: 6,
+              child: StatusChip(
+                status: chipStatus,
+                dense: true,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               ),
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            );
-          } else if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-            // Fallback to category icon
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-              child: Icon(
-                category.icon,
-                size: 32,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            );
-          } else {
-            // Display the actual image
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                image: DecorationImage(
-                  image: FileImage(snapshot.data!),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            );
-          }
-        },
+            ),
+        ],
       ),
     );
+  }
+
+  StatusChipStatus? _chipStatusFor(String? s) {
+    final v = s?.toLowerCase().trim();
+    switch (v) {
+      case 'pending':
+        return StatusChipStatus.pending;
+      case 'failed':
+        return StatusChipStatus.failed;
+      case 'rate_limited':
+        return StatusChipStatus.rateLimited;
+      default:
+        return null; // do not show for 'enriched' or unknown
+    }
   }
 
   Future<void> _openLink(String url) async {

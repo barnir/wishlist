@@ -272,6 +272,8 @@
   "errorPrefix": "Erro: {error}",
   "enrichmentPending": "A melhorar detalhes...",
   "enrichmentRateLimited": "Limite de enriquecimentos atingido. Tente mais tarde.",
+  "enrichmentFailed": "Falha no enriquecimento",
+  "@enrichmentFailed": {"description":"Mostrado quando o enriquecimento falha"},
   "enrichmentCompleted": "Detalhes enriquecidos.",
   "publicProfileBadge": "Perfil público",
   "privateProfileBadge": "Perfil privado",

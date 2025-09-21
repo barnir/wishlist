@@ -266,7 +266,7 @@ class WishItemRepository {
           final payload = item.toMap();
           payload.remove('id');
           payload.remove('image_url');
-          await doc.set({
+          final data = {
             ...payload,
             'wishlist_id': wishlistId,
             'owner_id': ownerId,
@@ -274,7 +274,14 @@ class WishItemRepository {
             'image_url': null,
             'created_at': Timestamp.fromDate(item.createdAt),
             'updated_at': FieldValue.serverTimestamp(),
-          });
+          };
+          // If item has a link but no image, mark enrichment as pending for UI feedback
+          final hasLink = (item.link != null && item.link!.trim().isNotEmpty);
+          final hasImage = (item.imageUrl != null && item.imageUrl!.trim().isNotEmpty);
+          if (hasLink && !hasImage) {
+            data['enrich_status'] = 'pending';
+          }
+          await doc.set(data);
           return doc.id;
         } catch (e, st) {
           logE('WishItem createFromBackup error', tag: 'DB', error: e, stackTrace: st, data: {'wishlistId': wishlistId});

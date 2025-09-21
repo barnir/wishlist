@@ -392,6 +392,12 @@ abstract class AppLocalizations {
   /// **'Enrichment limit reached. Try later.'**
   String get enrichmentRateLimited;
 
+  /// Shown when enrichment fails to fetch data
+  ///
+  /// In en, this message translates to:
+  /// **'Enrichment failed'**
+  String get enrichmentFailed;
+
   /// Shown when enrichment finishes
   ///
   /// In en, this message translates to:
