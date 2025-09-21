@@ -174,3 +174,25 @@ Serviços core: AuthService/FirebaseAuthService, ResourceManager, CloudinaryServ
 - flutter analyze --no-fatal-infos
 
 ---
+
+---
+## Resumo da Sessao
+- Principais tarefas realizadas:
+  - Atualizacao de versao para 0.1.4+5 (pubspec + gradle auto)
+  - CHANGELOG e release_notes sincronizados com novas funcionalidades de mirror/import
+  - Build release APK e distribuicao Firebase App Distribution (wishlist-beta-testers)
+- Decisoes importantes:
+  - Manter mirrorToCloudinary em best-effort e registar status rate_limited
+- Dificuldades encontradas:
+  - Nenhuma
+
+## Proximos Passos
+- Monitorizar feedback dos testers sobre importacao com imagens externas
+- Considerar build AAB quando processo beta estabilizar
+
+## Referencias/Links
+- CHANGELOG.md
+- release_notes.txt
+- firebase appdistribution:distribute (release 0.1.4 build 5)
+
+---

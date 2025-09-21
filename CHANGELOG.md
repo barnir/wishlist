@@ -7,6 +7,25 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.1.4] - 2025-09-21
+
+### 🚀 Added
+- mirrorToCloudinary Firebase Function + client helper for automatic image mirroring após importação
+- Status chip no item tile para reflectir enrich_status (pending / failed / rate limited)
+- Enrichment pipeline pós-importação com fallback para Cloudinary e rate limit feedback
+
+### 🛠 Changed
+- Import de wishlists agenda mirror best-effort para imagens externas
+- Release notes actualizados e versão bump para 0.1.4 (build 5)
+
+### 🧪 Verification
+- flutter analyze --no-fatal-infos
+- flutter test
+- flutter build apk --release
+- firebase appdistribution:distribute (wishlist-beta-testers)
+
+---
+
 ## [0.1.3] - 2025-09-08
 
 ### 🚀 Added

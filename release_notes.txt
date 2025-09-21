@@ -1,23 +1,18 @@
-🚀 Wishlist App Beta v0.1.2 (Build 3)
+🚀 Wishlist App Beta v0.1.4 (Build 5)
 
 ✨ Novidades:
-- Ícone de acesso rápido ao link (carrinho) sobreposto na grelha
-- Abertura direta de links no browser (remoção do canLaunch + package visibility http/https)
-- Filtro de categoria mais robusto (name + alias → whereIn) evitando itens “perdidos”
-- Overlay de ação visual refinado para itens com link
+- Importação de wishlists agora tenta espelhar imagens externas no Cloudinary automaticamente
+- Indicador visual de enriquecimento (chip) acima da imagem dos itens importados
+- Funcionalidade mirrorToCloudinary disponível via Firebase Functions para integrações futuras
 
-🔧 Melhorias Técnicas:
-- Suporte a variantes de categoria (alias) via `Category.storageCandidates()`
-- Simplificação do fluxo de abertura de URL com sanitização centralizada
-- Adição de intents http/https em `<queries>` para Android 11+
-- Bump de versão para distribuição beta
+🛠 Melhorias Técnicas:
+- Enrichment pós-importação marca estado rate_limited/pending/failed para feedback rápido
+- Helper FirebaseFunctionsService.mirrorToCloudinary para uso no cliente
+- Regeneração do l10n e documentação de fluxo opcional de mirror server-side
 
-🐞 Correções:
-- Links que não abriam devido a `canLaunch` falso negativo
-- Categoria com alias não filtrava (ex: "Saúde" vs "Saúde & Fitness")
-- Ícone de link ausente na grelha
+✅ Validações:
+- flutter analyze --no-fatal-infos
+- flutter test
+- flutter build apk --release
 
-📌 Nota:
-Se ainda não tiverem propagado índices antigos, a query fallback mantém UX. Testar abertura de vários domínios externos.
-
-Pronto para distribuição beta. 🎯
+Notas: deploy direcionado a `wishlist-beta-testers`. Monitorizar feedback de importações com links longos/amostras variadas.
