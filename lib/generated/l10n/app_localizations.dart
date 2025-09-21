@@ -422,6 +422,108 @@ abstract class AppLocalizations {
   /// **'Actions'**
   String get actions;
 
+  /// Section title for data backup actions
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & restore'**
+  String get dataManagement;
+
+  /// Action to export wishlists to a JSON file
+  ///
+  /// In en, this message translates to:
+  /// **'Export wishlists'**
+  String get exportWishlists;
+
+  /// Subtitle explaining wishlist export
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a JSON backup you can share or store. Images are not included.'**
+  String get exportWishlistsDescription;
+
+  /// Action to import wishlists from a JSON file
+  ///
+  /// In en, this message translates to:
+  /// **'Import wishlists'**
+  String get importWishlists;
+
+  /// Subtitle explaining wishlist import
+  ///
+  /// In en, this message translates to:
+  /// **'Load wishlists from a JSON backup. Existing data is kept.'**
+  String get importWishlistsDescription;
+
+  /// Success message after exporting wishlists
+  ///
+  /// In en, this message translates to:
+  /// **'Backup ready! Share it now to save a copy.'**
+  String get exportWishlistsSuccess;
+
+  /// Error message when export fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export wishlists. Try again in a moment.'**
+  String get exportWishlistsError;
+
+  /// Prompt asking user to choose save or share backup
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to do with the backup?'**
+  String get exportWishlistsChooseAction;
+
+  /// Button to share backup file
+  ///
+  /// In en, this message translates to:
+  /// **'Share backup'**
+  String get exportWishlistsActionShare;
+
+  /// Button to save backup file
+  ///
+  /// In en, this message translates to:
+  /// **'Save to device'**
+  String get exportWishlistsActionSave;
+
+  /// Success message after saving backup
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved to {path}'**
+  String exportWishlistsSaveSuccess(Object path);
+
+  /// Error message when saving backup fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the backup file.'**
+  String get exportWishlistsSaveError;
+
+  /// Message when user cancels save location selection
+  ///
+  /// In en, this message translates to:
+  /// **'No location selected.'**
+  String get exportWishlistsSaveCancelled;
+
+  /// Success message after importing wishlists
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {wishlists} wishlists and {items} items.'**
+  String importWishlistsSuccess(Object wishlists, Object items);
+
+  /// Partial success message after import
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {wishlists} wishlists and {items} items. {errors} entries failed.'**
+  String importWishlistsPartial(Object wishlists, Object items, Object errors);
+
+  /// Error message when import fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import the backup file.'**
+  String get importWishlistsError;
+
+  /// Message shown when user cancels file picker
+  ///
+  /// In en, this message translates to:
+  /// **'No backup file selected.'**
+  String get importWishlistsNoFile;
+
   /// Theme setting
   ///
   /// In en, this message translates to:

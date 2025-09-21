@@ -13,6 +13,9 @@ import 'package:mywishstash/repositories/stats_repository.dart';
 import 'package:mywishstash/repositories/user_profile_repository.dart';
 import 'package:mywishstash/services/favorites_service.dart';
 import 'package:mywishstash/services/haptic_service.dart';
+import 'package:mywishstash/services/wishlist_backup_service.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:mywishstash/services/language_service.dart';
 import 'package:mywishstash/widgets/profile_widgets.dart';
 import 'package:mywishstash/widgets/profile_edit_bottom_sheets.dart';
@@ -24,6 +27,8 @@ import 'package:mywishstash/screens/help_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_snack.dart';
 import 'package:mywishstash/utils/app_logger.dart';
+
+enum _ExportDestination { share, save }
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -38,11 +43,14 @@ class ProfileScreenState extends State<ProfileScreen> {
   final _userProfileRepo = UserProfileRepository();
   final _favoritesService = FavoritesService();
   final _languageService = LanguageService();
+  final _backupService = WishlistBackupService();
 
   String _displayName = '';
   String _bio = '';
   bool _isPrivate = false;
   bool _isUploading = false;
+  bool _isExportingBackup = false;
+  bool _isImportingBackup = false;
   String? _profileImageUrl;
   String? _phoneNumber;
 
@@ -505,6 +513,40 @@ class ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 16),
                         
+                        ProfileSectionCard(
+                          title: l10n.dataManagement,
+                          icon: Icons.cloud_outlined,
+                          children: [
+                            ProfileListTile(
+                              icon: Icons.file_upload_outlined,
+                              title: l10n.exportWishlists,
+                              subtitle: l10n.exportWishlistsDescription,
+                              onTap: _isExportingBackup ? null : _handleExportWishlists,
+                              trailing: _isExportingBackup
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.chevron_right),
+                            ),
+                            ProfileListTile(
+                              icon: Icons.file_download_outlined,
+                              title: l10n.importWishlists,
+                              subtitle: l10n.importWishlistsDescription,
+                              onTap: _isImportingBackup ? null : _handleImportWishlists,
+                              trailing: _isImportingBackup
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
                         // Seção Sobre
                         ProfileSectionCard(
                           title: l10n.about,
@@ -570,6 +612,190 @@ class ProfileScreenState extends State<ProfileScreen> {
                 ),
       ),
     );
+  }
+
+  Future<_ExportDestination?> _promptExportDestination(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    return showModalBottomSheet<_ExportDestination>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(
+                l10n.exportWishlistsChooseAction,
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: Text(l10n.exportWishlistsActionShare),
+              onTap: () => Navigator.of(context).pop(_ExportDestination.share),
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: Text(l10n.exportWishlistsActionSave),
+              onTap: () => Navigator.of(context).pop(_ExportDestination.save),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveBackupToCustomLocation(File exportedFile, AppLocalizations l10n) async {
+    try {
+      final suggestedName = exportedFile.uri.pathSegments.isNotEmpty
+          ? exportedFile.uri.pathSegments.last
+          : 'wishlists-export.json';
+      final destinationPath = await FilePicker.platform.saveFile(
+        dialogTitle: l10n.exportWishlists,
+        fileName: suggestedName,
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+      );
+
+      if (!mounted) {
+        return;
+      }
+      if (destinationPath == null) {
+        AppSnack.show(context, l10n.exportWishlistsSaveCancelled, type: SnackType.info);
+        return;
+      }
+
+      await exportedFile.copy(destinationPath);
+      if (!mounted) {
+        return;
+      }
+      AppSnack.show(
+        context,
+        l10n.exportWishlistsSaveSuccess(destinationPath),
+        type: SnackType.success,
+      );
+    } catch (e, st) {
+      logE('Saving wishlist backup failed', tag: 'UI', error: e, stackTrace: st);
+      if (mounted) {
+        AppSnack.show(context, l10n.exportWishlistsSaveError, type: SnackType.error);
+      }
+    }
+  }
+
+  Future<void> _handleExportWishlists() async {
+    final l10n = AppLocalizations.of(context)!;
+    HapticService.mediumImpact();
+    setState(() => _isExportingBackup = true);
+
+    try {
+      final result = await _backupService.exportToFile();
+      if (!mounted) {
+        return;
+      }
+      if (result == null) {
+        AppSnack.show(context, l10n.exportWishlistsError, type: SnackType.error);
+        return;
+      }
+
+      final destination = await _promptExportDestination(l10n);
+      if (!mounted) {
+        return;
+      }
+      if (destination == null) {
+        return;
+      }
+
+      switch (destination) {
+        case _ExportDestination.share:
+          final shareResult = await SharePlus.instance.share(
+            ShareParams(
+              files: [XFile(result.file.path, mimeType: 'application/json')],
+              text: l10n.exportWishlistsSuccess,
+            ),
+          );
+          if (!mounted) {
+            return;
+          }
+          if (shareResult.status == ShareResultStatus.success) {
+            AppSnack.show(context, l10n.exportWishlistsSuccess, type: SnackType.success);
+          } else if (shareResult.status == ShareResultStatus.unavailable) {
+            AppSnack.show(context, l10n.exportWishlistsError, type: SnackType.error);
+          }
+          break;
+        case _ExportDestination.save:
+          await _saveBackupToCustomLocation(result.file, l10n);
+          break;
+      }
+    } catch (e, st) {
+      logE('Export wishlists failed', tag: 'UI', error: e, stackTrace: st);
+      if (mounted) {
+        AppSnack.show(context, l10n.exportWishlistsError, type: SnackType.error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExportingBackup = false);
+      }
+    }
+  }
+
+  Future<void> _handleImportWishlists() async {
+    final l10n = AppLocalizations.of(context)!;
+    HapticService.mediumImpact();
+    setState(() => _isImportingBackup = true);
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+      );
+
+      if (result == null || result.files.isEmpty || result.files.single.path == null) {
+        if (mounted) {
+          AppSnack.show(context, l10n.importWishlistsNoFile, type: SnackType.info);
+        }
+        return;
+      }
+
+      final file = File(result.files.single.path!);
+      final summary = await _backupService.importFromFile(file);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (summary.errors.isEmpty) {
+        AppSnack.show(
+          context,
+          l10n.importWishlistsSuccess(summary.wishlistsCreated, summary.itemsCreated),
+          type: SnackType.success,
+        );
+      } else if (summary.wishlistsCreated > 0 || summary.itemsCreated > 0) {
+        AppSnack.show(
+          context,
+          l10n.importWishlistsPartial(
+            summary.wishlistsCreated,
+            summary.itemsCreated,
+            summary.errors.length,
+          ),
+          type: SnackType.warning,
+        );
+      } else {
+        AppSnack.show(context, l10n.importWishlistsError, type: SnackType.error);
+      }
+
+      await _loadProfileData();
+    } catch (e, st) {
+      logE('Import wishlists failed', tag: 'UI', error: e, stackTrace: st);
+      if (mounted) {
+        AppSnack.show(context, l10n.importWishlistsError, type: SnackType.error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingBackup = false);
+      }
+    }
   }
 
   /// Open store for app rating

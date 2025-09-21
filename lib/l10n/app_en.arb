@@ -156,6 +156,87 @@
     "description": "Actions section title"
   },
 
+  "dataManagement": "Backup & restore",
+  "@dataManagement": {
+    "description": "Section title for data backup actions"
+  },
+  "exportWishlists": "Export wishlists",
+  "@exportWishlists": {
+    "description": "Action to export wishlists to a JSON file"
+  },
+  "exportWishlistsDescription": "Generate a JSON backup you can share or store. Images are not included.",
+  "@exportWishlistsDescription": {
+    "description": "Subtitle explaining wishlist export"
+  },
+  "importWishlists": "Import wishlists",
+  "@importWishlists": {
+    "description": "Action to import wishlists from a JSON file"
+  },
+  "importWishlistsDescription": "Load wishlists from a JSON backup. Existing data is kept.",
+  "@importWishlistsDescription": {
+    "description": "Subtitle explaining wishlist import"
+  },
+  "exportWishlistsSuccess": "Backup ready! Share it now to save a copy.",
+  "@exportWishlistsSuccess": {
+    "description": "Success message after exporting wishlists"
+  },
+  "exportWishlistsError": "Could not export wishlists. Try again in a moment.",
+  "@exportWishlistsError": {
+    "description": "Error message when export fails"
+  },
+  "exportWishlistsChooseAction": "What would you like to do with the backup?",
+  "@exportWishlistsChooseAction": {
+    "description": "Prompt asking user to choose save or share backup"
+  },
+  "exportWishlistsActionShare": "Share backup",
+  "@exportWishlistsActionShare": {
+    "description": "Button to share backup file"
+  },
+  "exportWishlistsActionSave": "Save to device",
+  "@exportWishlistsActionSave": {
+    "description": "Button to save backup file"
+  },
+  "exportWishlistsSaveSuccess": "Backup saved to {path}",
+  "@exportWishlistsSaveSuccess": {
+    "description": "Success message after saving backup",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "exportWishlistsSaveError": "Could not save the backup file.",
+  "@exportWishlistsSaveError": {
+    "description": "Error message when saving backup fails"
+  },
+  "exportWishlistsSaveCancelled": "No location selected.",
+  "@exportWishlistsSaveCancelled": {
+    "description": "Message when user cancels save location selection"
+  },
+  "importWishlistsSuccess": "Imported {wishlists} wishlists and {items} items.",
+  "@importWishlistsSuccess": {
+    "description": "Success message after importing wishlists",
+    "placeholders": {
+      "wishlists": {},
+      "items": {}
+    }
+  },
+  "importWishlistsPartial": "Imported {wishlists} wishlists and {items} items. {errors} entries failed.",
+  "@importWishlistsPartial": {
+    "description": "Partial success message after import",
+    "placeholders": {
+      "wishlists": {},
+      "items": {},
+      "errors": {}
+    }
+  },
+  "importWishlistsError": "Could not import the backup file.",
+  "@importWishlistsError": {
+    "description": "Error message when import fails"
+  },
+  "importWishlistsNoFile": "No backup file selected.",
+  "@importWishlistsNoFile": {
+    "description": "Message shown when user cancels file picker"
+  },
+
   "theme": "Theme",
   "@theme": {
     "description": "Theme setting"

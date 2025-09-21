@@ -2,6 +2,12 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
+## STATUS ATUAL (21 Set 2025)
+- Export/Import de wishlists concluído na app Android com JSON sem imagens e opção de partilhar ou guardar o backup.
+- Serviço de backup dedicado + testes unitários garantem serialização/parse consistente.
+- UI do Perfil ganhou secção de Backup & Restauro com feedback localizados.
+- flutter analyze --no-fatal-infos & flutter test executados (0 issues, 21 testes OK).
+
 ## STATUS ATUAL (09 Set 2025)
 ✅ **PLANO DE MELHORIAS COMPLETAMENTE IMPLEMENTADO** - Mantém-se a execução integral do PLANO_MELHORIAS_OVERALL.md com a arquitetura enterprise e as melhorias de performance já aplicadas; Flutter analyze continua em 0 issues.
 

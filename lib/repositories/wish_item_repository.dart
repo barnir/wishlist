@@ -48,6 +48,23 @@ class WishItemRepository {
   }
 
   /// Fetch a page of items for a wishlist using cursor pagination.
+
+  Future<List<WishItem>> fetchAllForWishlist(String wishlistId) async => _withLatency('fetchAllForWishlist', () async {
+        try {
+          final snapshot = await _firestore
+              .collection('wish_items')
+              .where('wishlist_id', isEqualTo: wishlistId)
+              .orderBy('created_at', descending: false)
+              .get();
+          return snapshot.docs
+              .map((d) => WishItem.fromMap({'id': d.id, ...d.data()}))
+              .toList(growable: false);
+        } catch (e, st) {
+          logE('WishItem fetchAllForWishlist error', tag: 'DB', error: e, stackTrace: st, data: {'wishlistId': wishlistId});
+          return <WishItem>[];
+        }
+      });
+
   Future<PageResult<WishItem>> fetchPage({
     required String wishlistId,
     int limit = 20,
@@ -235,6 +252,33 @@ class WishItemRepository {
         } catch (e) {
           logE('WishItem update error', tag: 'DB', error: e, data: {'itemId': id});
           return false;
+        }
+      });
+
+
+  Future<String?> createFromBackup({
+    required String wishlistId,
+    required String ownerId,
+    required WishItem item,
+  }) async => _withLatency('createFromBackup', () async {
+        try {
+          final doc = _firestore.collection('wish_items').doc();
+          final payload = item.toMap();
+          payload.remove('id');
+          payload.remove('image_url');
+          await doc.set({
+            ...payload,
+            'wishlist_id': wishlistId,
+            'owner_id': ownerId,
+            'legacy_id': item.id,
+            'image_url': null,
+            'created_at': Timestamp.fromDate(item.createdAt),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+          return doc.id;
+        } catch (e, st) {
+          logE('WishItem createFromBackup error', tag: 'DB', error: e, stackTrace: st, data: {'wishlistId': wishlistId});
+          return null;
         }
       });
 

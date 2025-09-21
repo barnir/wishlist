@@ -194,6 +194,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actions => 'Actions';
 
   @override
+  String get dataManagement => 'Backup & restore';
+
+  @override
+  String get exportWishlists => 'Export wishlists';
+
+  @override
+  String get exportWishlistsDescription =>
+      'Generate a JSON backup you can share or store. Images are not included.';
+
+  @override
+  String get importWishlists => 'Import wishlists';
+
+  @override
+  String get importWishlistsDescription =>
+      'Load wishlists from a JSON backup. Existing data is kept.';
+
+  @override
+  String get exportWishlistsSuccess =>
+      'Backup ready! Share it now to save a copy.';
+
+  @override
+  String get exportWishlistsError =>
+      'Could not export wishlists. Try again in a moment.';
+
+  @override
+  String get exportWishlistsChooseAction =>
+      'What would you like to do with the backup?';
+
+  @override
+  String get exportWishlistsActionShare => 'Share backup';
+
+  @override
+  String get exportWishlistsActionSave => 'Save to device';
+
+  @override
+  String exportWishlistsSaveSuccess(Object path) {
+    return 'Backup saved to $path';
+  }
+
+  @override
+  String get exportWishlistsSaveError => 'Could not save the backup file.';
+
+  @override
+  String get exportWishlistsSaveCancelled => 'No location selected.';
+
+  @override
+  String importWishlistsSuccess(Object wishlists, Object items) {
+    return 'Imported $wishlists wishlists and $items items.';
+  }
+
+  @override
+  String importWishlistsPartial(Object wishlists, Object items, Object errors) {
+    return 'Imported $wishlists wishlists and $items items. $errors entries failed.';
+  }
+
+  @override
+  String get importWishlistsError => 'Could not import the backup file.';
+
+  @override
+  String get importWishlistsNoFile => 'No backup file selected.';
+
+  @override
   String get theme => 'Theme';
 
   @override

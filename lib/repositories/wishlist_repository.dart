@@ -78,6 +78,23 @@ class WishlistRepository {
     }
   });
 
+
+  Future<List<Wishlist>> fetchAllForOwner(String ownerId) async => _withLatency('fetchAllForOwner', () async {
+        try {
+          final snapshot = await _firestore
+              .collection('wishlists')
+              .where('owner_id', isEqualTo: ownerId)
+              .orderBy('created_at', descending: false)
+              .get();
+          return snapshot.docs
+              .map((d) => Wishlist.fromMap({'id': d.id, ...d.data()}))
+              .toList(growable: false);
+        } catch (e, st) {
+          logE('Wishlist fetchAllForOwner error', tag: 'DB', error: e, stackTrace: st, data: {'ownerId': ownerId});
+          return <Wishlist>[];
+        }
+      });
+
   Future<String?> create({
     required String name,
     required String ownerId,
@@ -97,6 +114,33 @@ class WishlistRepository {
           return doc.id;
         } catch (e) {
           logE('Wishlist create error', tag: 'DB', error: e, data: {'ownerId': ownerId});
+          return null;
+        }
+      });
+
+
+  Future<String?> createFromBackup({
+    required String ownerId,
+    required String name,
+    required bool isPrivate,
+    DateTime? createdAt,
+    String? imageUrl,
+  }) async => _withLatency('createFromBackup', () async {
+        try {
+          final doc = _firestore.collection('wishlists').doc();
+          await doc.set({
+            'name': name,
+            'owner_id': ownerId,
+            'is_private': isPrivate,
+            if (imageUrl != null) 'image_url': imageUrl,
+            'created_at': createdAt != null
+                ? Timestamp.fromDate(createdAt)
+                : FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+          return doc.id;
+        } catch (e, st) {
+          logE('Wishlist createFromBackup error', tag: 'DB', error: e, stackTrace: st, data: {'ownerId': ownerId});
           return null;
         }
       });

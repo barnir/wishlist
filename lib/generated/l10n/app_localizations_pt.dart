@@ -196,6 +196,70 @@ class AppLocalizationsPt extends AppLocalizations {
   String get actions => 'Ações';
 
   @override
+  String get dataManagement => 'Backup e restauro';
+
+  @override
+  String get exportWishlists => 'Exportar listas';
+
+  @override
+  String get exportWishlistsDescription =>
+      'Gera um backup em JSON para partilhar ou guardar. Imagens não são incluídas.';
+
+  @override
+  String get importWishlists => 'Importar listas';
+
+  @override
+  String get importWishlistsDescription =>
+      'Carrega listas a partir de um ficheiro JSON. Dados existentes são mantidos.';
+
+  @override
+  String get exportWishlistsSuccess =>
+      'Backup pronto! Partilha agora para guardares uma cópia.';
+
+  @override
+  String get exportWishlistsError =>
+      'Não foi possível exportar as listas. Tenta novamente em instantes.';
+
+  @override
+  String get exportWishlistsChooseAction =>
+      'O que pretendes fazer com o backup?';
+
+  @override
+  String get exportWishlistsActionShare => 'Partilhar backup';
+
+  @override
+  String get exportWishlistsActionSave => 'Guardar no dispositivo';
+
+  @override
+  String exportWishlistsSaveSuccess(Object path) {
+    return 'Backup guardado em $path';
+  }
+
+  @override
+  String get exportWishlistsSaveError =>
+      'Não foi possível guardar o ficheiro de backup.';
+
+  @override
+  String get exportWishlistsSaveCancelled => 'Nenhum local selecionado.';
+
+  @override
+  String importWishlistsSuccess(Object wishlists, Object items) {
+    return 'Importadas $wishlists listas e $items itens.';
+  }
+
+  @override
+  String importWishlistsPartial(Object wishlists, Object items, Object errors) {
+    return 'Importadas $wishlists listas e $items itens. $errors registos falharam.';
+  }
+
+  @override
+  String get importWishlistsError =>
+      'Não foi possível importar o ficheiro de backup.';
+
+  @override
+  String get importWishlistsNoFile => 'Nenhum ficheiro de backup seleccionado.';
+
+  @override
   String get theme => 'Tema';
 
   @override

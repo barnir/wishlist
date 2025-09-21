@@ -108,6 +108,87 @@
   "helpSupport": "Ajuda e Suporte",
   "rateApp": "Avaliar App",
   "signOut": "Terminar Sessão",
+  "dataManagement": "Backup e restauro",
+  "@dataManagement": {
+    "description": "Título da secção de backup de dados"
+  },
+  "exportWishlists": "Exportar listas",
+  "@exportWishlists": {
+    "description": "Ação para exportar listas para um ficheiro JSON"
+  },
+  "exportWishlistsDescription": "Gera um backup em JSON para partilhar ou guardar. Imagens não são incluídas.",
+  "@exportWishlistsDescription": {
+    "description": "Subtítulo a explicar a exportação de listas"
+  },
+  "importWishlists": "Importar listas",
+  "@importWishlists": {
+    "description": "Ação para importar listas a partir de um ficheiro JSON"
+  },
+  "importWishlistsDescription": "Carrega listas a partir de um ficheiro JSON. Dados existentes são mantidos.",
+  "@importWishlistsDescription": {
+    "description": "Subtítulo a explicar a importação de listas"
+  },
+  "exportWishlistsSuccess": "Backup pronto! Partilha agora para guardares uma cópia.",
+  "@exportWishlistsSuccess": {
+    "description": "Mensagem de sucesso após exportar listas"
+  },
+  "exportWishlistsError": "Não foi possível exportar as listas. Tenta novamente em instantes.",
+  "@exportWishlistsError": {
+    "description": "Mensagem de erro quando a exportação falha"
+  },
+  "exportWishlistsChooseAction": "O que pretendes fazer com o backup?",
+  "@exportWishlistsChooseAction": {
+    "description": "Pergunta para escolher guardar ou partilhar o backup"
+  },
+  "exportWishlistsActionShare": "Partilhar backup",
+  "@exportWishlistsActionShare": {
+    "description": "Botão para partilhar o backup"
+  },
+  "exportWishlistsActionSave": "Guardar no dispositivo",
+  "@exportWishlistsActionSave": {
+    "description": "Botão para guardar o backup"
+  },
+  "exportWishlistsSaveSuccess": "Backup guardado em {path}",
+  "@exportWishlistsSaveSuccess": {
+    "description": "Mensagem de sucesso após guardar o backup",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "exportWishlistsSaveError": "Não foi possível guardar o ficheiro de backup.",
+  "@exportWishlistsSaveError": {
+    "description": "Mensagem de erro quando o backup falha ao guardar"
+  },
+  "exportWishlistsSaveCancelled": "Nenhum local selecionado.",
+  "@exportWishlistsSaveCancelled": {
+    "description": "Mensagem quando o utilizador cancela a escolha do local"
+  },
+  "importWishlistsSuccess": "Importadas {wishlists} listas e {items} itens.",
+  "@importWishlistsSuccess": {
+    "description": "Mensagem de sucesso após importar listas",
+    "placeholders": {
+      "wishlists": {},
+      "items": {}
+    }
+  },
+  "importWishlistsPartial": "Importadas {wishlists} listas e {items} itens. {errors} registos falharam.",
+  "@importWishlistsPartial": {
+    "description": "Mensagem de sucesso parcial após importar",
+    "placeholders": {
+      "wishlists": {},
+      "items": {},
+      "errors": {}
+    }
+  },
+  "importWishlistsError": "Não foi possível importar o ficheiro de backup.",
+  "@importWishlistsError": {
+    "description": "Mensagem de erro quando a importação falha"
+  },
+  "importWishlistsNoFile": "Nenhum ficheiro de backup seleccionado.",
+  "@importWishlistsNoFile": {
+    "description": "Mensagem apresentada quando o utilizador cancela o seletor de ficheiros"
+  },
+
   "deleteAccount": "Apagar Conta",
   "deleteAccountDesc": "Esta ação é irreversível",
   "wishlists": "Wishlists",
