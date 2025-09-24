@@ -9,8 +9,8 @@ class FavoritesRepository {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
   FavoritesRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   Future<T> _withLatency<T>(String op, Future<T> Function() fn) async {
     final sw = Stopwatch()..start();
@@ -18,7 +18,12 @@ class FavoritesRepository {
       final r = await fn();
       return r;
     } catch (e, st) {
-  logE('FavoritesRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);
+      logE(
+        'FavoritesRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}',
+        tag: 'DB',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -29,13 +34,17 @@ class FavoritesRepository {
   // Basic operations (add, remove, check, list)
   // ---------------------------------------------------------------------------
 
-  Future<void> add(String userId, String favoriteUserId) async => _withLatency('add', () async {
+  Future<void> add(String userId, String favoriteUserId) async =>
+      _withLatency('add', () async {
         if (userId == favoriteUserId) {
           throw Exception('Cannot favorite yourself');
         }
 
         // Ensure target user exists and is not private
-        final targetDoc = await _firestore.collection('users').doc(favoriteUserId).get();
+        final targetDoc = await _firestore
+            .collection('users')
+            .doc(favoriteUserId)
+            .get();
         if (!targetDoc.exists) {
           throw Exception('User not found');
         }
@@ -62,7 +71,8 @@ class FavoritesRepository {
         });
       });
 
-  Future<void> remove(String userId, String favoriteUserId) async => _withLatency('remove', () async {
+  Future<void> remove(String userId, String favoriteUserId) async =>
+      _withLatency('remove', () async {
         final existing = await _firestore
             .collection('user_favorites')
             .where('user_id', isEqualTo: userId)
@@ -70,10 +80,14 @@ class FavoritesRepository {
             .limit(1)
             .get();
         if (existing.docs.isEmpty) return; // nothing to remove
-        await _firestore.collection('user_favorites').doc(existing.docs.first.id).delete();
+        await _firestore
+            .collection('user_favorites')
+            .doc(existing.docs.first.id)
+            .delete();
       });
 
-  Future<bool> isFavorite(String userId, String favoriteUserId) async => _withLatency('isFavorite', () async {
+  Future<bool> isFavorite(String userId, String favoriteUserId) async =>
+      _withLatency('isFavorite', () async {
         final snap = await _firestore
             .collection('user_favorites')
             .where('user_id', isEqualTo: userId)
@@ -83,16 +97,34 @@ class FavoritesRepository {
         return snap.docs.isNotEmpty;
       });
 
-  Future<List<String>> listIds(String userId) async => _withLatency('listIds', () async {
-        final snap = await _firestore
-            .collection('user_favorites')
-            .where('user_id', isEqualTo: userId)
-            .orderBy('created_at', descending: true)
-            .get();
-        return snap.docs
-            .map((d) => d.data()['favorite_user_id'] as String?)
-            .whereType<String>()
-            .toList();
+  Future<List<String>> listIds(String userId) async =>
+      _withLatency('listIds', () async {
+        try {
+          final snap = await _firestore
+              .collection('user_favorites')
+              .where('user_id', isEqualTo: userId)
+              .orderBy('created_at', descending: true)
+              .get();
+          return snap.docs
+              .map((d) => d.data()['favorite_user_id'] as String?)
+              .whereType<String>()
+              .toList();
+        } catch (e) {
+          // Fallback query without orderBy if index is not ready
+          if (e.toString().contains('failed-precondition') ||
+              e.toString().contains('requires an index')) {
+            logE('Index not ready, using fallback query', tag: 'DB', error: e);
+            final snap = await _firestore
+                .collection('user_favorites')
+                .where('user_id', isEqualTo: userId)
+                .get();
+            return snap.docs
+                .map((d) => d.data()['favorite_user_id'] as String?)
+                .whereType<String>()
+                .toList();
+          }
+          rethrow;
+        }
       });
 
   Future<PageResult<UserFavoriteWithProfile>> fetchPage({
@@ -102,6 +134,8 @@ class FavoritesRepository {
     if (_currentUserId == null) {
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
+
+    QuerySnapshot snap;
     try {
       var query = _firestore
           .collection('user_favorites')
@@ -112,34 +146,62 @@ class FavoritesRepository {
         query = query.startAfterDocument(startAfter);
       }
 
-      final snap = await query.limit(limit).get();
-      final favDocs = snap.docs;
-      if (favDocs.isEmpty) {
-        return const PageResult(items: [], lastDoc: null, hasMore: false);
-      }
+      snap = await query.limit(limit).get();
+    } catch (e) {
+      // Fallback query without orderBy if index is not ready
+      if (e.toString().contains('failed-precondition') ||
+          e.toString().contains('requires an index')) {
+        logE(
+          'Index not ready for fetchPage, using fallback query',
+          tag: 'DB',
+          error: e,
+        );
+        var query = _firestore
+            .collection('user_favorites')
+            .where('user_id', isEqualTo: _currentUserId);
 
-      // Collect user IDs and batch fetch profiles (respect whereIn 10 limit)
-      final userIds = favDocs.map((d) => d.data()['favorite_user_id'] as String).toList();
-      final profileMaps = <String, Map<String, dynamic>>{};
-      const batchSize = 10;
-      for (int i = 0; i < userIds.length; i += batchSize) {
-        final slice = userIds.skip(i).take(batchSize).toList();
-        final usersSnap = await _firestore
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: slice)
-            .where('is_private', isEqualTo: false)
-            .get();
-        for (final doc in usersSnap.docs) {
-          profileMaps[doc.id] = {'id': doc.id, ...doc.data()};
+        if (startAfter != null) {
+          query = query.startAfterDocument(startAfter);
         }
-      }
 
-      final enriched = <UserFavoriteWithProfile>[];
-      for (final fav in favDocs) {
-        final data = fav.data();
-        final profile = profileMaps[data['favorite_user_id']];
-        if (profile == null) continue; // skip private or missing
-        enriched.add(UserFavoriteWithProfile.fromMap({
+        snap = await query.limit(limit).get();
+      } else {
+        rethrow;
+      }
+    }
+    final favDocs = snap.docs;
+    if (favDocs.isEmpty) {
+      return const PageResult(items: [], lastDoc: null, hasMore: false);
+    }
+
+    // Collect user IDs and batch fetch profiles (respect whereIn 10 limit)
+    final userIds = favDocs
+        .map(
+          (d) =>
+              (d.data() as Map<String, dynamic>)['favorite_user_id'] as String,
+        )
+        .toList();
+    final profileMaps = <String, Map<String, dynamic>>{};
+    const batchSize = 10;
+    for (int i = 0; i < userIds.length; i += batchSize) {
+      final slice = userIds.skip(i).take(batchSize).toList();
+      final usersSnap = await _firestore
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: slice)
+          .where('is_private', isEqualTo: false)
+          .get();
+      for (final doc in usersSnap.docs) {
+        profileMaps[doc.id] = {'id': doc.id, ...doc.data()};
+      }
+    }
+
+    final enriched = <UserFavoriteWithProfile>[];
+    for (final fav in favDocs) {
+      final data = fav.data() as Map<String, dynamic>;
+      final profile = profileMaps[data['favorite_user_id']];
+      if (profile == null) continue; // skip private or missing
+      enriched.add(
+        UserFavoriteWithProfile.fromMap({
           'id': fav.id,
           ...data,
           'display_name': profile['display_name'],
@@ -147,16 +209,17 @@ class FavoritesRepository {
           'is_private': profile['is_private'],
           'email': profile['email'],
           'bio': profile['bio'],
-        }));
-      }
-
-      final last = favDocs.isNotEmpty ? favDocs.last : null;
-      final hasMore = favDocs.length == limit && last != null;
-      logI('Favorites page loaded', tag: 'FAVORITES', data: {'count': enriched.length, 'hasMore': hasMore});
-      return PageResult(items: enriched, lastDoc: last, hasMore: hasMore);
-    } catch (e) {
-      logE('Favorites page load error', tag: 'FAVORITES', error: e, data: {'limit': limit});
-      return const PageResult(items: [], lastDoc: null, hasMore: false);
+        }),
+      );
     }
+
+    final last = favDocs.isNotEmpty ? favDocs.last : null;
+    final hasMore = favDocs.length == limit && last != null;
+    logI(
+      'Favorites page loaded',
+      tag: 'FAVORITES',
+      data: {'count': enriched.length, 'hasMore': hasMore},
+    );
+    return PageResult(items: enriched, lastDoc: last, hasMore: hasMore);
   });
 }

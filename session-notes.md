@@ -2,11 +2,17 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (21 Set 2025)
-- Export/Import de wishlists concluído na app Android com JSON sem imagens e opção de partilhar ou guardar o backup.
-- Serviço de backup dedicado + testes unitários garantem serialização/parse consistente.
-- UI do Perfil ganhou secção de Backup & Restauro com feedback localizados.
-- flutter analyze --no-fatal-infos & flutter test executados (0 issues, 21 testes OK).
+## STATUS ATUAL (24 Set 2025) - FIRESTORE INDEX FIX
+- 🔧 **Firestore Index Error CORRIGIDO**: Implementado fallback robusto para queries de favoritos quando índices não estão disponíveis temporariamente
+- ✅ **Solução de resiliência**: FavoritesRepository agora tem fallback automático para queries sem orderBy se índice composto falhar
+- ✅ **Qualidade mantida**: flutter analyze --no-fatal-infos continua em 0 issues após correção
+
+## STATUS ANTERIOR (21 Set 2025) - VALIDADO (24 Set 2025)
+- ✅ **Export/Import de wishlists CONCLUÍDO e FUNCIONAL** na app Android com JSON sem imagens e opção de partilhar ou guardar o backup.
+- ✅ **Serviço de backup dedicado** (`WishlistBackupService`) + testes unitários garantem serialização/parse consistente.
+- ✅ **UI do Perfil** ganhou secção de Backup & Restauro com feedback localizados (l10n completo PT/EN).
+- ✅ **Qualidade mantida**: flutter analyze --no-fatal-infos (0 issues), testes de backup funcionais (2/2 passaram).
+- ✅ **Feature COMPLETA**: Export para JSON com partilha/download, Import com validação e feedback de erros/sucessos.
 
 ## STATUS ATUAL (09 Set 2025)
 ✅ **PLANO DE MELHORIAS COMPLETAMENTE IMPLEMENTADO** - Mantém-se a execução integral do PLANO_MELHORIAS_OVERALL.md com a arquitetura enterprise e as melhorias de performance já aplicadas; Flutter analyze continua em 0 issues.
