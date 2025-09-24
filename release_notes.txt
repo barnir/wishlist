@@ -1,18 +1,27 @@
-🚀 Wishlist App Beta v0.1.4 (Build 5)
+🚀 MyWishStash v0.1.5+6 - Nova Versão Beta!
 
-✨ Novidades:
-- Importação de wishlists agora tenta espelhar imagens externas no Cloudinary automaticamente
-- Indicador visual de enriquecimento (chip) acima da imagem dos itens importados
-- Funcionalidade mirrorToCloudinary disponível via Firebase Functions para integrações futuras
+🧠 NOVIDADES PRINCIPAIS:
+• Detecção inteligente de contactos: A app agora detecta automaticamente quais dos teus contactos já estão registados!
+• Interface melhorada: Contactos registados aparecem com avatar colorido e botão de favoritos
+• Exploração simplificada: Perfis públicos carregam automaticamente (sem necessidade de pesquisa)
 
-🛠 Melhorias Técnicas:
-- Enrichment pós-importação marca estado rate_limited/pending/failed para feedback rápido
-- Helper FirebaseFunctionsService.mirrorToCloudinary para uso no cliente
-- Regeneração do l10n e documentação de fluxo opcional de mirror server-side
+🎨 MELHORIAS DE INTERFACE:
+• Página de perfil mais limpa (removido separador "Sobre")
+• Maior privacidade: email não aparece nos perfis públicos
+• Bio mantida no cabeçalho para melhor organização
 
-✅ Validações:
-- flutter analyze --no-fatal-infos
-- flutter test
-- flutter build apk --release
+🛠️ CORREÇÕES:
+• Queries Firestore mais robustas com fallback automático
+• Performance otimizada para matching de contactos
+• Correções de linting e melhorias de qualidade
 
-Notas: deploy direcionado a `wishlist-beta-testers`. Monitorizar feedback de importações com links longos/amostras variadas.
+📊 QUALIDADE GARANTIDA:
+• flutter analyze: 0 issues
+• Todos os testes unitários passaram (21/21)
+• Padrões enterprise mantidos
+
+📐 ANÁLISE TÉCNICA:
+• Documentação completa de arquitetura de microserviços
+• Recomendação: manter setup monolítico atual (ideal para contexto)
+
+Testa as novas funcionalidades e dá-nos feedback! 📱✨

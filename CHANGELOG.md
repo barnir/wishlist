@@ -7,6 +7,39 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.1.5] - 2025-09-24
+
+### 🧠 Added
+- **Detecção inteligente de contactos**: Sistema detecta automaticamente contactos do telefone que já estão registados na app
+- Novo método `findUsersByContacts()` no UserSearchRepository para matching eficiente por telefone/email
+- UI diferenciada para contactos: amigos registados (avatar colorido + botão favoritos) vs contactos para convidar (avatar cinzento + botão partilhar)
+- Queries Firestore otimizadas com `whereIn` para busca em lote de contactos
+
+### 📐 Analysis
+- **Análise completa de arquitetura**: Avaliação detalhada da aplicação para decomposição em microserviços
+- Documentação técnica em `docs/MICROSERVICES_ANALYSIS.md` com análise de 50+ páginas
+- 4 domínios de negócio identificados: Auth/User, Wishlist, Social/Discovery, Media/Content
+- Estratégia de migração Strangler Fig Pattern documentada em 3 fases
+- **Recomendação técnica**: Manter arquitetura monolítica atual (Firebase/Flutter ecosystem é ideal)
+
+### 🎨 UI/UX Improvements
+- Interface de perfil simplificada: removido separador "Sobre", foco nas wishlists
+- Bio mantida no cabeçalho do perfil para interface mais limpa
+- Email removido dos cards de perfis públicos na exploração para maior privacidade
+- Explore screen com auto-loading de perfis públicos (sem necessidade de busca manual)
+
+### 🛠 Fixed
+- Fallback robusto para queries Firestore quando índices compostos não estão disponíveis
+- Correções de linting no UserSearchRepository
+- Estrutura de dados ajustada para compatibilidade com `_buildFriendCard`
+
+### 🧪 Quality Assurance
+- flutter analyze: 0 issues mantidos
+- flutter test: 21/21 testes passaram
+- Padrões enterprise mantidos (Repository Pattern, Error Boundaries, Resource Management)
+
+---
+
 ## [0.1.4] - 2025-09-21
 
 ### 🚀 Added

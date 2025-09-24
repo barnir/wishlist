@@ -2,7 +2,41 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (24 Set 2025) - MICROSERVICES ARCHITECTURE ANALYSIS
+## STATUS ATUAL (24 Set 2025) - VERSÃO 0.1.5 DISTRIBUÍDA AOS TESTERS
+### Resumo Geral da Sessão
+- **Detecção inteligente de contactos IMPLEMENTADA**: Sistema detecta contactos registados na app
+- **UserSearchRepository aprimorado**: Novo método `findUsersByContacts()` para matching por telefone/email
+- **UI diferenciada**: Amigos registados com avatar colorido vs contactos com botão convidar
+- **Análise de microserviços COMPLETA**: Avaliação arquitetural detalhada da aplicação atual
+- **Documentação técnica**: Criado `docs/MICROSERVICES_ANALYSIS.md` com análise de 50+ páginas
+
+### Decisões Importantes
+- **Manter arquitetura monolítica** - Firebase/Flutter ecosystem é ideal para o contexto atual
+- **Microserviços identificados** - 4 domínios mapeados para futuras considerações
+- **Estratégia de migração** - Strangler Fig Pattern em 3 fases documentado
+- **Contactos inteligentes** - Matching eficiente usando queries Firestore `whereIn`
+
+### Próximos Passos
+- **Testar funcionalidade de contactos** em dispositivo real com contactos diversos
+- **Implementar melhorias de UX** baseadas no feedback de utilizadores sobre detecção de contactos
+- **Considerar otimizações** na query de matching de contactos para listas muito grandes
+- **Monitorizar performance** das novas queries Firestore em produção
+
+### Build e Deploy Completado
+- **Versão**: 0.1.5+6 (atualizada de 0.1.4+5)
+- **Changelog**: `CHANGELOG.md` atualizado com todas as melhorias da sessão
+- **Release Notes**: `release_notes.txt` criado para distribuição
+- **APK**: `build/app/outputs/flutter-apk/app-release.apk` (69.2MB)
+- **Distribuição**: Firebase App Distribution - grupo `wishlist-beta-testers`
+- **Link de gestão**: https://console.firebase.google.com/project/wishlist-beta-12bf3/appdistribution
+
+### Referências da Sessão
+- **Código modificado**: `lib/repositories/user_search_repository.dart`, `lib/screens/explore_screen.dart`
+- **Documentação**: `docs/MICROSERVICES_ANALYSIS.md` - análise arquitetural completa
+- **Qualidade**: flutter analyze (0 issues), flutter test (21/21 passed)
+- **Deploy**: Sucesso - testers receberão notificação automática
+
+## STATUS ANTERIOR (24 Set 2025) - MICROSERVICES ARCHITECTURE ANALYSIS
 - 📐 **Análise arquitetural COMPLETADA**: Avaliação detalhada da aplicação atual para oportunidades de decomposição em microserviços
 - ✅ **Domínios identificados**: 4 domínios principais mapeados (Auth/User, Wishlist, Social/Discovery, Media/Content)
 - ✅ **Arquitetura proposta**: Design completo com API Gateway e 4 microserviços especializados
