@@ -2,7 +2,23 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (24 Set 2025) - PROFILE INTERFACE SIMPLIFICATION
+## STATUS ATUAL (24 Set 2025) - MICROSERVICES ARCHITECTURE ANALYSIS
+- 📐 **Análise arquitetural COMPLETADA**: Avaliação detalhada da aplicação atual para oportunidades de decomposição em microserviços
+- ✅ **Domínios identificados**: 4 domínios principais mapeados (Auth/User, Wishlist, Social/Discovery, Media/Content)
+- ✅ **Arquitetura proposta**: Design completo com API Gateway e 4 microserviços especializados
+- ✅ **Estratégia de migração**: Plano de 3 fases usando Strangler Fig Pattern para migração gradual
+- ✅ **Recomendação**: Manter monólito atual - setup Firebase/Flutter é eficiente para tamanho da equipa atual
+- ✅ **Documentação**: `docs/MICROSERVICES_ANALYSIS.md` com análise completa e justificação técnica
+
+## STATUS ANTERIOR (24 Set 2025) - SMART CONTACT DETECTION
+- 🧠 **Detecção inteligente de contactos IMPLEMENTADA**: Sistema agora detecta quando contactos do telefone já estão registados na app
+- ✅ **Matching por telefone/email**: Novo método `findUsersByContacts()` no UserSearchRepository compara contactos com utilizadores registados
+- ✅ **UI diferenciada**: Contactos registados aparecem como "amigos" com avatar colorido e botão de favoritos (navegação para perfil)
+- ✅ **Contactos não registados**: Mantêm botão "Convidar" com avatar cinzento para partilhar a app
+- ✅ **Performance otimizada**: Usa queries Firestore com `whereIn` para busca eficiente por lotes de telefones/emails
+- ✅ **Qualidade mantida**: flutter analyze em 0 issues, todos os testes unitários passaram (21/21)
+
+## STATUS ANTERIOR (24 Set 2025) - PROFILE INTERFACE SIMPLIFICATION
 - 🎨 **Interface simplificada**: Removido separador "Sobre" da página de perfil para interface mais limpa
 - ✅ **Foco nas wishlists**: Página de perfil agora mostra apenas listas de desejos públicas
 - ✅ **Bio no cabeçalho**: Bio mantida no cartão superior, abaixo do nome (como solicitado)

@@ -235,9 +235,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildTabSection() {
-    return Expanded(
-      child: _buildPublicWishlistsTab(),
-    );
+    return Expanded(child: _buildPublicWishlistsTab());
   }
 
   Widget _buildPublicWishlistsTab() {
@@ -354,8 +352,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
-
-
 
   Future<void> _toggleFavorite() async {
     try {

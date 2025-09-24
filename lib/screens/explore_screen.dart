@@ -375,14 +375,89 @@ class _ExploreScreenState extends State<ExploreScreen>
         withPhoto: false, // Não precisamos de fotos para descoberta
       );
 
-      // Filtra contactos que têm números de telefone
+      // Filtra contactos que têm números de telefone ou emails
       final contactsWithPhones = contacts
-          .where((c) => c.phones.isNotEmpty)
+          .where((c) => c.phones.isNotEmpty || c.emails.isNotEmpty)
           .toList();
 
-      // Implementação básica: todos os contactos ainda não mapeados na app são candidatos a convite
+      // Recolhe todos os números de telefone e emails dos contactos
+      final phoneNumbers = <String>[];
+      final emails = <String>[];
+
+      for (final contact in contactsWithPhones) {
+        for (final phone in contact.phones) {
+          if (phone.number.isNotEmpty) {
+            phoneNumbers.add(phone.number);
+          }
+        }
+        for (final email in contact.emails) {
+          if (email.address.isNotEmpty) {
+            emails.add(email.address);
+          }
+        }
+      }
+
+      // Procura utilizadores registados que correspondam aos contactos
+      final registeredUsers = await _userSearchRepo.findUsersByContacts(
+        phoneNumbers: phoneNumbers,
+        emails: emails,
+      );
+
+      // Separa contactos entre amigos registados e contactos para convidar
       final friends = <Map<String, dynamic>>[];
-      final inviteContacts = contactsWithPhones;
+      final inviteContacts = <Contact>[];
+
+      for (final contact in contactsWithPhones) {
+        bool isRegistered = false;
+        UserProfile? matchedUser;
+
+        // Verifica se algum telefone ou email do contacto corresponde a um utilizador registado
+        for (final phone in contact.phones) {
+          final cleanPhone = phone.number.replaceAll(RegExp(r'[^\d+]'), '');
+          if (registeredUsers.containsKey(cleanPhone)) {
+            isRegistered = true;
+            matchedUser = registeredUsers[cleanPhone];
+            break;
+          }
+        }
+
+        if (!isRegistered) {
+          for (final email in contact.emails) {
+            final cleanEmail = email.address.toLowerCase().trim();
+            if (registeredUsers.containsKey(cleanEmail)) {
+              isRegistered = true;
+              matchedUser = registeredUsers[cleanEmail];
+              break;
+            }
+          }
+        }
+
+        if (isRegistered && matchedUser != null) {
+          // Contacto está registado na app - adiciona aos amigos
+          friends.add({
+            'contact': {
+              'name': contact.displayName,
+              'phone': contact.phones.isNotEmpty
+                  ? contact.phones.first.number
+                  : null,
+            },
+            'user': {
+              'id': matchedUser.id,
+              'display_name': matchedUser.displayName,
+              'email': matchedUser.email,
+              'phone_number': matchedUser.phoneNumber,
+              'photo_url': matchedUser.photoUrl,
+            },
+            'contact_name': contact.displayName,
+            'contact_phone': contact.phones.isNotEmpty
+                ? contact.phones.first.number
+                : null,
+          });
+        } else {
+          // Contacto não está registado - adiciona aos convites
+          inviteContacts.add(contact);
+        }
+      }
 
       if (mounted) {
         setState(() {

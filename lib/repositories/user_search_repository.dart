@@ -170,4 +170,81 @@ class UserSearchRepository {
     );
     return PageResult(items: users, lastDoc: lastDoc, hasMore: hasMore);
   });
+
+  /// Finds registered users by phone numbers or emails.
+  /// Returns a map where keys are the contact identifiers (phone/email) and values are UserProfile objects.
+  Future<Map<String, UserProfile>> findUsersByContacts({
+    required List<String> phoneNumbers,
+    required List<String> emails,
+  }) async => _withLatency('findUsersByContacts', () async {
+    final results = <String, UserProfile>{};
+
+    // Clean and normalize phone numbers (remove spaces, dashes, etc.)
+    final cleanPhones = phoneNumbers
+        .map((p) => p.replaceAll(RegExp(r'[^\d+]'), ''))
+        .where((p) => p.isNotEmpty)
+        .toList();
+
+    // Normalize emails to lowercase
+    final cleanEmails = emails
+        .map((e) => e.toLowerCase().trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    // Search by phone numbers
+    if (cleanPhones.isNotEmpty) {
+      try {
+        final phoneQuery = await _firestore
+            .collection('users')
+            .where('phone_number', whereIn: cleanPhones)
+            .get();
+
+        for (final doc in phoneQuery.docs) {
+          final data = doc.data();
+          final mp = <String, dynamic>{'id': doc.id};
+          mp.addAll(data);
+          final user = UserProfile.fromMap(mp);
+          if (user.phoneNumber != null) {
+            results[user.phoneNumber!] = user;
+          }
+        }
+      } catch (e) {
+        logW('Error searching users by phone: $e', tag: 'SEARCH');
+      }
+    }
+
+    // Search by emails
+    if (cleanEmails.isNotEmpty) {
+      try {
+        final emailQuery = await _firestore
+            .collection('users')
+            .where('email', whereIn: cleanEmails)
+            .get();
+
+        for (final doc in emailQuery.docs) {
+          final data = doc.data();
+          final mp = <String, dynamic>{'id': doc.id};
+          mp.addAll(data);
+          final user = UserProfile.fromMap(mp);
+          if (user.email != null) {
+            results[user.email!.toLowerCase()] = user;
+          }
+        }
+      } catch (e) {
+        logW('Error searching users by email: $e', tag: 'SEARCH');
+      }
+    }
+
+    logI(
+      'Contact search completed',
+      tag: 'SEARCH',
+      data: {
+        'phones_searched': cleanPhones.length,
+        'emails_searched': cleanEmails.length,
+        'users_found': results.length,
+      },
+    );
+
+    return results;
+  });
 }
