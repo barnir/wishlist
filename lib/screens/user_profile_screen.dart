@@ -55,7 +55,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)?.errorLoadingProfile(e.toString()) ?? 'Erro ao carregar perfil: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.errorLoadingProfile(e.toString()) ??
+                  'Erro ao carregar perfil: $e',
+            ),
+          ),
         );
       }
     }
@@ -76,23 +81,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: WishlistAppBar(title: AppLocalizations.of(context)?.profile ?? 'Perfil'),
+        appBar: WishlistAppBar(
+          title: AppLocalizations.of(context)?.profile ?? 'Perfil',
+        ),
         body: _buildProfileSkeleton(),
       );
     }
 
     if (_userProfile == null) {
       return Scaffold(
-        appBar: WishlistAppBar(title: AppLocalizations.of(context)?.profile ?? 'Perfil'),
+        appBar: WishlistAppBar(
+          title: AppLocalizations.of(context)?.profile ?? 'Perfil',
+        ),
         body: WishlistEmptyState(
           icon: Icons.person_off,
-          title: AppLocalizations.of(context)?.profileNotFoundTitle ?? 'Perfil não encontrado',
-          subtitle: AppLocalizations.of(context)?.profileNotFoundSubtitle ?? 'Este utilizador pode ter sido removido.',
+          title:
+              AppLocalizations.of(context)?.profileNotFoundTitle ??
+              'Perfil não encontrado',
+          subtitle:
+              AppLocalizations.of(context)?.profileNotFoundSubtitle ??
+              'Este utilizador pode ter sido removido.',
         ),
       );
     }
 
-    final displayName = _userProfile!['display_name'] as String? ?? 'Utilizador';
+    final displayName =
+        _userProfile!['display_name'] as String? ?? 'Utilizador';
 
     return Scaffold(
       appBar: WishlistAppBar(
@@ -101,24 +115,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _buildFavoriteActionButton(),
           AccessibleIconButton(
             icon: Icons.share,
-            semanticLabel: AppLocalizations.of(context)?.shareProfileTooltip ?? 'Partilhar perfil',
-            tooltip: AppLocalizations.of(context)?.shareProfileTooltip ?? 'Partilhar perfil',
+            semanticLabel:
+                AppLocalizations.of(context)?.shareProfileTooltip ??
+                'Partilhar perfil',
+            tooltip:
+                AppLocalizations.of(context)?.shareProfileTooltip ??
+                'Partilhar perfil',
             onPressed: _shareProfile,
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildProfileHeader(),
-          _buildTabSection(),
-        ],
-      ),
+      body: Column(children: [_buildProfileHeader(), _buildTabSection()]),
     );
   }
 
   Widget _buildProfileHeader() {
-    final displayName = _userProfile!['display_name'] as String? ?? 'Utilizador';
-  final bio = _sanitizeAndTrimBio(_userProfile!['bio']);
+    final displayName =
+        _userProfile!['display_name'] as String? ?? 'Utilizador';
+    final bio = _sanitizeAndTrimBio(_userProfile!['bio']);
 
     return Container(
       width: double.infinity,
@@ -165,16 +179,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               textAlign: TextAlign.center,
             ),
           ],
-          if ((_userProfile!['email'] as String?) != null && (_userProfile!['email'] as String).isNotEmpty) ...[
-            Spacing.xs,
-            Text(
-              _userProfile!['email'] as String,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
           Spacing.m,
           _buildFavoriteStatusBadge(),
         ],
@@ -190,14 +194,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-  color: context.semanticColors.favorite.withAlpha(51),
+        color: context.semanticColors.favorite.withAlpha(51),
         borderRadius: BorderRadius.circular(UIConstants.radiusL),
-  border: Border.all(color: context.semanticColors.favorite, width: 1),
+        border: Border.all(color: context.semanticColors.favorite, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.star, size: UIConstants.iconSizeS, color: context.semanticColors.favorite),
+          Icon(
+            Icons.star,
+            size: UIConstants.iconSizeS,
+            color: context.semanticColors.favorite,
+          ),
           Spacing.horizontalXS,
           Text(
             (AppLocalizations.of(context)?.favoriteBadge ?? 'Favorito'),
@@ -215,8 +223,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final l10n = AppLocalizations.of(context)!;
     return AccessibleIconButton(
       icon: _isFavorite ? Icons.star : Icons.star_border,
-      color: _isFavorite ? context.semanticColors.favorite : Theme.of(context).colorScheme.primary,
-      semanticLabel: _isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+      color: _isFavorite
+          ? context.semanticColors.favorite
+          : Theme.of(context).colorScheme.primary,
+      semanticLabel: _isFavorite
+          ? l10n.removeFromFavorites
+          : l10n.addToFavorites,
       tooltip: _isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
       onPressed: _toggleFavorite,
     );
@@ -224,33 +236,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildTabSection() {
     return Expanded(
-      child: DefaultTabController(
-        length: 2,
-        child: Column(
-          children: [
-            Container(
-              color: Theme.of(context).colorScheme.surface,
-              child: TabBar(
-                labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                indicatorColor: Theme.of(context).colorScheme.primary,
-                tabs: [
-                  Tab(text: AppLocalizations.of(context)!.publicWishlistsTab, icon: const Icon(Icons.list_alt)),
-                  Tab(text: AppLocalizations.of(context)!.aboutTab, icon: const Icon(Icons.info_outline)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildPublicWishlistsTab(),
-                  _buildAboutTab(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: _buildPublicWishlistsTab(),
     );
   }
 
@@ -264,7 +250,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
         if (snapshot.hasError) {
           final l10n = AppLocalizations.of(context)!;
-          return Center(child: Text(l10n.errorPrefix(snapshot.error.toString())));
+          return Center(
+            child: Text(l10n.errorPrefix(snapshot.error.toString())),
+          );
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -303,8 +291,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildWishlistCard(Map<String, dynamic> wishlist) {
-  final l10n = AppLocalizations.of(context)!;
-  final name = wishlist['name'] as String? ?? l10n.noName;
+    final l10n = AppLocalizations.of(context)!;
+    final name = wishlist['name'] as String? ?? l10n.noName;
     final imageUrl = wishlist['image_url'] as String?;
 
     return WishlistCard(
@@ -330,9 +318,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
         title: Text(
           name,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         subtitle: Row(
           children: [
@@ -343,7 +331,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             Spacing.horizontalXS,
             Text(
-                l10n.publicLabel,
+              l10n.publicLabel,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w500,
@@ -367,99 +355,50 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildAboutTab() {
-    final displayName = _userProfile!['display_name'] as String? ?? 'Utilizador';
-  final bio = _sanitizeAndTrimBio(_userProfile!['bio']);
-    
-    return Padding(
-      padding: UIConstants.paddingM,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          WishlistCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.person_outline,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: UIConstants.iconSizeM,
-                    ),
-                    Spacing.horizontalS,
-                    Text(
-                      AppLocalizations.of(context)?.profileInfoSectionTitle ?? 'Informações do Perfil',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                Spacing.m,
-                _buildInfoRow('Nome', displayName),
-                if (_userProfile!['email'] != null)
-                  _buildInfoRow('Email', _userProfile!['email'] as String),
-                if (bio != null && bio.isNotEmpty)
-                  _buildInfoRow('Bio', bio),
-                _buildInfoRow(AppLocalizations.of(context)?.memberSinceLabel ?? 'Membro desde', AppLocalizations.of(context)?.recentlyLabel ?? 'Recentemente'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: UIConstants.spacingS),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _toggleFavorite() async {
     try {
       if (_isFavorite) {
         await _favoritesService.removeFavorite(widget.userId);
         if (mounted) {
-          AppSnack.show(context, AppLocalizations.of(context)?.removedFromFavorites ?? 'Removido dos favoritos', type: SnackType.success);
+          AppSnack.show(
+            context,
+            AppLocalizations.of(context)?.removedFromFavorites ??
+                'Removido dos favoritos',
+            type: SnackType.success,
+          );
           setState(() => _isFavorite = false);
-          MonitoringService().trackEvent('profile_unfavorite', properties: {'profile_id': widget.userId});
+          MonitoringService().trackEvent(
+            'profile_unfavorite',
+            properties: {'profile_id': widget.userId},
+          );
         }
       } else {
         await _favoritesService.addFavorite(widget.userId);
         if (mounted) {
-          AppSnack.show(context, AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!', type: SnackType.success);
+          AppSnack.show(
+            context,
+            AppLocalizations.of(context)?.addedToFavorites ??
+                'Adicionado aos favoritos!',
+            type: SnackType.success,
+          );
           setState(() => _isFavorite = true);
-          MonitoringService().trackEvent('profile_favorite', properties: {'profile_id': widget.userId});
+          MonitoringService().trackEvent(
+            'profile_favorite',
+            properties: {'profile_id': widget.userId},
+          );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)?.genericError(e.toString()) ?? 'Erro: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.genericError(e.toString()) ??
+                  'Erro: $e',
+            ),
+          ),
         );
       }
     }
@@ -469,7 +408,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   void _trackProfileView() {
     if (_profileViewTracked) return;
     _profileViewTracked = true;
-    MonitoringService().trackEvent('profile_view', properties: {'profile_id': widget.userId});
+    MonitoringService().trackEvent(
+      'profile_view',
+      properties: {'profile_id': widget.userId},
+    );
   }
 
   String? _sanitizeAndTrimBio(dynamic raw) {
@@ -482,10 +424,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   void _shareProfile() {
     final link = 'https://wishlist.app/user/${widget.userId}';
-    final localizedMessage = AppLocalizations.of(context)?.shareProfileMessage(link) ?? 'Vê o meu perfil no Wishlist App:';
+    final localizedMessage =
+        AppLocalizations.of(context)?.shareProfileMessage(link) ??
+        'Vê o meu perfil no Wishlist App:';
     final message = '$localizedMessage $link';
     SharePlus.instance.share(ShareParams(text: message));
-    MonitoringService().trackEvent('profile_share', properties: {'profile_id': widget.userId});
+    MonitoringService().trackEvent(
+      'profile_share',
+      properties: {'profile_id': widget.userId},
+    );
   }
 
   Widget _buildProfileSkeleton() {
@@ -493,7 +440,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       padding: UIConstants.paddingM,
       child: Column(
         children: [
-          _shimmerBox(height: 160, width: double.infinity, radius: UIConstants.radiusM),
+          _shimmerBox(
+            height: 160,
+            width: double.infinity,
+            radius: UIConstants.radiusM,
+          ),
           Spacing.l,
           _shimmerCircle(diameter: UIConstants.imageSizeXL),
           Spacing.m,
@@ -501,7 +452,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           Spacing.s,
           _shimmerBox(height: 14, width: 140),
           Spacing.l,
-          _shimmerBox(height: 40, width: double.infinity, radius: UIConstants.radiusS),
+          _shimmerBox(
+            height: 40,
+            width: double.infinity,
+            radius: UIConstants.radiusS,
+          ),
         ],
       ),
     );
@@ -515,7 +470,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         padding: const EdgeInsets.only(bottom: UIConstants.spacingM),
         child: Row(
           children: [
-            _shimmerBox(height: UIConstants.imageSizeM, width: UIConstants.imageSizeM, radius: UIConstants.radiusS),
+            _shimmerBox(
+              height: UIConstants.imageSizeM,
+              width: UIConstants.imageSizeM,
+              radius: UIConstants.radiusS,
+            ),
             Spacing.horizontalM,
             Expanded(
               child: Column(
@@ -533,7 +492,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _shimmerBox({required double height, required double width, double radius = 8}) {
+  Widget _shimmerBox({
+    required double height,
+    required double width,
+    double radius = 8,
+  }) {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,

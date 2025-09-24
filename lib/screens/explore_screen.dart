@@ -24,18 +24,19 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateMixin {
+class _ExploreScreenState extends State<ExploreScreen>
+    with TickerProviderStateMixin {
   final _userSearchRepo = UserSearchRepository();
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
-  
+
   // Tab controller (search + contacts)
   late TabController _tabController;
-  
+
   // Search state
   String _searchQuery = '';
   Timer? _debounceTimer;
-  
+
   // Paginação
   static const int _pageSize = 15;
   final List<UserProfile> _users = [];
@@ -45,7 +46,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   bool _isInitialLoading = false;
 
   // Contacts state (merged friends + invite)
-  List<Map<String, dynamic>> _friendsInApp = []; // items with 'user' + 'contact'
+  List<Map<String, dynamic>> _friendsInApp =
+      []; // items with 'user' + 'contact'
   List<Contact> _contactsToInvite = [];
   bool _isLoadingContacts = false;
   bool _hasContactsPermission = false;
@@ -56,10 +58,12 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-  _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
     _checkContactsPermission();
+    // Load public profiles automatically when screen opens
+    _loadPublicProfiles();
   }
 
   @override
@@ -82,7 +86,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           _lastDoc = null;
           _hasMoreData = true;
         });
-        
+
         if (query.isNotEmpty) {
           _loadInitialData();
         }
@@ -98,13 +102,35 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     }
   }
 
+  /// Load public profiles automatically when screen opens (no search query needed)
+  Future<void> _loadPublicProfiles() async {
+    setState(() {
+      _isInitialLoading = true;
+      _users.clear();
+      _lastDoc = null;
+      _hasMoreData = true;
+    });
+
+    await _loadPublicProfilesData();
+
+    if (mounted) {
+      setState(() {
+        _isInitialLoading = false;
+      });
+    }
+  }
+
   Future<void> _loadInitialData() async {
-    if (_searchQuery.isEmpty) return;
+    if (_searchQuery.isEmpty) {
+      // If no search query, load public profiles instead
+      await _loadPublicProfiles();
+      return;
+    }
 
     setState(() {
       _isInitialLoading = true;
       _users.clear();
-  _lastDoc = null;
+      _lastDoc = null;
       _hasMoreData = true;
     });
 
@@ -117,8 +143,50 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     }
   }
 
+  /// Load public profiles data (used when no search query)
+  Future<void> _loadPublicProfilesData() async {
+    if (_isLoading || !_hasMoreData) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final page = await _userSearchRepo.getPublicUsersPage(
+        limit: _pageSize,
+        startAfter: _lastDoc,
+      );
+      setState(() {
+        _users.addAll(page.items);
+        _lastDoc = page.lastDoc;
+        _hasMoreData = page.hasMore;
+        _isLoading = false;
+      });
+      if (!_hasMoreData) {
+        _scrollController.removeListener(_onScroll);
+      }
+    } catch (e) {
+      // Provide more precise feedback for common Firestore failure causes
+      final errorText = _mapSearchError(e);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorText)));
+      }
+    }
+  }
+
   Future<void> _loadMoreData() async {
-    if (_isLoading || !_hasMoreData || _searchQuery.isEmpty) return;
+    if (_isLoading || !_hasMoreData) return;
+
+    // If no search query, load public profiles
+    if (_searchQuery.isEmpty) {
+      await _loadPublicProfilesData();
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -130,31 +198,35 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         limit: _pageSize,
         startAfter: _lastDoc,
       );
-        setState(() {
-          _users.addAll(page.items);
-          _lastDoc = page.lastDoc;
-          _hasMoreData = page.hasMore;
-          _isLoading = false;
-        });
-        if (!_hasMoreData) {
-          _scrollController.removeListener(_onScroll);
-        }
+      setState(() {
+        _users.addAll(page.items);
+        _lastDoc = page.lastDoc;
+        _hasMoreData = page.hasMore;
+        _isLoading = false;
+      });
+      if (!_hasMoreData) {
+        _scrollController.removeListener(_onScroll);
+      }
     } catch (e) {
-    // Provide more precise feedback for common Firestore failure causes
-    final errorText = _mapSearchError(e);
+      // Provide more precise feedback for common Firestore failure causes
+      final errorText = _mapSearchError(e);
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(errorText)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorText)));
       }
     }
   }
 
   Future<void> _onRefresh() async {
-    await _loadInitialData();
+    if (_searchQuery.isEmpty) {
+      await _loadPublicProfiles();
+    } else {
+      await _loadInitialData();
+    }
   }
 
   // ============== CONTACTS METHODS ==============
@@ -162,7 +234,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   Future<void> _checkContactsPermission() async {
     try {
       // Primeiro só verificamos se já temos permissão, sem solicitar
-      final hasPermission = await FlutterContacts.requestPermission(readonly: true);
+      final hasPermission = await FlutterContacts.requestPermission(
+        readonly: true,
+      );
       if (mounted) {
         setState(() {
           _hasContactsPermission = hasPermission;
@@ -190,7 +264,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
 
       // Solicita explicitamente a permissão ao utilizador
       final granted = await FlutterContacts.requestPermission();
-      
+
       if (mounted) {
         setState(() {
           _hasContactsPermission = granted;
@@ -200,11 +274,15 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         if (granted) {
           // Permissão concedida - carregar dados
           _loadContactsData();
-          final grantedMsg = AppLocalizations.of(context)?.contactsPermissionDescription ?? 'Permissão concedida! A descobrir contactos...';
+          final grantedMsg =
+              AppLocalizations.of(context)?.contactsPermissionDescription ??
+              'Permissão concedida! A descobrir contactos...';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(grantedMsg),
-              backgroundColor: Theme.of(context).extension<AppSemanticColors>()!.success,
+              backgroundColor: Theme.of(
+                context,
+              ).extension<AppSemanticColors>()!.success,
               duration: const Duration(seconds: 2),
             ),
           );
@@ -212,9 +290,13 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           // Permissão negada - mostrar explicação
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.contactsPermissionRequired),
+              content: Text(
+                AppLocalizations.of(context)!.contactsPermissionRequired,
+              ),
               action: SnackBarAction(
-                label: AppLocalizations.of(context)?.contactsPermissionTryAgain ?? 'Tentar novamente',
+                label:
+                    AppLocalizations.of(context)?.contactsPermissionTryAgain ??
+                    'Tentar novamente',
                 onPressed: _requestContactsPermission,
               ),
               duration: const Duration(seconds: 5),
@@ -228,18 +310,27 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           _isLoadingContacts = false;
           _hasContactsPermission = false;
         });
-        
+
         // Erro na solicitação - pode indicar permissão negada permanentemente
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorRequestingPermission(e.toString())),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorRequestingPermission(e.toString()),
+            ),
             action: SnackBarAction(
-              label: AppLocalizations.of(context)?.contactsPermissionSettings ?? 'Configurações',
+              label:
+                  AppLocalizations.of(context)?.contactsPermissionSettings ??
+                  'Configurações',
               onPressed: () {
                 // TODO: Abrir configurações da app se necessário
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(AppLocalizations.of(context)?.contactsPermissionManual ?? 'Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente'),
+                    content: Text(
+                      AppLocalizations.of(context)?.contactsPermissionManual ??
+                          'Vai às Configurações > Apps > WishlistApp > Permissões para ativar manualmente',
+                    ),
                     duration: const Duration(seconds: 4),
                   ),
                 );
@@ -264,9 +355,10 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         _isLoadingContacts = true;
       });
 
-      
       // Verifica permissão novamente antes de prosseguir
-      final stillHasPermission = await FlutterContacts.requestPermission(readonly: true);
+      final stillHasPermission = await FlutterContacts.requestPermission(
+        readonly: true,
+      );
       if (!stillHasPermission) {
         if (mounted) {
           setState(() {
@@ -282,12 +374,13 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         withProperties: true,
         withPhoto: false, // Não precisamos de fotos para descoberta
       );
-      
-      
+
       // Filtra contactos que têm números de telefone
-      final contactsWithPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
-      
-  // Implementação básica: todos os contactos ainda não mapeados na app são candidatos a convite
+      final contactsWithPhones = contacts
+          .where((c) => c.phones.isNotEmpty)
+          .toList();
+
+      // Implementação básica: todos os contactos ainda não mapeados na app são candidatos a convite
       final friends = <Map<String, dynamic>>[];
       final inviteContacts = contactsWithPhones;
 
@@ -297,7 +390,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           _contactsToInvite = inviteContacts;
           _isLoadingContacts = false;
         });
-        
       }
     } catch (e) {
       logE('Error loading contacts', tag: 'UI', error: e);
@@ -305,18 +397,22 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         setState(() {
           _isLoadingContacts = false;
         });
-        
+
         // Trata diferentes tipos de erro
         String errorMessage;
         if (e.toString().contains('permission')) {
-          errorMessage = AppLocalizations.of(context)?.contactsPermissionRevoked ?? 'Permissão de contactos foi revogada. Tenta novamente.';
+          errorMessage =
+              AppLocalizations.of(context)?.contactsPermissionRevoked ??
+              'Permissão de contactos foi revogada. Tenta novamente.';
           setState(() {
             _hasContactsPermission = false;
           });
         } else {
-          errorMessage = AppLocalizations.of(context)!.errorLoadingContacts(e.toString());
+          errorMessage = AppLocalizations.of(
+            context,
+          )!.errorLoadingContacts(e.toString());
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -341,20 +437,22 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     try {
       final name = contact.displayName;
       final l10n = AppLocalizations.of(context)!;
-      
-      final message = 'Olá $name! Estou a usar o WishlistApp para gerir as minhas listas de desejos. Experimenta também! 🎁';
+
+      final message =
+          'Olá $name! Estou a usar o WishlistApp para gerir as minhas listas de desejos. Experimenta também! 🎁';
       final fullMessage = '$message\n\n${l10n.invitePlayStoreMessage}';
-      
-  // ignore: deprecated_member_use
+
       // ignore: deprecated_member_use
-      await Share.share(
-        fullMessage,
-        subject: l10n.inviteSubject,
-      );
+      // ignore: deprecated_member_use
+      await Share.share(fullMessage, subject: l10n.inviteSubject);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorSendingInvite(e.toString()))),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.errorSendingInvite(e.toString()),
+            ),
+          ),
         );
       }
     }
@@ -376,10 +474,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildSearchTab(),
-          _buildContactsTab(),
-        ],
+        children: [_buildSearchTab(), _buildContactsTab()],
       ),
     );
   }
@@ -395,9 +490,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
             prefixIcon: const Icon(Icons.search),
           ),
         ),
-        Expanded(
-          child: _buildSearchContent(),
-        ),
+        Expanded(child: _buildSearchContent()),
       ],
     );
   }
@@ -435,7 +528,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           if (index == _users.length) {
             return Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Center(child: Text(AppLocalizations.of(context)!.loadingMoreResults)),
+              child: Center(
+                child: Text(AppLocalizations.of(context)!.loadingMoreResults),
+              ),
             );
           }
           return _buildUserCard(_users[index]);
@@ -446,10 +541,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
 
   Widget _buildUserCard(UserProfile user) {
     final displayName = user.displayName ?? 'Utilizador';
-    final email = user.email;
     final userId = user.id;
-  final isPrivate = user.isPrivate;
-  final String? bio = user.bio;
+    final isPrivate = user.isPrivate;
+    final String? bio = user.bio;
 
     return Card(
       margin: UIConstants.cardMargin,
@@ -459,11 +553,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       ),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/user_profile',
-            arguments: userId,
-          );
+          Navigator.pushNamed(context, '/user_profile', arguments: userId);
         },
         borderRadius: BorderRadius.circular(UIConstants.radiusM),
         child: Container(
@@ -495,9 +585,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                   ),
                 ),
               ),
-              
+
               Spacing.horizontalM,
-              
+
               // Informação do utilizador
               Expanded(
                 child: Column(
@@ -512,19 +602,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
-                    if (email != null && email.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        email,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    
+
                     if (bio != null && bio.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -537,37 +615,46 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Status de privacidade
                     Row(
                       children: [
                         Icon(
-                          isPrivate ? Icons.lock_outlined : Icons.public_outlined,
+                          isPrivate
+                              ? Icons.lock_outlined
+                              : Icons.public_outlined,
                           size: 14,
-                          color: isPrivate 
-                            ? Theme.of(context).colorScheme.error
-                            : Theme.of(context).colorScheme.primary,
+                          color: isPrivate
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 4),
                         Text(
-              isPrivate
-                ? (AppLocalizations.of(context)?.privateProfileBadge ?? 'Perfil privado')
-                : (AppLocalizations.of(context)?.publicProfileBadge ?? 'Perfil público'),
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: isPrivate 
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          isPrivate
+                              ? (AppLocalizations.of(
+                                      context,
+                                    )?.privateProfileBadge ??
+                                    'Perfil privado')
+                              : (AppLocalizations.of(
+                                      context,
+                                    )?.publicProfileBadge ??
+                                    'Perfil público'),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: isPrivate
+                                    ? Theme.of(context).colorScheme.error
+                                    : Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               // Seta de navegação
               Icon(
                 Icons.arrow_forward,
@@ -628,8 +715,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           if (index < _friendsInApp.length) {
             return _buildFriendCard(_friendsInApp[index]);
           }
-            final contact = _contactsToInvite[index - _friendsInApp.length];
-            return _buildInviteCard(contact);
+          final contact = _contactsToInvite[index - _friendsInApp.length];
+          return _buildInviteCard(contact);
         },
       ),
     );
@@ -643,27 +730,17 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.contacts,
-              size: 80,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.contacts, size: 80, color: Colors.grey),
             const SizedBox(height: 24),
             Text(
               l10n.discoverFriends,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Text(
               l10n.contactsPermissionDescription,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
@@ -671,7 +748,10 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               icon: const Icon(Icons.contacts),
               label: Text(l10n.allowContactsAccess),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
             ),
           ],
@@ -683,14 +763,17 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   Widget _buildFriendCard(Map<String, dynamic> friendData) {
     final user = friendData['user'] as Map<String, dynamic>;
     final contact = friendData['contact'] as Map<String, dynamic>;
-    
-    final displayName = user['display_name'] as String? ?? contact['name'] as String? ?? 'Utilizador';
+
+    final displayName =
+        user['display_name'] as String? ??
+        contact['name'] as String? ??
+        'Utilizador';
     final email = user['email'] as String?;
     final userId = user['id'] as String;
     final contactName = contact['name'] as String? ?? displayName;
 
-  final isFav = _favoriteIds.contains(userId);
-  return Card(
+    final isFav = _favoriteIds.contains(userId);
+    return Card(
       margin: UIConstants.cardMargin,
       elevation: UIConstants.elevationM,
       shape: RoundedRectangleBorder(
@@ -698,11 +781,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       ),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/user_profile',
-            arguments: userId,
-          );
+          Navigator.pushNamed(context, '/user_profile', arguments: userId);
         },
         borderRadius: BorderRadius.circular(UIConstants.radiusM),
         child: Container(
@@ -734,9 +813,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Informação do utilizador
               Expanded(
                 child: Column(
@@ -775,24 +854,30 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                   ],
                 ),
               ),
-              
+
               // Actions (favorite toggle)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AccessibleIconButton(
                     icon: isFav ? Icons.star : Icons.star_border,
-                    color: isFav ? Colors.amber : Theme.of(context).colorScheme.primary,
+                    color: isFav
+                        ? Colors.amber
+                        : Theme.of(context).colorScheme.primary,
                     semanticLabel: isFav
-                      ? AppLocalizations.of(context)?.removeFromFavorites ?? 'Remover dos favoritos'
-                      : AppLocalizations.of(context)?.addToFavorites ?? 'Adicionar aos favoritos',
+                        ? AppLocalizations.of(context)?.removeFromFavorites ??
+                              'Remover dos favoritos'
+                        : AppLocalizations.of(context)?.addToFavorites ??
+                              'Adicionar aos favoritos',
                     tooltip: isFav
-                      ? AppLocalizations.of(context)?.removeFromFavorites ?? 'Remover dos favoritos'
-                      : AppLocalizations.of(context)?.addToFavorites ?? 'Adicionar aos favoritos',
+                        ? AppLocalizations.of(context)?.removeFromFavorites ??
+                              'Remover dos favoritos'
+                        : AppLocalizations.of(context)?.addToFavorites ??
+                              'Adicionar aos favoritos',
                     onPressed: () => _toggleFavorite(userId, isFav),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -832,9 +917,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                 ),
               ),
             ),
-            
+
             const SizedBox(width: 16),
-            
+
             // Informação do contacto
             Expanded(
               child: Column(
@@ -862,14 +947,17 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                 ],
               ),
             ),
-            
+
             // Botão de convite
             OutlinedButton.icon(
               onPressed: () => _inviteContact(contact),
               icon: const Icon(Icons.share, size: 16),
               label: Text(AppLocalizations.of(context)!.inviteButton),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
             ),
           ],
@@ -883,7 +971,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   String _mapSearchError(Object e) {
     final raw = e.toString();
     // Common Firestore messages
-    if (raw.contains('PERMISSION_DENIED') || raw.contains('Missing or insufficient permissions')) {
+    if (raw.contains('PERMISSION_DENIED') ||
+        raw.contains('Missing or insufficient permissions')) {
       return 'Sem permissões para ler utilizadores públicos (verifica regras do Firestore).';
     }
     if (raw.contains('FAILED_PRECONDITION') && raw.contains('index')) {
@@ -901,21 +990,43 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   Future<void> _toggleFavorite(String userId, bool currentlyFav) async {
     try {
       if (currentlyFav) {
-        await _favoritesRepo.remove(FirebaseAuth.instance.currentUser!.uid, userId);
-        setState(() { _favoriteIds.remove(userId); });
+        await _favoritesRepo.remove(
+          FirebaseAuth.instance.currentUser!.uid,
+          userId,
+        );
+        setState(() {
+          _favoriteIds.remove(userId);
+        });
         if (mounted) {
-          AppSnack.show(context, AppLocalizations.of(context)?.removedFromFavorites ?? 'Removido dos favoritos', type: SnackType.success);
+          AppSnack.show(
+            context,
+            AppLocalizations.of(context)?.removedFromFavorites ??
+                'Removido dos favoritos',
+            type: SnackType.success,
+          );
         }
       } else {
-        await _favoritesRepo.add(FirebaseAuth.instance.currentUser!.uid, userId);
-        setState(() { _favoriteIds.add(userId); });
+        await _favoritesRepo.add(
+          FirebaseAuth.instance.currentUser!.uid,
+          userId,
+        );
+        setState(() {
+          _favoriteIds.add(userId);
+        });
         if (mounted) {
-          AppSnack.show(context, AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!', type: SnackType.success);
+          AppSnack.show(
+            context,
+            AppLocalizations.of(context)?.addedToFavorites ??
+                'Adicionado aos favoritos!',
+            type: SnackType.success,
+          );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao actualizar favorito: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao actualizar favorito: $e')),
+        );
       }
     }
   }

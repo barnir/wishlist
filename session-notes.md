@@ -2,7 +2,27 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (24 Set 2025) - FIRESTORE INDEX FIX
+## STATUS ATUAL (24 Set 2025) - PROFILE INTERFACE SIMPLIFICATION
+- 🎨 **Interface simplificada**: Removido separador "Sobre" da página de perfil para interface mais limpa
+- ✅ **Foco nas wishlists**: Página de perfil agora mostra apenas listas de desejos públicas
+- ✅ **Bio no cabeçalho**: Bio mantida no cartão superior, abaixo do nome (como solicitado)
+- ✅ **Email removido**: Email não aparece mais no cabeçalho do perfil para manter limpeza
+- ✅ **Qualidade mantida**: flutter analyze continua em 0 issues após simplificação
+
+## STATUS ANTERIOR (24 Set 2025) - PRIVACY CONTROLS FOR PUBLIC PROFILES
+- 🔒 **Privacidade na exploração CORRIGIDA**: Email removido dos cards de perfis públicos na tela de explorar
+- ✅ **Local correto identificado**: Problema estava no explore_screen.dart (não no user_profile_screen.dart)
+- ✅ **Email removido**: Eliminada exibição de email nos cards dos utilizadores públicos na exploração
+- ✅ **Privacidade respeitada**: Cards de exploração agora mostram apenas nome, bio e status de privacidade
+- ✅ **Qualidade mantida**: Correções de linting aplicadas em user_search_repository.dart
+
+## STATUS ANTERIOR (24 Set 2025) - EXPLORE SCREEN AUTO-LOADING FIX
+- 🎯 **Explore Screen CORRIGIDO**: Perfis públicos agora carregam automaticamente ao abrir a tela de explorar, sem necessidade de busca
+- ✅ **Auto-loading implementado**: Novo método `getPublicUsersPage()` no UserSearchRepository carrega perfis públicos sem query
+- ✅ **UX melhorada**: Usuários veem perfis disponíveis imediatamente, facilitando descoberta de novos utilizadores
+- ✅ **Fallback inteligente**: Sistema funciona com busca ativa (query) ou carregamento automático (sem query)
+
+## STATUS ANTERIOR (24 Set 2025) - FIRESTORE INDEX FIX
 - 🔧 **Firestore Index Error CORRIGIDO**: Implementado fallback robusto para queries de favoritos quando índices não estão disponíveis temporariamente
 - ✅ **Solução de resiliência**: FavoritesRepository agora tem fallback automático para queries sem orderBy se índice composto falhar
 - ✅ **Qualidade mantida**: flutter analyze --no-fatal-infos continua em 0 issues após correção
