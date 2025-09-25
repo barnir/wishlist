@@ -9,6 +9,9 @@ import 'package:mywishstash/widgets/loading_message.dart';
 import '../widgets/ui_components.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
+import '../utils/page_transitions.dart';
+import 'explore_screen.dart';
+import 'user_profile_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -139,7 +142,7 @@ class _FriendsScreenState extends State<FriendsScreen>
             icon: Icons.search,
             semanticLabel: l10n.searchProfilesTooltip,
             tooltip: l10n.searchProfilesTooltip,
-            onPressed: () => Navigator.pushNamed(context, '/explore'),
+            onPressed: () => context.pushSearch(const ExploreScreen()),
           ),
         ],
       ),
@@ -185,10 +188,8 @@ class _FriendsScreenState extends State<FriendsScreen>
       ),
       child: InkWell(
         onTap: () async {
-          final result = await Navigator.pushNamed(
-            context,
-            '/user_profile',
-            arguments: userId,
+          final result = await context.pushFadeScale(
+            UserProfileScreen(userId: userId),
           );
           // If user unfavorited this profile, refresh the list
           if (result == 'unfavorited' && mounted) {

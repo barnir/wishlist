@@ -16,6 +16,9 @@ import 'package:mywishstash/utils/app_logger.dart';
 import 'package:mywishstash/repositories/favorites_repository.dart';
 import 'package:mywishstash/widgets/app_snack.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/page_transitions.dart';
+import 'user_profile_screen.dart';
+import '../widgets/animated_search_field.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -575,10 +578,17 @@ class _ExploreScreenState extends State<ExploreScreen>
       children: [
         Padding(
           padding: UIConstants.paddingM,
-          child: WishlistTextField(
+          child: AnimatedSearchField(
             label: AppLocalizations.of(context)!.searchUsersPlaceholder,
             controller: _searchController,
             prefixIcon: const Icon(Icons.search),
+            isLoading: _isLoading && _searchQuery.isNotEmpty,
+            onChanged: (value) {
+              // Optional: Add haptic feedback for better UX
+              if (value.isNotEmpty && _searchQuery.isEmpty) {
+                // First character typed - subtle haptic feedback
+              }
+            },
           ),
         ),
         Expanded(child: _buildSearchContent()),
@@ -644,7 +654,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       ),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/user_profile', arguments: userId);
+          context.pushFadeScale(UserProfileScreen(userId: userId));
         },
         borderRadius: BorderRadius.circular(UIConstants.radiusM),
         child: Container(
@@ -872,7 +882,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       ),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/user_profile', arguments: userId);
+          context.pushFadeScale(UserProfileScreen(userId: userId));
         },
         borderRadius: BorderRadius.circular(UIConstants.radiusM),
         child: Container(

@@ -2,24 +2,35 @@ import 'package:flutter/material.dart';
 
 /// Custom page transitions for improved navigation experience
 class CustomPageTransitions {
-  /// Slide transition from right to left
+  /// Optimized slide transition from right to left
+  /// Enhanced for smoother performance and reduced visual glitches
   static Route<T> slideFromRight<T extends Object?>(Widget page) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: const Duration(milliseconds: 300),
-      reverseTransitionDuration: const Duration(milliseconds: 250),
+      transitionDuration: const Duration(
+        milliseconds: 280,
+      ), // Slightly faster for smoother feel
+      reverseTransitionDuration: const Duration(milliseconds: 220),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(1.0, 0.0);
         const end = Offset.zero;
-        const curve = Curves.easeInOutCubic;
 
-        var tween = Tween(begin: begin, end: end).chain(
-          CurveTween(curve: curve),
+        // Use easeOutCubic for more natural deceleration
+        final slideAnimation = animation.drive(
+          Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        );
+
+        // Add subtle fade for smoother visual transition
+        final fadeAnimation = animation.drive(
+          Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeIn)),
         );
 
         return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
+          position: slideAnimation,
+          child: FadeTransition(opacity: fadeAnimation, child: child),
         );
       },
     );
@@ -36,48 +47,82 @@ class CustomPageTransitions {
         const end = Offset.zero;
         const curve = Curves.easeOutExpo;
 
-        var tween = Tween(begin: begin, end: end).chain(
-          CurveTween(curve: curve),
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
+
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
+  /// Optimized fade transition with scale - perfect for profile screens
+  /// Reduces visual glitches and provides smooth user experience
+  static Route<T> fadeWithScale<T extends Object?>(Widget page) {
+    return PageRouteBuilder<T>(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionDuration: const Duration(milliseconds: 250), // Optimized timing
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Different curves for fade and scale for more natural motion
+        final fadeAnimation = animation.drive(
+          Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOut)),
         );
 
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
+        final scaleAnimation = animation.drive(
+          Tween(
+            begin: 0.92,
+            end: 1.0,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        );
+
+        return FadeTransition(
+          opacity: fadeAnimation,
+          child: ScaleTransition(scale: scaleAnimation, child: child),
         );
       },
     );
   }
 
-  /// Fade transition with slight scale
-  static Route<T> fadeWithScale<T extends Object?>(Widget page) {
+  /// Optimized search transition - minimal motion for better search UX
+  /// Designed to reduce visual distractions during search interactions
+  static Route<T> searchTransition<T extends Object?>(Widget page) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: const Duration(milliseconds: 280),
-      reverseTransitionDuration: const Duration(milliseconds: 220),
+      transitionDuration: const Duration(
+        milliseconds: 200,
+      ), // Fast for responsiveness
+      reverseTransitionDuration: const Duration(milliseconds: 150),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const curve = Curves.easeInOutQuart;
+        // Subtle slide up with quick fade - less jarring for search
+        const begin = Offset(0.0, 0.03); // Very minimal slide
+        const end = Offset.zero;
 
-        var fadeTween = Tween(begin: 0.0, end: 1.0).chain(
-          CurveTween(curve: curve),
+        final slideAnimation = animation.drive(
+          Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: Curves.easeOutQuart)),
         );
 
-        var scaleTween = Tween(begin: 0.95, end: 1.0).chain(
-          CurveTween(curve: curve),
+        final fadeAnimation = animation.drive(
+          Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOut)),
         );
 
-        return FadeTransition(
-          opacity: animation.drive(fadeTween),
-          child: ScaleTransition(
-            scale: animation.drive(scaleTween),
-            child: child,
-          ),
+        return SlideTransition(
+          position: slideAnimation,
+          child: FadeTransition(opacity: fadeAnimation, child: child),
         );
       },
     );
   }
 
   /// Transição de página para Android
-  static Route<T> adaptiveTransition<T extends Object?>(Widget page, BuildContext context) {
+  static Route<T> adaptiveTransition<T extends Object?>(
+    Widget page,
+    BuildContext context,
+  ) {
     // Usar transição otimizada para Android
     return fadeWithScale<T>(page);
   }
@@ -95,13 +140,15 @@ class CustomPageTransitions {
         const end = Offset.zero;
         const curve = Curves.easeOutCubic;
 
-        var slideTween = Tween(begin: begin, end: end).chain(
-          CurveTween(curve: curve),
-        );
+        var slideTween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
 
-        var fadeTween = Tween(begin: 0.0, end: 1.0).chain(
-          CurveTween(curve: Curves.easeOut),
-        );
+        var fadeTween = Tween(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut));
 
         return FadeTransition(
           opacity: animation.drive(fadeTween),
@@ -132,8 +179,16 @@ extension NavigatorStateExtensions on NavigatorState {
     return push<T>(CustomPageTransitions.fadeWithScale<T>(page));
   }
 
+  /// Push with search optimized animation
+  Future<T?> pushSearch<T extends Object?>(Widget page) {
+    return push<T>(CustomPageTransitions.searchTransition<T>(page));
+  }
+
   /// Push with adaptive animation based on platform
-  Future<T?> pushAdaptive<T extends Object?>(Widget page, BuildContext context) {
+  Future<T?> pushAdaptive<T extends Object?>(
+    Widget page,
+    BuildContext context,
+  ) {
     return push<T>(CustomPageTransitions.adaptiveTransition<T>(page, context));
   }
 
@@ -158,6 +213,11 @@ extension BuildContextExtensions on BuildContext {
   /// Push with fade and scale animation
   Future<T?> pushFadeScale<T extends Object?>(Widget page) {
     return Navigator.of(this).pushFadeScale<T>(page);
+  }
+
+  /// Push with search optimized animation
+  Future<T?> pushSearch<T extends Object?>(Widget page) {
+    return Navigator.of(this).pushSearch<T>(page);
   }
 
   /// Push with adaptive animation based on platform

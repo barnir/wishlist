@@ -35,91 +35,103 @@ import 'screens/setup_name_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/friend_suggestions_screen.dart';
 import 'screens/user_profile_screen.dart';
+import 'utils/page_transitions.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   // Colocamos tudo dentro do mesmo zone para evitar "Zone mismatch".
-  runZonedGuarded(() async {
-    try {
-      WidgetsFlutterBinding.ensureInitialized();
-      await dotenv.load(fileName: '.env');
-
-      FlutterError.onError = (details) {
-        appLog('FlutterError: ${details.exceptionAsString()}', tag: 'FATAL');
-      };
-      // Initialize Firebase
-      await Firebase.initializeApp();
-
-      // Enable Firestore offline persistence (safe to call once; ignore if already enabled)
+  runZonedGuarded(
+    () async {
       try {
-        FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
-        appLog('Firestore offline persistence enabled', tag: 'INIT');
-      } catch (e) {
-        appLog('Could not enable offline persistence: $e', tag: 'INIT');
-      }
+        WidgetsFlutterBinding.ensureInitialized();
+        await dotenv.load(fileName: '.env');
 
-      // Set up background message handler for FCM
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+        FlutterError.onError = (details) {
+          appLog('FlutterError: ${details.exceptionAsString()}', tag: 'FATAL');
+        };
+        // Initialize Firebase
+        await Firebase.initializeApp();
 
-      // Initialize Firestore (for database)
-      // Note: Firestore is automatically initialized with Firebase.initializeApp()
-      appLog('Firebase Firestore initialized', tag: 'INIT');
-
-      // Initialize theme service
-      await ThemeService().initialize();
-
-      // Initialize language service
-      await LanguageService().initialize();
-
-      // Initialize notification service
-      await NotificationService().initialize();
-
-      // Configure analytics provider
-      AnalyticsService().configure(FirebaseAnalyticsProvider(analytics: FirebaseAnalytics.instance));
-
-      // Identify current user if already authenticated (cold start with persisted session)
-      final existingUser = firebase_auth.FirebaseAuth.instance.currentUser;
-      if (existingUser != null) {
-        await AnalyticsService().identify(existingUser.uid);
-
-        // Bootstrap user properties (theme, locale, registration status) after identify
+        // Enable Firestore offline persistence (safe to call once; ignore if already enabled)
         try {
-          final themeService = ThemeService();
-          final languageService = LanguageService();
-          final props = <String, Object?>{
-            'theme_mode': themeService.currentThemeModeName,
-            'locale': languageService.currentLocale.languageCode,
-            'language_auto_detect': languageService.isAutoDetect,
-          };
-          // Attempt to fetch registration_complete flag
-          try {
-            final profile = await UserProfileRepository().fetchById(existingUser.uid);
-            if (profile != null) {
-              props['registration_complete'] = profile.registrationComplete;
-            }
-          } catch (_) {
-            // Ignore profile fetch error for analytics bootstrap
-          }
-          await AnalyticsService().setUserProps(props);
-        } catch (_) {
-          // Non-fatal: ignore analytics bootstrap errors
+          FirebaseFirestore.instance.settings = const Settings(
+            persistenceEnabled: true,
+          );
+          appLog('Firestore offline persistence enabled', tag: 'INIT');
+        } catch (e) {
+          appLog('Could not enable offline persistence: $e', tag: 'INIT');
         }
 
-        // Prefetch imagens ao entrar na app
-        await ImagePrefetchService().warmUp();
-      }
+        // Set up background message handler for FCM
+        FirebaseMessaging.onBackgroundMessage(
+          firebaseMessagingBackgroundHandler,
+        );
 
-  runApp(const MyApp());
-    } catch (e, st) {
-      appLog('Initialization error: $e\n$st', tag: 'FATAL');
-      // Show a minimal error UI so the developer can inspect logs instead of
-      // the app crashing silently.
-      runApp(ErrorApp(error: e.toString()));
-    }
-  }, (error, stack) {
-    appLog('Uncaught error: $error', tag: 'UNCAUGHT');
-  });
+        // Initialize Firestore (for database)
+        // Note: Firestore is automatically initialized with Firebase.initializeApp()
+        appLog('Firebase Firestore initialized', tag: 'INIT');
+
+        // Initialize theme service
+        await ThemeService().initialize();
+
+        // Initialize language service
+        await LanguageService().initialize();
+
+        // Initialize notification service
+        await NotificationService().initialize();
+
+        // Configure analytics provider
+        AnalyticsService().configure(
+          FirebaseAnalyticsProvider(analytics: FirebaseAnalytics.instance),
+        );
+
+        // Identify current user if already authenticated (cold start with persisted session)
+        final existingUser = firebase_auth.FirebaseAuth.instance.currentUser;
+        if (existingUser != null) {
+          await AnalyticsService().identify(existingUser.uid);
+
+          // Bootstrap user properties (theme, locale, registration status) after identify
+          try {
+            final themeService = ThemeService();
+            final languageService = LanguageService();
+            final props = <String, Object?>{
+              'theme_mode': themeService.currentThemeModeName,
+              'locale': languageService.currentLocale.languageCode,
+              'language_auto_detect': languageService.isAutoDetect,
+            };
+            // Attempt to fetch registration_complete flag
+            try {
+              final profile = await UserProfileRepository().fetchById(
+                existingUser.uid,
+              );
+              if (profile != null) {
+                props['registration_complete'] = profile.registrationComplete;
+              }
+            } catch (_) {
+              // Ignore profile fetch error for analytics bootstrap
+            }
+            await AnalyticsService().setUserProps(props);
+          } catch (_) {
+            // Non-fatal: ignore analytics bootstrap errors
+          }
+
+          // Prefetch imagens ao entrar na app
+          await ImagePrefetchService().warmUp();
+        }
+
+        runApp(const MyApp());
+      } catch (e, st) {
+        appLog('Initialization error: $e\n$st', tag: 'FATAL');
+        // Show a minimal error UI so the developer can inspect logs instead of
+        // the app crashing silently.
+        runApp(ErrorApp(error: e.toString()));
+      }
+    },
+    (error, stack) {
+      appLog('Uncaught error: $error', tag: 'UNCAUGHT');
+    },
+  );
 }
 
 // Minimal error app shown when initialization fails
@@ -198,7 +210,6 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-
   @override
   void dispose() {
     _intentDataStreamSubscription.cancel();
@@ -210,7 +221,7 @@ class _MyAppState extends State<MyApp> {
     // Cache dos services para evitar recriação
     final languageService = LanguageService();
     final themeService = ThemeService();
-    
+
     return AnimatedBuilder(
       animation: Listenable.merge([themeService, languageService]),
       builder: (context, child) {
@@ -221,72 +232,113 @@ class _MyAppState extends State<MyApp> {
           darkTheme: darkAppTheme,
           // Use dynamic theme mode from ThemeService instead of fixed system
           themeMode: themeService.themeMode,
-          
+
           // Configuração de localização - cache do locale
           locale: languageService.currentLocale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate, // Mantido para evitar warning
+            GlobalCupertinoLocalizations
+                .delegate, // Mantido para evitar warning
           ],
           supportedLocales: const [
             Locale('en', ''), // Inglês
             Locale('pt', ''), // Português
           ],
-      routes: {
-        '/login': (_) => const LoginScreen(),
-        '/register': (_) => const RegisterScreen(),
-        '/profile': (_) => const ProfileScreen(),
-        '/wishlists': (_) => const WishlistsScreen(),
-        '/add_new_wishlist': (_) => const AddEditWishlistScreen(),
-        '/add_edit_wishlist': (context) {
-          final wishlistId =
-              ModalRoute.of(context)?.settings.arguments as String?;
-          return AddEditWishlistScreen(wishlistId: wishlistId);
-        },
-        '/add_edit_item': (context) {
-          final args =
-              ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>?;
-          return AddEditItemScreen(
-            wishlistId: args?['wishlistId'] as String?,
-            itemId: args?['itemId'] as String?,
-            name: args?['name'] as String?,
-            link: args?['link'] as String?,
-          );
-        },
-        '/wishlist_details': (context) {
-          final wishlistId =
-              ModalRoute.of(context)?.settings.arguments as String;
-          return WishlistDetailsScreen(wishlistId: wishlistId);
-        },
-        '/add_phone': (_) => const AddPhoneScreen(),
-        '/setup_name': (_) => const SetupNameScreen(),
-        '/friend_suggestions': (_) => const FriendSuggestionsScreen(),
-        '/user_profile': (context) {
-          final userId = ModalRoute.of(context)?.settings.arguments as String;
-          return UserProfileScreen(userId: userId);
-        },
-      },
+          onGenerateRoute: (settings) {
+            // Import the page transitions utility
+            switch (settings.name) {
+              case '/login':
+                return CustomPageTransitions.fadeWithScale(const LoginScreen());
+              case '/register':
+                return CustomPageTransitions.slideFromRight(
+                  const RegisterScreen(),
+                );
+              case '/profile':
+                return CustomPageTransitions.slideFromRight(
+                  const ProfileScreen(),
+                );
+              case '/wishlists':
+                return CustomPageTransitions.fadeWithScale(
+                  const WishlistsScreen(),
+                );
+              case '/add_new_wishlist':
+                return CustomPageTransitions.slideFromBottom(
+                  const AddEditWishlistScreen(),
+                );
+              case '/add_edit_wishlist':
+                final wishlistId = settings.arguments as String?;
+                return CustomPageTransitions.slideFromBottom(
+                  AddEditWishlistScreen(wishlistId: wishlistId),
+                );
+              case '/add_edit_item':
+                final args = settings.arguments as Map<String, dynamic>?;
+                return CustomPageTransitions.slideFromBottom(
+                  AddEditItemScreen(
+                    wishlistId: args?['wishlistId'] as String?,
+                    itemId: args?['itemId'] as String?,
+                    name: args?['name'] as String?,
+                    link: args?['link'] as String?,
+                  ),
+                );
+              case '/wishlist_details':
+                final wishlistId = settings.arguments as String;
+                return CustomPageTransitions.slideFromRight(
+                  WishlistDetailsScreen(wishlistId: wishlistId),
+                );
+              case '/add_phone':
+                return CustomPageTransitions.slideFromRight(
+                  const AddPhoneScreen(),
+                );
+              case '/setup_name':
+                return CustomPageTransitions.slideFromRight(
+                  const SetupNameScreen(),
+                );
+              case '/friend_suggestions':
+                return CustomPageTransitions.fadeWithScale(
+                  const FriendSuggestionsScreen(),
+                );
+              case '/explore':
+                return CustomPageTransitions.searchTransition(
+                  const ExploreScreen(),
+                );
+              case '/user_profile':
+                final userId = settings.arguments as String;
+                return CustomPageTransitions.fadeWithScale(
+                  UserProfileScreen(userId: userId),
+                );
+              default:
+                return null;
+            }
+          },
           home: StreamBuilder<firebase_auth.User?>(
             stream: AuthService().authStateChanges,
             builder: (context, snapshot) {
-              appLog('StreamBuilder auth state connectionState=${snapshot.connectionState} hasData=${snapshot.hasData}', tag: 'AUTH');
-              
+              appLog(
+                'StreamBuilder auth state connectionState=${snapshot.connectionState} hasData=${snapshot.hasData}',
+                tag: 'AUTH',
+              );
+
               if (snapshot.connectionState == ConnectionState.waiting) {
                 appLog('Auth state waiting - loading', tag: 'AUTH');
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              
+
               if (snapshot.hasData) {
-                appLog('User authenticated: ${snapshot.data!.email}', tag: 'AUTH');
+                appLog(
+                  'User authenticated: ${snapshot.data!.email}',
+                  tag: 'AUTH',
+                );
                 // Simple direct approach - no complex FutureBuilder nesting
                 return _AuthenticatedUserScreen(user: snapshot.data!);
               } else {
-                appLog('No user authenticated - showing LoginScreen', tag: 'AUTH');
+                appLog(
+                  'No user authenticated - showing LoginScreen',
+                  tag: 'AUTH',
+                );
                 return const LoginScreen();
               }
             },
@@ -300,11 +352,12 @@ class _MyAppState extends State<MyApp> {
 // Simple authenticated user screen handler
 class _AuthenticatedUserScreen extends StatefulWidget {
   final firebase_auth.User user;
-  
+
   const _AuthenticatedUserScreen({required this.user});
 
   @override
-  State<_AuthenticatedUserScreen> createState() => _AuthenticatedUserScreenState();
+  State<_AuthenticatedUserScreen> createState() =>
+      _AuthenticatedUserScreenState();
 }
 
 class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
@@ -316,49 +369,70 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
   final _userProfileRepo = UserProfileRepository();
 
   Future<Map<String, dynamic>?> _getProfileWithRetry() async {
-  appLog('_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries', tag: 'ROUTING');
-    
+    appLog(
+      '_getProfileWithRetry attempt: ${_retryCount + 1}/$_maxRetries',
+      tag: 'ROUTING',
+    );
+
     try {
       // First, try to get user profile from Firestore
       final userProfile = await _userProfileRepo.fetchById(widget.user.uid);
       if (userProfile != null) {
         final map = userProfile.toMap();
-        appLog('Profile found on attempt ${_retryCount + 1}: ${map.keys.join(', ')}', tag: 'ROUTING');
+        appLog(
+          'Profile found on attempt ${_retryCount + 1}: ${map.keys.join(', ')}',
+          tag: 'ROUTING',
+        );
         return map;
       }
-      
-  // If no profile found and we have retries left, wait and retry
+
+      // If no profile found and we have retries left, wait and retry
       if (_retryCount < _maxRetries - 1) {
         _retryCount++;
-  appLog('Profile not found, retry in ${_retryDelay.inMilliseconds}ms (attempt ${_retryCount + 1}/$_maxRetries)', tag: 'ROUTING');
+        appLog(
+          'Profile not found, retry in ${_retryDelay.inMilliseconds}ms (attempt ${_retryCount + 1}/$_maxRetries)',
+          tag: 'ROUTING',
+        );
         await Future.delayed(_retryDelay);
         return await _getProfileWithRetry();
       }
-      
+
       // After all retries failed, check if this is an orphaned account
-  appLog('Profile not found after $_maxRetries attempts - checking orphaned account', tag: 'ROUTING');
+      appLog(
+        'Profile not found after $_maxRetries attempts - checking orphaned account',
+        tag: 'ROUTING',
+      );
       final authService = AuthService();
       final isOrphaned = await authService.isOrphanedAccount();
-      
+
       // If orphaned (and not in registration flow), clean it up
       if (isOrphaned) {
-  appLog('Cleaning up orphaned Firebase Auth account...', tag: 'ROUTING');
+        appLog('Cleaning up orphaned Firebase Auth account...', tag: 'ROUTING');
         try {
           await authService.cleanupOrphanedAccount();
         } catch (e) {
           appLog('Failed cleanup orphaned account: $e', tag: 'ROUTING');
         }
       } else {
-  appLog('Account not orphaned - registration in progress (return null)', tag: 'ROUTING');
-        
+        appLog(
+          'Account not orphaned - registration in progress (return null)',
+          tag: 'ROUTING',
+        );
+
         // If user already has a verified/auth phone number, create a COMPLETE profile immediately (skip registration flow)
-        if (widget.user.phoneNumber != null && widget.user.phoneNumber!.isNotEmpty) {
-          appLog('No profile but auth has phone -> creating complete profile', tag: 'ROUTING');
+        if (widget.user.phoneNumber != null &&
+            widget.user.phoneNumber!.isNotEmpty) {
+          appLog(
+            'No profile but auth has phone -> creating complete profile',
+            tag: 'ROUTING',
+          );
           try {
             await _userProfileRepo.create(widget.user.uid, {
               'phone_number': widget.user.phoneNumber,
               'phone_verified': true,
-              'display_name': widget.user.displayName ?? widget.user.email?.split('@').first,
+              'display_name':
+                  widget.user.displayName ??
+                  widget.user.email?.split('@').first,
               'email': widget.user.email,
               'registration_complete': true,
               'is_private': false,
@@ -368,19 +442,29 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
             final created = await _userProfileRepo.fetchById(widget.user.uid);
             return created?.toMap();
           } catch (e) {
-            appLog('Error creating complete profile from auth phone: $e', tag: 'ROUTING');
+            appLog(
+              'Error creating complete profile from auth phone: $e',
+              tag: 'ROUTING',
+            );
           }
         } else {
           // If this is an email registration in progress (no profile yet), create a temporary profile now
-          if (widget.user.email != null && 
-              widget.user.metadata.creationTime != null && 
-              DateTime.now().difference(widget.user.metadata.creationTime!).inMinutes < 10) {
-            appLog('Creating temporary profile (email registration in progress)', tag: 'ROUTING');
+          if (widget.user.email != null &&
+              widget.user.metadata.creationTime != null &&
+              DateTime.now()
+                      .difference(widget.user.metadata.creationTime!)
+                      .inMinutes <
+                  10) {
+            appLog(
+              'Creating temporary profile (email registration in progress)',
+              tag: 'ROUTING',
+            );
             try {
               await _userProfileRepo.ensureTemporaryProfile(
                 widget.user.uid,
                 email: widget.user.email,
-                displayName: widget.user.displayName ?? widget.user.email!.split('@')[0],
+                displayName:
+                    widget.user.displayName ?? widget.user.email!.split('@')[0],
               );
               appLog('Temporary profile created', tag: 'ROUTING');
             } catch (e) {
@@ -389,37 +473,48 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
           }
         }
       }
-      
+
       return null;
     } catch (e) {
-  appLog('Error getting profile attempt ${_retryCount + 1}: $e', tag: 'ROUTING');
-      
+      appLog(
+        'Error getting profile attempt ${_retryCount + 1}: $e',
+        tag: 'ROUTING',
+      );
+
       // If error occurred and we have retries left, wait and retry
       if (_retryCount < _maxRetries - 1) {
         _retryCount++;
-  appLog('Retry after error in ${_retryDelay.inMilliseconds}ms (attempt ${_retryCount + 1}/$_maxRetries)', tag: 'ROUTING');
+        appLog(
+          'Retry after error in ${_retryDelay.inMilliseconds}ms (attempt ${_retryCount + 1}/$_maxRetries)',
+          tag: 'ROUTING',
+        );
         await Future.delayed(_retryDelay);
         return await _getProfileWithRetry();
       }
-      
+
       rethrow;
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
-  appLog('AuthenticatedUserScreen build user=${widget.user.email}', tag: 'ROUTING');
-    
+    appLog(
+      'AuthenticatedUserScreen build user=${widget.user.email}',
+      tag: 'ROUTING',
+    );
+
     return FutureBuilder<Map<String, dynamic>?>(
       future: _getProfileWithRetry(),
       builder: (context, snapshot) {
-  appLog('Profile FB connectionState=${snapshot.connectionState} hasError=${snapshot.hasError} hasData=${snapshot.hasData}', tag: 'ROUTING');
-        
+        appLog(
+          'Profile FB connectionState=${snapshot.connectionState} hasError=${snapshot.hasError} hasData=${snapshot.hasData}',
+          tag: 'ROUTING',
+        );
+
         // Check if the user has a profile but registration is not complete
         if (snapshot.connectionState == ConnectionState.done &&
             snapshot.hasData &&
             snapshot.data!['registration_complete'] == false) {
-
           final profile = snapshot.data!;
           final phoneNumber = profile['phone_number']?.toString() ?? '';
           final hasPhone = phoneNumber.isNotEmpty;
@@ -427,45 +522,68 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
 
           // If a phone number exists at all we treat it as verified (Firebase Auth phone is always verified)
           if (hasPhone) {
-            appLog('Auto-completing registration (phone present, verified=$phoneVerified)', tag: 'ROUTING');
+            appLog(
+              'Auto-completing registration (phone present, verified=$phoneVerified)',
+              tag: 'ROUTING',
+            );
             final updateData = <String, dynamic>{'registration_complete': true};
             if (!phoneVerified) {
               updateData['phone_verified'] = true; // implicit verification
             }
-            UserProfileRepository().update(widget.user.uid, updateData).then((_) {
-              appLog('Registration auto-complete persisted', tag: 'ROUTING');
-            }).catchError((error) {
-              appLog('Error auto-completing registration: $error', tag: 'ROUTING');
-            });
+            UserProfileRepository()
+                .update(widget.user.uid, updateData)
+                .then((_) {
+                  appLog(
+                    'Registration auto-complete persisted',
+                    tag: 'ROUTING',
+                  );
+                })
+                .catchError((error) {
+                  appLog(
+                    'Error auto-completing registration: $error',
+                    tag: 'ROUTING',
+                  );
+                });
             // Immediately route forward with locally patched profile map
             return FutureBuilder<Map<String, dynamic>?>(
-              future: Future.value(profile
-                ..['registration_complete'] = true
-                ..['phone_verified'] = true),
+              future: Future.value(
+                profile
+                  ..['registration_complete'] = true
+                  ..['phone_verified'] = true,
+              ),
               builder: (context, fixedSnapshot) {
                 if (fixedSnapshot.hasData) {
-                  appLog('Routing auto-completed profile -> WishlistsScreen', tag: 'ROUTING');
+                  appLog(
+                    'Routing auto-completed profile -> WishlistsScreen',
+                    tag: 'ROUTING',
+                  );
                   return const WishlistsScreen();
                 }
-                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
               },
             );
           }
 
           // No phone stored -> go to phone collection flow
-            appLog('Profile incomplete & no phone -> phone verification', tag: 'ROUTING');
-            Future.microtask(() {
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/add_phone');
-              }
-            });
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+          appLog(
+            'Profile incomplete & no phone -> phone verification',
+            tag: 'ROUTING',
+          );
+          Future.microtask(() {
+            if (context.mounted) {
+              Navigator.pushReplacementNamed(context, '/add_phone');
+            }
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
-        
+
         // If profile is completely missing but user exists, redirect to phone verification
-        if (snapshot.connectionState == ConnectionState.done && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            !snapshot.hasData) {
           appLog('Routing: no profile found -> AddPhoneScreen', tag: 'ROUTING');
           Future.microtask(() {
             if (context.mounted) {
@@ -476,7 +594,7 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           appLog('Profile loading...', tag: 'ROUTING');
           return const Scaffold(
@@ -492,17 +610,23 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
             ),
           );
         }
-        
+
         if (snapshot.hasError) {
-          appLog('Profile error=${snapshot.error} -> AddPhoneScreen', tag: 'ROUTING');
+          appLog(
+            'Profile error=${snapshot.error} -> AddPhoneScreen',
+            tag: 'ROUTING',
+          );
           return const AddPhoneScreen();
         }
-        
+
         final profile = snapshot.data;
-  appLog('Profile data exists=${profile != null}', tag: 'ROUTING');
-        
+        appLog('Profile data exists=${profile != null}', tag: 'ROUTING');
+
         // Enhanced routing logic with detailed debugging
-  appLog('Routing analysis profileExists=${profile != null}', tag: 'ROUTING');
+        appLog(
+          'Routing analysis profileExists=${profile != null}',
+          tag: 'ROUTING',
+        );
         if (profile != null) {
           appLog('Profile keys=${profile.keys.toList()}', tag: 'ROUTING');
         }
@@ -511,51 +635,83 @@ class _AuthenticatedUserScreenState extends State<_AuthenticatedUserScreen> {
           appLog('Routing: no profile -> AddPhoneScreen', tag: 'ROUTING');
           return const AddPhoneScreen();
         }
-        
+
         // Phone detection (profile or legacy or auth)
-        final phoneNumber = profile['phone_number'] ?? profile['phone'] ?? widget.user.phoneNumber;
+        final phoneNumber =
+            profile['phone_number'] ??
+            profile['phone'] ??
+            widget.user.phoneNumber;
         if (phoneNumber == null || phoneNumber.toString().isEmpty) {
           appLog('Routing: missing phone number', tag: 'ROUTING');
           return const AddPhoneScreen();
         } else {
           // Auto fix if stored only under legacy key 'phone' or missing verification flags
           if (profile['phone_number'] == null) {
-            appLog('Auto-fixing missing phone_number field in profile', tag: 'ROUTING');
-            UserProfileRepository().update(widget.user.uid, {
-              'phone_number': phoneNumber,
-              'phone_verified': true,
-              if (profile['registration_complete'] == false) 'registration_complete': true,
-            }).catchError((e){ appLog('Phone auto-fix failed: $e', tag: 'ROUTING'); return false; });
+            appLog(
+              'Auto-fixing missing phone_number field in profile',
+              tag: 'ROUTING',
+            );
+            UserProfileRepository()
+                .update(widget.user.uid, {
+                  'phone_number': phoneNumber,
+                  'phone_verified': true,
+                  if (profile['registration_complete'] == false)
+                    'registration_complete': true,
+                })
+                .catchError((e) {
+                  appLog('Phone auto-fix failed: $e', tag: 'ROUTING');
+                  return false;
+                });
           } else if (profile['registration_complete'] == false) {
-            appLog('Auto-fixing registration_complete (phone present)', tag: 'ROUTING');
-            UserProfileRepository().update(widget.user.uid, {
-              'registration_complete': true,
-              if (profile['phone_verified'] != true) 'phone_verified': true,
-            }).catchError((e){ appLog('Reg flag auto-fix failed: $e', tag: 'ROUTING'); return false; });
+            appLog(
+              'Auto-fixing registration_complete (phone present)',
+              tag: 'ROUTING',
+            );
+            UserProfileRepository()
+                .update(widget.user.uid, {
+                  'registration_complete': true,
+                  if (profile['phone_verified'] != true) 'phone_verified': true,
+                })
+                .catchError((e) {
+                  appLog('Reg flag auto-fix failed: $e', tag: 'ROUTING');
+                  return false;
+                });
           }
         }
-        
+
         final displayName = profile['display_name'] ?? profile['name'];
         if (displayName == null || displayName.toString().isEmpty) {
           // Attempt auto-fix using Firebase Auth displayName or email prefix
-          final autoName = widget.user.displayName ?? widget.user.email?.split('@').first;
+          final autoName =
+              widget.user.displayName ?? widget.user.email?.split('@').first;
           if (autoName != null && autoName.isNotEmpty) {
-            appLog('Auto-fixing missing display_name with derived "$autoName"', tag: 'ROUTING');
-            UserProfileRepository().update(widget.user.uid, {
-              'display_name': autoName,
-              'registration_complete': true,
-            }).catchError((e){
-              appLog('Auto-fix display_name update failed: $e', tag: 'ROUTING');
-              return false; // satisfy bool return
-            });
+            appLog(
+              'Auto-fixing missing display_name with derived "$autoName"',
+              tag: 'ROUTING',
+            );
+            UserProfileRepository()
+                .update(widget.user.uid, {
+                  'display_name': autoName,
+                  'registration_complete': true,
+                })
+                .catchError((e) {
+                  appLog(
+                    'Auto-fix display_name update failed: $e',
+                    tag: 'ROUTING',
+                  );
+                  return false; // satisfy bool return
+                });
             appLog('Routing: auto-fixed profile -> HomeScreen', tag: 'ROUTING');
           } else {
-            appLog('Routing: missing display name (no auto-fix) -> SetupNameScreen', tag: 'ROUTING');
+            appLog(
+              'Routing: missing display name (no auto-fix) -> SetupNameScreen',
+              tag: 'ROUTING',
+            );
             return const SetupNameScreen();
           }
         }
-        
-  appLog('Routing: complete profile -> HomeScreen', tag: 'ROUTING');
+
+        appLog('Routing: complete profile -> HomeScreen', tag: 'ROUTING');
         if (!_prefetchDone) {
           _prefetchDone = true;
           // Prefetch assíncrono não bloqueante
@@ -603,7 +759,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
-    
+
     // Se navegar para o perfil (índice 3), atualizar as estatísticas
     if (index == 3 && _profileScreenKey.currentState != null) {
       _profileScreenKey.currentState!.refreshStats();
@@ -623,26 +779,26 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Scaffold(
         body: IndexedStack(index: _selectedIndex, children: _screens),
-    bottomNavigationBar: BottomNavigationBar(
+        bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onTabTapped,
           type: BottomNavigationBarType.fixed,
           items: [
             BottomNavigationBarItem(
               icon: const Icon(Icons.list_alt),
-      label: AppLocalizations.of(context)?.wishlists ?? 'Wishlists',
+              label: AppLocalizations.of(context)?.wishlists ?? 'Wishlists',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.public),
-      label: AppLocalizations.of(context)?.explore ?? 'Explore',
+              label: AppLocalizations.of(context)?.explore ?? 'Explore',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.star),
-      label: AppLocalizations.of(context)?.favorites ?? 'Favorites',
+              label: AppLocalizations.of(context)?.favorites ?? 'Favorites',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.person),
-      label: AppLocalizations.of(context)?.profile ?? 'Profile',
+              label: AppLocalizations.of(context)?.profile ?? 'Profile',
             ),
           ],
         ),
