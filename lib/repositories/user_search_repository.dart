@@ -259,15 +259,15 @@ class UserSearchRepository {
   /// Uses same logic as ContactsService to ensure consistency
   String? _normalizePhoneNumber(String phoneNumber) {
     if (phoneNumber.trim().isEmpty) return null;
-    
+
     // Remove all non-numeric characters except +
     String cleaned = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-    
+
     // If starts with 00, replace with +
     if (cleaned.startsWith('00')) {
       cleaned = '+${cleaned.substring(2)}';
     }
-    
+
     // Portuguese phone normalization
     if (!cleaned.startsWith('+')) {
       // Portuguese mobile: 9 digits starting with 9
@@ -287,7 +287,7 @@ class UserSearchRepository {
         cleaned = '+351$cleaned';
       }
     }
-    
+
     return cleaned.isEmpty ? null : cleaned;
   }
 }
