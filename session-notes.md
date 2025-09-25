@@ -2,7 +2,28 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (25 Set 2025) - COMPREHENSIVE ANIMATION IMPROVEMENTS COMPLETED
+## STATUS ATUAL (25 Set 2025) - ANIMAÇÕES CORRIGIDAS v0.1.6+9 DEPLOYED
+
+### ✅ BUG CRÍTICO RESOLVIDO: ANIMAÇÕES FUNCIONANDO
+- **Root cause identificado**: Conflitos de extensões impediam compilação do sistema de navegação
+- **Correção aplicada**: Removida extensão duplicada NavigatorStateExtensions causando ambiguidade
+- **Sistema de navegação funcional**: pushFadeScale, pushSearch, pushHero, pushBottomModal agora funcionam
+- **Flutter analyze: 0 issues**: Build completamente limpo sem erros de compilação
+
+### 🚀 Versão v0.1.6+9 Deployada
+- **Firebase Console**: https://console.firebase.google.com/project/wishlistapp-b2b9a/appdistribution/app/android:com.mywishstash.app/releases/4ev9tscm0g3r8
+- **Fix principal**: Sistema de animações completamente funcional
+- **Debug logs mantidos**: Sistema extensivo de debug para contact detection e auto-loading
+- **Build status**: Debug e release builds passando sem erros
+
+### 🔍 Problemas Restantes em Investigação
+- **Contact detection**: Usuários registados aparecendo como "convidar" em vez de "amigos" (logs implementados)
+- **Auto-loading**: Lista não carregando automaticamente no ExploreScreen (logs implementados)
+
+### � Para Testar
+As animações devem agora funcionar corretamente nos dispositivos. Logs detalhados disponíveis para investigar os problemas restantes de contact detection e auto-loading.
+
+## STATUS ANTERIOR (25 Set 2025) - COMPREHENSIVE ANIMATION IMPROVEMENTS COMPLETED
 - 🎨 **Sistema de animações COMPLETAMENTE APRIMORADO**: Transições de tela otimizadas com base em pesquisa Context7
 - ✨ **Page Transitions Enhanced**: 5 tipos de transição personalizados (slideFromRight, fadeWithScale, searchTransition, heroTransition, slideFromBottom)
 - 🔥 **AnimatedSearchField**: Novo campo de busca com animações de foco suaves e indicadores de loading

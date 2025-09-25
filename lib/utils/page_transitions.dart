@@ -212,42 +212,6 @@ class CustomPageTransitions {
   }
 }
 
-/// Extension methods for easy navigation with custom transitions
-extension NavigatorStateExtensions on NavigatorState {
-  /// Push with slide from right animation
-  Future<T?> pushSlideRight<T extends Object?>(Widget page) {
-    return push<T>(CustomPageTransitions.slideFromRight<T>(page));
-  }
-
-  /// Push with slide from bottom animation
-  Future<T?> pushSlideBottom<T extends Object?>(Widget page) {
-    return push<T>(CustomPageTransitions.slideFromBottom<T>(page));
-  }
-
-  /// Push with fade and scale animation
-  Future<T?> pushFadeScale<T extends Object?>(Widget page) {
-    return push<T>(CustomPageTransitions.fadeWithScale<T>(page));
-  }
-
-  /// Push with search optimized animation
-  Future<T?> pushSearch<T extends Object?>(Widget page) {
-    return push<T>(CustomPageTransitions.searchTransition<T>(page));
-  }
-
-  /// Push with adaptive animation based on platform
-  Future<T?> pushAdaptive<T extends Object?>(
-    Widget page,
-    BuildContext context,
-  ) {
-    return push<T>(CustomPageTransitions.adaptiveTransition<T>(page, context));
-  }
-
-  /// Push as modal bottom sheet
-  Future<T?> pushModalBottomSheet<T extends Object?>(Widget page) {
-    return push<T>(CustomPageTransitions.modalBottomSheet<T>(page));
-  }
-}
-
 /// Extension methods for BuildContext navigation with enhanced animations
 extension BuildContextExtensions on BuildContext {
   /// Push with slide from right animation

@@ -107,6 +107,7 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   /// Load public profiles automatically when screen opens (no search query needed)
   Future<void> _loadPublicProfiles() async {
+    logI('=== AUTO-LOADING PUBLIC PROFILES ===', tag: 'EXPLORE_DEBUG');
     setState(() {
       _isInitialLoading = true;
       _users.clear();
@@ -121,6 +122,10 @@ class _ExploreScreenState extends State<ExploreScreen>
         _isInitialLoading = false;
       });
     }
+    logI(
+      'Auto-loading completed. Users loaded: ${_users.length}',
+      tag: 'EXPLORE_DEBUG',
+    );
   }
 
   Future<void> _loadInitialData() async {
@@ -150,6 +155,7 @@ class _ExploreScreenState extends State<ExploreScreen>
   Future<void> _loadPublicProfilesData() async {
     if (_isLoading || !_hasMoreData) return;
 
+    logI('Loading public profiles data...', tag: 'EXPLORE_DEBUG');
     setState(() {
       _isLoading = true;
     });
@@ -158,6 +164,10 @@ class _ExploreScreenState extends State<ExploreScreen>
       final page = await _userSearchRepo.getPublicUsersPage(
         limit: _pageSize,
         startAfter: _lastDoc,
+      );
+      logI(
+        'Loaded ${page.items.length} public users, hasMore: ${page.hasMore}',
+        tag: 'EXPLORE_DEBUG',
       );
       setState(() {
         _users.addAll(page.items);
@@ -169,6 +179,7 @@ class _ExploreScreenState extends State<ExploreScreen>
         _scrollController.removeListener(_onScroll);
       }
     } catch (e) {
+      logE('Error loading public profiles', tag: 'EXPLORE_DEBUG', error: e);
       // Provide more precise feedback for common Firestore failure causes
       final errorText = _mapSearchError(e);
       if (mounted) {
@@ -390,6 +401,11 @@ class _ExploreScreenState extends State<ExploreScreen>
       for (final contact in contactsWithPhones) {
         for (final phone in contact.phones) {
           if (phone.number.isNotEmpty) {
+            final normalized = _normalizePhoneNumber(phone.number);
+            logI(
+              'Contact ${contact.displayName}: raw phone ${phone.number} -> normalized: $normalized',
+              tag: 'CONTACT_DEBUG',
+            );
             phoneNumbers.add(phone.number);
           }
         }
@@ -400,11 +416,55 @@ class _ExploreScreenState extends State<ExploreScreen>
         }
       }
 
+      // Debug: mostra todos os números/emails que vamos procurar
+      logI('=== CONTACT SEARCH DEBUG START ===', tag: 'CONTACT_DEBUG');
+      logI(
+        'Total contacts: ${contactsWithPhones.length}',
+        tag: 'CONTACT_DEBUG',
+      );
+      logI('Phone numbers to search: $phoneNumbers', tag: 'CONTACT_DEBUG');
+      logI('Emails to search: $emails', tag: 'CONTACT_DEBUG');
+
       // Procura utilizadores registados que correspondam aos contactos
       final registeredUsers = await _userSearchRepo.findUsersByContacts(
         phoneNumbers: phoneNumbers,
         emails: emails,
       );
+
+      logI(
+        'Users found in database: ${registeredUsers.length}',
+        tag: 'CONTACT_DEBUG',
+      );
+      logI('Registered users map: $registeredUsers', tag: 'CONTACT_DEBUG');
+
+      // Special debug for Aamor contact
+      final aamorContacts = contactsWithPhones
+          .where((c) => c.displayName.toLowerCase().contains('aamor'))
+          .toList();
+      if (aamorContacts.isNotEmpty) {
+        final aamorContact = aamorContacts.first;
+        logI('=== AAMOR DEBUG ===', tag: 'CONTACT_DEBUG');
+        logI(
+          'Aamor contact phones: ${aamorContact.phones.map((p) => p.number).toList()}',
+          tag: 'CONTACT_DEBUG',
+        );
+        logI(
+          'Aamor contact emails: ${aamorContact.emails.map((e) => e.address).toList()}',
+          tag: 'CONTACT_DEBUG',
+        );
+        for (final phone in aamorContact.phones) {
+          final normalized = _normalizePhoneNumber(phone.number);
+          logI(
+            'Aamor phone ${phone.number} -> normalized: $normalized',
+            tag: 'CONTACT_DEBUG',
+          );
+          logI(
+            'Is in registered users? ${registeredUsers.containsKey(normalized)}',
+            tag: 'CONTACT_DEBUG',
+          );
+        }
+        logI('=== END AAMOR DEBUG ===', tag: 'CONTACT_DEBUG');
+      }
 
       // Separa contactos entre amigos registados e contactos para convidar
       final friends = <Map<String, dynamic>>[];
@@ -453,6 +513,10 @@ class _ExploreScreenState extends State<ExploreScreen>
 
         if (isRegistered && matchedUser != null) {
           // Contacto está registado na app - adiciona aos amigos
+          logI(
+            '✅ REGISTERED: ${contact.displayName} -> ${matchedUser.displayName}',
+            tag: 'CONTACT_DEBUG',
+          );
           friends.add({
             'contact': {
               'name': contact.displayName,
@@ -474,9 +538,21 @@ class _ExploreScreenState extends State<ExploreScreen>
           });
         } else {
           // Contacto não está registado - adiciona aos convites
+          logI(
+            '❌ NOT REGISTERED: ${contact.displayName} - phones: ${contact.phones.map((p) => p.number).join(", ")} - emails: ${contact.emails.map((e) => e.address).join(", ")}',
+            tag: 'CONTACT_DEBUG',
+          );
           inviteContacts.add(contact);
         }
       }
+
+      logI('=== FINAL RESULTS ===', tag: 'CONTACT_DEBUG');
+      logI('Friends in app: ${friends.length}', tag: 'CONTACT_DEBUG');
+      logI(
+        'Contacts to invite: ${inviteContacts.length}',
+        tag: 'CONTACT_DEBUG',
+      );
+      logI('=== CONTACT SEARCH DEBUG END ===', tag: 'CONTACT_DEBUG');
 
       if (mounted) {
         setState(() {
@@ -597,7 +673,12 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   Widget _buildSearchContent() {
-    if (_searchQuery.isEmpty) {
+    if (_isInitialLoading) {
+      return const SkeletonLoader(itemCount: 8);
+    }
+
+    // Show empty search state only when no query and no users loaded
+    if (_searchQuery.isEmpty && _users.isEmpty && !_isLoading) {
       final l10n = AppLocalizations.of(context)!;
       return WishlistEmptyState(
         icon: Icons.search,
@@ -606,11 +687,8 @@ class _ExploreScreenState extends State<ExploreScreen>
       );
     }
 
-    if (_isInitialLoading) {
-      return const SkeletonLoader(itemCount: 8);
-    }
-
-    if (_users.isEmpty && !_isLoading) {
+    // Show no results state when search query exists but no results
+    if (_searchQuery.isNotEmpty && _users.isEmpty && !_isLoading) {
       final l10n = AppLocalizations.of(context)!;
       return WishlistEmptyState(
         icon: Icons.person_search,

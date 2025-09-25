@@ -32,13 +32,9 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    _shimmerAnimation = Tween<double>(
-      begin: -1.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _shimmerController,
-      curve: Curves.easeInOut,
-    ));
+    _shimmerAnimation = Tween<double>(begin: -1.0, end: 1.0).animate(
+      CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut),
+    );
     _shimmerController.repeat();
   }
 
@@ -51,16 +47,22 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final baseColor = theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
-    final highlightColor = theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.1);
-    
+    final baseColor = theme.colorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.3,
+    );
+    final highlightColor = theme.colorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.1,
+    );
+
     return ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
       itemCount: widget.itemCount,
       padding: widget.padding,
       itemBuilder: (context, index) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: widget.isListTile ? _buildListTileSkeleton(baseColor, highlightColor) : _buildSimpleSkeleton(baseColor, highlightColor),
+        child: widget.isListTile
+            ? _buildListTileSkeleton(baseColor, highlightColor)
+            : _buildSimpleSkeleton(baseColor, highlightColor),
       ),
     );
   }
@@ -77,7 +79,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(widget.borderRadius),
-            child: _buildShimmerOverlay(highlightColor),
+            child: Stack(children: [_buildShimmerOverlay(highlightColor)]),
           ),
         );
       },

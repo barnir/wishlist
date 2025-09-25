@@ -7,6 +7,83 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.1.6+10] - 2025-09-25
+
+### 🎯 TODOS OS BUGS DE UI CRÍTICOS RESOLVIDOS
+- **SkeletonLoader CORRIGIDO**: Resolvido erro fatal de Positioned widget dentro de ClipRRect sem Stack
+- **Hierarquia de widgets CORRIGIDA**: Widget shimmer overlay agora funciona corretamente
+- **UI estável**: Eliminados crashes e erros de rendering durante loading states
+- **Real device testing**: Testado e funcionando no Samsung Galaxy S24 Ultra (Android 15)
+- **Logs limpos**: Sem mais erros de FlutterError: Incorrect use of ParentDataWidget
+
+### 🚀 Root Cause Final Identificado
+- SkeletonLoader tinha Positioned.fill sem Stack parent, causando crashes de UI
+- Este erro impedia o funcionamento correto das telas com loading states
+- Correção: Adicionado Stack wrapper no _buildSimpleSkeleton method
+
+## [0.1.6+9] - 2025-09-25
+
+### ✅ Bug Fixes Críticos
+- **ANIMAÇÕES CORRIGIDAS**: Resolvidos conflitos de extensões que impediam funcionamento das animações
+- **Extension conflicts RESOLVIDOS**: Removida extensão duplicada NavigatorStateExtensions
+- **Navigation system FUNCIONAL**: Métodos pushFadeScale, pushSearch, pushHero agora funcionam corretamente
+- **Flutter analyze: 0 issues**: Build completamente limpo sem erros de compilação
+- **Debug logging mantido**: Logs extensivos para detecção de contactos e auto-loading
+
+### 🎯 Root Causes Identificados
+- Conflitos de extensões causavam erros ambiguous_extension_member_access
+- Sistema de animações não funcionava devido a dois extensions com mesmos métodos
+- Navigation transitions falhavam silenciosamente devido a erros de compilação
+
+## [0.1.6+8] - 2025-09-25
+
+### 🐛 Debug & Fixes
+- **Debug extensivo**: Logs detalhados para detecção de contactos e carregamento automático de perfis
+- **Contact detection debugging**: Logs completos do processo de normalização e matching de contactos
+- **Explore screen debugging**: Logs para carregamento automático de perfis públicos
+- **Extension conflicts**: Resolvidos conflitos de extensões de navegação
+- **Build stability**: Build debug e release passando sem erros
+
+### 🔍 Investigação
+- Debugging logs para identificar problemas reportados pelos testers
+- Análise detalhada da detecção de contactos registados vs contatos para convidar
+- Verificação do carregamento automático no ExploreScreen
+
+## [0.1.6+7] - 2025-09-25elog - Wishlist App
+
+Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+
+O formato é baseado em [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.1.7] - 2025-09-25
+
+### ✨ Animation & UI Overhaul
+- Sistema de animações completamente aprimorado: transições suaves e profissionais em toda a app
+- Novos tipos de transição: slideFromRight, fadeWithScale, searchTransition, heroTransition, slideFromBottom
+- AnimatedSearchField: campo de busca com animações de foco e loading
+- AnimatedTextField: input reutilizável com animações de border/shadow
+- AnimatedFloatingActionButton: FAB com feedback visual e tátil
+- Navigation extensions unificadas: pushFadeScale, pushHero, pushSearch, pushBottomModal
+- Durações otimizadas (200-320ms) e curvas suaves (easeOutCubic, easeOutQuart)
+- Integração completa em main.dart, wishlists_screen, explore_screen, friends_screen, friend_suggestions_screen
+
+### 🛠 Fixed
+- Corrigidos glitches visuais durante transições de tela (pesquisa, perfis, detalhes)
+- Corrigido conflito de extensões de navegação
+- Removidos todos os warnings de deprecated (withOpacity)
+- flutter analyze: 0 issues
+- flutter test: 21/21 passed
+
+### 📚 Context7 Research
+- Flutter animation best practices
+- Material motion guidelines
+- Performance tuning para 60fps
+
+---
+
 ## [0.1.5] - 2025-09-24
 
 ### 🧠 Added

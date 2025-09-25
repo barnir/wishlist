@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mywishstash/models/user_profile.dart';
 import 'package:mywishstash/repositories/page.dart';
 import 'package:mywishstash/utils/app_logger.dart';
@@ -115,10 +116,15 @@ class UserSearchRepository {
 
   /// Returns a page of public users without search query (for explore screen initialization).
   /// This method loads public profiles to show when the explore screen is first opened.
+  /// Excludes the current user from results.
   Future<PageResult<UserProfile>> getPublicUsersPage({
     int limit = 20,
     DocumentSnapshot? startAfter,
   }) async => _withLatency('getPublicUsersPage', () async {
+    // Get current user ID to exclude from results
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUserId = currentUser?.uid;
+
     var query = _firestore
         .collection('users')
         .where('is_private', isEqualTo: false)
@@ -130,7 +136,9 @@ class UserSearchRepository {
 
     QuerySnapshot snap;
     try {
-      snap = await query.limit(limit).get();
+      snap = await query
+          .limit(limit * 2)
+          .get(); // Get more to account for filtering
     } catch (e) {
       // Fallback to unordered query if index is not ready
       logW(
@@ -143,12 +151,19 @@ class UserSearchRepository {
       if (startAfter != null) {
         fallback = fallback.startAfterDocument(startAfter);
       }
-      snap = await fallback.limit(limit).get();
+      snap = await fallback
+          .limit(limit * 2)
+          .get(); // Get more to account for filtering
     }
 
     final docs = snap.docs;
     final users = <UserProfile>[];
     for (final d in docs) {
+      // Skip current user
+      if (currentUserId != null && d.id == currentUserId) {
+        continue;
+      }
+
       final dataObj = d.data();
       final Map<String, dynamic>? data = dataObj is Map<String, dynamic>
           ? dataObj
@@ -159,6 +174,9 @@ class UserSearchRepository {
       final mp = <String, dynamic>{'id': d.id};
       mp.addAll(data);
       users.add(UserProfile.fromMap(mp));
+
+      // Stop when we have enough users after filtering
+      if (users.length >= limit) break;
     }
 
     final lastDoc = docs.isNotEmpty ? docs.last : null;

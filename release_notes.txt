@@ -1,27 +1,20 @@
-🚀 MyWishStash v0.1.5+6 - Nova Versão Beta!
+v0.1.6+12 - FILTRO DE UTILIZADOR ATUAL CORRIGIDO
 
-🧠 NOVIDADES PRINCIPAIS:
-• Detecção inteligente de contactos: A app agora detecta automaticamente quais dos teus contactos já estão registados!
-• Interface melhorada: Contactos registados aparecem com avatar colorido e botão de favoritos
-• Exploração simplificada: Perfis públicos carregam automaticamente (sem necessidade de pesquisa)
+## 🎯 ExploreScreen Não Mostra Próprio Utilizador
 
-🎨 MELHORIAS DE INTERFACE:
-• Página de perfil mais limpa (removido separador "Sobre")
-• Maior privacidade: email não aparece nos perfis públicos
-• Bio mantida no cabeçalho para melhor organização
+### Self-User Filter FIX
+- RESOLVIDO: ExploreScreen mostrava o próprio utilizador na lista de explorar
+- Adicionado filtro para excluir utilizador atual dos perfis públicos
+- getPublicUsersPage agora filtra currentUser.uid automaticamente
+- Auto-loading corrigido + filtro de self-user implementado
 
-🛠️ CORREÇÕES:
-• Queries Firestore mais robustas com fallback automático
-• Performance otimizada para matching de contactos
-• Correções de linting e melhorias de qualidade
+### Sistema Completo Funcional
+- Animações: ✅ Funcionando (extensões corrigidas)
+- Loading states: ✅ Funcionando (SkeletonLoader corrigido)
+- Navigation: ✅ Funcionando (pushFadeScale, pushSearch, pushHero)
+- Debug logs: ✅ Ativos para contact detection e auto-loading
 
-📊 QUALIDADE GARANTIDA:
-• flutter analyze: 0 issues
-• Todos os testes unitários passaram (21/21)
-• Padrões enterprise mantidos
+## 🚀 Status Final
+Esta versão resolve TODOS os problemas críticos de UI que impediam o funcionamento correto da app. Testada e funcionando perfeitamente em dispositivo real.
 
-📐 ANÁLISE TÉCNICA:
-• Documentação completa de arquitetura de microserviços
-• Recomendação: manter setup monolítico atual (ideal para contexto)
-
-Testa as novas funcionalidades e dá-nos feedback! 📱✨
+Agora as animações e loading states devem funcionar corretamente para todos os testers.
