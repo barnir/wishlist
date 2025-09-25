@@ -243,28 +243,37 @@ class UserSearchRepository {
       try {
         const batchSize = 10;
         final phoneBatches = <List<String>>[];
-        
+
         // Split phones into batches of 10
         for (int i = 0; i < cleanPhones.length; i += batchSize) {
-          final endIndex = (i + batchSize > cleanPhones.length) 
-              ? cleanPhones.length 
+          final endIndex = (i + batchSize > cleanPhones.length)
+              ? cleanPhones.length
               : i + batchSize;
           phoneBatches.add(cleanPhones.sublist(i, endIndex));
         }
 
-        logI('Processing ${phoneBatches.length} phone batches (${cleanPhones.length} total phones)', tag: 'CONTACT_SEARCH');
+        logI(
+          'Processing ${phoneBatches.length} phone batches (${cleanPhones.length} total phones)',
+          tag: 'CONTACT_SEARCH',
+        );
 
         // Query each batch separately
         for (int batchNum = 0; batchNum < phoneBatches.length; batchNum++) {
           final batch = phoneBatches[batchNum];
-          logI('Querying phone batch ${batchNum + 1}/${phoneBatches.length}: ${batch.length} phones', tag: 'CONTACT_SEARCH');
+          logI(
+            'Querying phone batch ${batchNum + 1}/${phoneBatches.length}: ${batch.length} phones',
+            tag: 'CONTACT_SEARCH',
+          );
 
           final phoneQuery = await _firestore
               .collection('users')
               .where('phone_number', whereIn: batch)
               .get();
 
-          logI('Phone batch ${batchNum + 1} returned ${phoneQuery.docs.length} users', tag: 'CONTACT_SEARCH');
+          logI(
+            'Phone batch ${batchNum + 1} returned ${phoneQuery.docs.length} users',
+            tag: 'CONTACT_SEARCH',
+          );
 
           for (final doc in phoneQuery.docs) {
             final data = doc.data();
@@ -290,28 +299,37 @@ class UserSearchRepository {
       try {
         const batchSize = 10;
         final emailBatches = <List<String>>[];
-        
+
         // Split emails into batches of 10
         for (int i = 0; i < cleanEmails.length; i += batchSize) {
-          final endIndex = (i + batchSize > cleanEmails.length) 
-              ? cleanEmails.length 
+          final endIndex = (i + batchSize > cleanEmails.length)
+              ? cleanEmails.length
               : i + batchSize;
           emailBatches.add(cleanEmails.sublist(i, endIndex));
         }
 
-        logI('Processing ${emailBatches.length} email batches (${cleanEmails.length} total emails)', tag: 'CONTACT_SEARCH');
+        logI(
+          'Processing ${emailBatches.length} email batches (${cleanEmails.length} total emails)',
+          tag: 'CONTACT_SEARCH',
+        );
 
         // Query each batch separately
         for (int batchNum = 0; batchNum < emailBatches.length; batchNum++) {
           final batch = emailBatches[batchNum];
-          logI('Querying email batch ${batchNum + 1}/${emailBatches.length}: ${batch.length} emails', tag: 'CONTACT_SEARCH');
+          logI(
+            'Querying email batch ${batchNum + 1}/${emailBatches.length}: ${batch.length} emails',
+            tag: 'CONTACT_SEARCH',
+          );
 
           final emailQuery = await _firestore
               .collection('users')
               .where('email', whereIn: batch)
               .get();
 
-          logI('Email batch ${batchNum + 1} returned ${emailQuery.docs.length} users', tag: 'CONTACT_SEARCH');
+          logI(
+            'Email batch ${batchNum + 1} returned ${emailQuery.docs.length} users',
+            tag: 'CONTACT_SEARCH',
+          );
 
           for (final doc in emailQuery.docs) {
             final data = doc.data();

@@ -10,7 +10,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:mywishstash/widgets/optimized_cloudinary_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
-import 'package:mywishstash/services/cloudinary_service.dart' as cloudinary_service;
+import 'package:mywishstash/services/cloudinary_service.dart'
+    as cloudinary_service;
 import 'package:mywishstash/repositories/wishlist_repository.dart';
 import 'package:mywishstash/repositories/wish_item_repository.dart';
 import 'package:mywishstash/widgets/safe_navigation_wrapper.dart';
@@ -24,6 +25,7 @@ import '../services/filter_preferences_service.dart';
 import '../widgets/app_snack.dart';
 import '../utils/validation_utils.dart';
 import 'package:mywishstash/utils/performance_utils.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -34,7 +36,8 @@ class WishlistDetailsScreen extends StatefulWidget {
   State<WishlistDetailsScreen> createState() => _WishlistDetailsScreenState();
 }
 
-class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with PerformanceOptimizedState {
+class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
+    with PerformanceOptimizedState {
   final _wishlistRepo = WishlistRepository();
   final _wishItemRepo = WishItemRepository();
   final _scrollController = ScrollController();
@@ -45,6 +48,14 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
   SortOptions _sortOption = SortOptions.nameAsc;
   WishlistLayoutMode _layoutMode = WishlistLayoutMode.list;
   bool get _isCompactList => _layoutMode == WishlistLayoutMode.list;
+
+  // SECURITY: Track ownership to prevent unauthorized editing
+  String? _wishlistOwnerId;
+  bool get _isOwner {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || _wishlistOwnerId == null) return false;
+    return currentUser.uid == _wishlistOwnerId;
+  }
 
   // Paginação
   static const int _pageSize = 20;
@@ -59,7 +70,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
   @override
   void initState() {
     super.initState();
-  _restoreSavedFilters();
+    _restoreSavedFilters();
     _loadInitialData();
     _scrollController.addListener(_onScroll);
   }
@@ -91,25 +102,36 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
   Future<void> _loadWishlistDetails() async {
     final l10n = AppLocalizations.of(context);
     try {
-    final wishlist = await _wishlistRepo.fetchById(widget.wishlistId);
-  if (wishlist == null) {
-      logW('Wishlist fetchById returned null', tag: 'DB');
+      final wishlist = await _wishlistRepo.fetchById(widget.wishlistId);
+      if (wishlist == null) {
+        logW('Wishlist fetchById returned null', tag: 'DB');
+        if (mounted) {
+          setState(() {
+            // Provide a useful fallback title so the appBar isn't stuck on the localized loading text
+            _wishlistName = 'Wishlist (${widget.wishlistId.substring(0, 6)})';
+            _isPrivate = false;
+            _wishlistOwnerId = null;
+          });
+        }
+        return;
+      }
+
       if (mounted) {
         setState(() {
-          // Provide a useful fallback title so the appBar isn't stuck on the localized loading text
-          _wishlistName = 'Wishlist (${widget.wishlistId.substring(0, 6)})';
-          _isPrivate = false;
+          _wishlistName = wishlist.name.isNotEmpty
+              ? wishlist.name
+              : 'Wishlist (${widget.wishlistId.substring(0, 6)})';
+          _isPrivate = wishlist.isPrivate;
+          _wishlistOwnerId = wishlist.ownerId;
+
+          // SECURITY LOG: Track ownership for security audit
+          final currentUser = FirebaseAuth.instance.currentUser;
+          logI(
+            'SECURITY: Wishlist access - Owner: ${wishlist.ownerId}, Current User: ${currentUser?.uid}, IsOwner: ${currentUser?.uid == wishlist.ownerId}',
+            tag: 'SECURITY',
+          );
         });
       }
-      return;
-    }
-
-    if (mounted) {
-      setState(() {
-        _wishlistName = wishlist.name.isNotEmpty ? wishlist.name : 'Wishlist (${widget.wishlistId.substring(0, 6)})';
-        _isPrivate = wishlist.isPrivate;
-      });
-    }
     } catch (e) {
       logE('Wishlist details load error', tag: 'DB', error: e);
       // Ensure UI shows a useful title even on error
@@ -117,9 +139,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
         setState(() {
           _wishlistName = 'Wishlist (${widget.wishlistId.substring(0, 6)})';
           _isPrivate = false;
+          _wishlistOwnerId = null;
         });
       }
-      final msg = l10n?.wishlistDetailsLoadError(e.toString()) ?? 'Erro ao carregar detalhes da wishlist: $e';
+      final msg =
+          l10n?.wishlistDetailsLoadError(e.toString()) ??
+          'Erro ao carregar detalhes da wishlist: $e';
       _showSnackBar(msg, isError: true);
     }
   }
@@ -129,7 +154,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
       _isInitialLoading = true;
       _items.clear();
       _hasMoreData = true;
-  _lastDoc = null;
+      _lastDoc = null;
     });
 
     await _loadMoreData();
@@ -143,16 +168,17 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
 
   Future<void> _loadMoreData() async {
     if (_isLoading || !_hasMoreData) return;
-  final now = DateTime.now();
-  if (now.difference(_lastScrollRequest).inMilliseconds < 150) return; // throttle
-  _lastScrollRequest = now;
+    final now = DateTime.now();
+    if (now.difference(_lastScrollRequest).inMilliseconds < 150)
+      return; // throttle
+    _lastScrollRequest = now;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-  final pageFuture = _wishItemRepo.fetchPage(
+      final pageFuture = _wishItemRepo.fetchPage(
         wishlistId: widget.wishlistId,
         limit: _pageSize,
         category: _selectedCategory,
@@ -160,11 +186,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
         startAfter: _lastDoc,
       );
       // Não aguardar ainda: permite preparar contexto se necessário
-  final page = await pageFuture;
+      final page = await pageFuture;
       final newItems = page.items;
 
-  // Garantir que widget ainda está montado antes de qualquer uso de contexto posterior
-  if (!mounted) return;
+      // Garantir que widget ainda está montado antes de qualquer uso de contexto posterior
+      if (!mounted) return;
 
       if (mounted) {
         setState(() {
@@ -179,7 +205,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
         }
       }
       // Prefetch thumbnails da próxima página (se houver mais dados)
-  if (page.hasMore && page.lastDoc != null) {
+      if (page.hasMore && page.lastDoc != null) {
         final nextPage = await _wishItemRepo.fetchPage(
           wishlistId: widget.wishlistId,
           limit: _pageSize,
@@ -188,10 +214,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
           startAfter: page.lastDoc,
         );
         final nextImageUrls = nextPage.items
-          .map((item) => item.imageUrl)
-          .whereType<String>()
-          .where((url) => url.isNotEmpty)
-          .toList();
+            .map((item) => item.imageUrl)
+            .whereType<String>()
+            .where((url) => url.isNotEmpty)
+            .toList();
         for (final url in nextImageUrls) {
           // Prefetch usando CachedNetworkImageProvider
           CachedNetworkImageProvider(url).resolve(const ImageConfiguration());
@@ -204,7 +230,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
         setState(() {
           _isLoading = false;
         });
-        final msg = AppLocalizations.of(context)?.itemsLoadError(e.toString()) ?? 'Erro ao carregar itens: $e';
+        final msg =
+            AppLocalizations.of(context)?.itemsLoadError(e.toString()) ??
+            'Erro ao carregar itens: $e';
         _showSnackBar(msg, isError: true);
       }
     }
@@ -212,7 +240,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
 
   void _scheduleFirstImagePrecache(List<WishItem> newItems) {
     if (!mounted) return;
-    if (_items.length != newItems.length || newItems.isEmpty) return; // apenas primeira página
+    if (_items.length != newItems.length || newItems.isEmpty)
+      return; // apenas primeira página
     final firstWithImage = newItems.firstWhere(
       (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
       orElse: () => newItems.first,
@@ -243,21 +272,28 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
   Future<void> _onFilterChanged() async {
     _reloadDebounce?.cancel();
     _reloadDebounce = Timer(const Duration(milliseconds: 120), () async {
-      await FilterPreferencesService()
-          .save(_selectedCategory, _sortOption, wishlistId: widget.wishlistId);
+      await FilterPreferencesService().save(
+        _selectedCategory,
+        _sortOption,
+        wishlistId: widget.wishlistId,
+      );
       await _loadInitialData();
     });
   }
 
   Future<void> _restoreSavedFilters() async {
-    final data = await FilterPreferencesService().load(wishlistId: widget.wishlistId);
+    final data = await FilterPreferencesService().load(
+      wishlistId: widget.wishlistId,
+    );
     if (data != null && mounted) {
       setState(() {
         _selectedCategory = data.$1;
         _sortOption = data.$2;
       });
     }
-    final layout = await FilterPreferencesService().loadLayout(wishlistId: widget.wishlistId);
+    final layout = await FilterPreferencesService().loadLayout(
+      wishlistId: widget.wishlistId,
+    );
     if (layout != null && mounted) {
       setState(() {
         _layoutMode = layout;
@@ -268,10 +304,15 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
   Future<void> _deleteItem(String itemId) async {
     try {
       // Use repository delete (legacy service kept for other flows if needed)
-  await _wishItemRepo.deleteItem(itemId);
-  if (!mounted) return;
-  AppSnack.show(context, AppLocalizations.of(context)?.itemDeletedSuccess ?? 'Item eliminado com sucesso!', type: SnackType.success);
-      
+      await _wishItemRepo.deleteItem(itemId);
+      if (!mounted) return;
+      AppSnack.show(
+        context,
+        AppLocalizations.of(context)?.itemDeletedSuccess ??
+            'Item eliminado com sucesso!',
+        type: SnackType.success,
+      );
+
       // Remove item from local list
       setState(() {
         _items.removeWhere((item) => item.id == itemId);
@@ -279,7 +320,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
     } catch (e) {
       if (!mounted) return;
       _showSnackBar(
-  AppLocalizations.of(context)?.itemDeleteError(e.toString()) ?? 'Erro ao eliminar item: $e',
+        AppLocalizations.of(context)?.itemDeleteError(e.toString()) ??
+            'Erro ao eliminar item: $e',
         isError: true,
       );
     }
@@ -287,8 +329,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    AppSnack.show(context, message,
-        type: isError ? SnackType.error : SnackType.info);
+    AppSnack.show(
+      context,
+      message,
+      type: isError ? SnackType.error : SnackType.info,
+    );
   }
 
   Future<void> _toggleLayoutMode() async {
@@ -296,7 +341,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
       _layoutMode = _layoutMode.toggled;
     });
     // Persist preference (scoped by wishlist)
-    await FilterPreferencesService().saveLayout(_layoutMode, wishlistId: widget.wishlistId);
+    await FilterPreferencesService().saveLayout(
+      _layoutMode,
+      wishlistId: widget.wishlistId,
+    );
   }
 
   @override
@@ -307,67 +355,84 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         } else {
-              // Da tela de detalhes da wishlist: pop preservando bottom navigation
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              } else {
-                Navigator.of(context).pushReplacementNamed('/wishlists');
-              }
+          // Da tela de detalhes da wishlist: pop preservando bottom navigation
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            Navigator.of(context).pushReplacementNamed('/wishlists');
+          }
         }
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_wishlistName.isEmpty ? (AppLocalizations.of(context)?.loadingInline ?? 'A carregar...') : _wishlistName),
-        actions: [
-          AccessibleIconButton(
-            icon: Icons.filter_list,
-            semanticLabel: AppLocalizations.of(context)?.filterAndSortTooltip ?? 'Filtrar e ordenar wishlist',
-            tooltip: AppLocalizations.of(context)?.filterAndSortTooltip ?? 'Filtrar e Ordenar',
-            onPressed: () => _showFilterBottomSheet(),
+          title: Text(
+            _wishlistName.isEmpty
+                ? (AppLocalizations.of(context)?.loadingInline ??
+                      'A carregar...')
+                : _wishlistName,
           ),
-          AccessibleIconButton(
-            icon: _layoutMode == WishlistLayoutMode.list ? Icons.grid_view : Icons.view_agenda,
-            semanticLabel: _layoutMode.iconSemanticLabel,
-            tooltip: _layoutMode.tooltip,
-            onPressed: _toggleLayoutMode,
-          ),
-          AccessibleIconButton(
-            icon: Icons.edit,
-            semanticLabel: '${AppLocalizations.of(context)?.edit ?? 'Editar'} wishlist',
-            tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/add_edit_wishlist',
-                arguments: widget.wishlistId,
-              ).then((_) => _loadWishlistDetails());
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
-      ),
-      floatingActionButton: Semantics(
-        label: AppLocalizations.of(context)?.addNewItemTooltip ?? 'Adicionar novo item',
-        button: true,
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(
-              context,
-              '/add_edit_item',
-              arguments: {'wishlistId': widget.wishlistId},
-            ).then((_) => _loadInitialData());
-          },
-          tooltip: AppLocalizations.of(context)?.addNewItemTooltip ?? 'Adicionar novo item',
-          child: const Icon(Icons.add),
+          actions: [
+            AccessibleIconButton(
+              icon: Icons.filter_list,
+              semanticLabel:
+                  AppLocalizations.of(context)?.filterAndSortTooltip ??
+                  'Filtrar e ordenar wishlist',
+              tooltip:
+                  AppLocalizations.of(context)?.filterAndSortTooltip ??
+                  'Filtrar e Ordenar',
+              onPressed: () => _showFilterBottomSheet(),
+            ),
+            AccessibleIconButton(
+              icon: _layoutMode == WishlistLayoutMode.list
+                  ? Icons.grid_view
+                  : Icons.view_agenda,
+              semanticLabel: _layoutMode.iconSemanticLabel,
+              tooltip: _layoutMode.tooltip,
+              onPressed: _toggleLayoutMode,
+            ),
+            AccessibleIconButton(
+              icon: Icons.edit,
+              semanticLabel:
+                  '${AppLocalizations.of(context)?.edit ?? 'Editar'} wishlist',
+              tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/add_edit_wishlist',
+                  arguments: widget.wishlistId,
+                ).then((_) => _loadWishlistDetails());
+              },
+            ),
+          ],
         ),
-      ),
+        body: Column(
+          children: [
+            _buildHeader(),
+            Expanded(child: _buildContent()),
+          ],
+        ),
+        // SECURITY: Only show add button to owner
+        floatingActionButton: _isOwner
+            ? Semantics(
+                label:
+                    AppLocalizations.of(context)?.addNewItemTooltip ??
+                    'Adicionar novo item',
+                button: true,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/add_edit_item',
+                      arguments: {'wishlistId': widget.wishlistId},
+                    ).then((_) => _loadInitialData());
+                  },
+                  tooltip:
+                      AppLocalizations.of(context)?.addNewItemTooltip ??
+                      'Adicionar novo item',
+                  child: const Icon(Icons.add),
+                ),
+              )
+            : null,
       ),
     );
   }
@@ -426,7 +491,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     return InkWell(
-      onTap: () => _editItem(item),
+      // SECURITY: Only allow tap to edit if owner
+      onTap: _isOwner ? () => _editItem(item) : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2.0),
         child: Row(
@@ -438,14 +504,33 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.name, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    item.name,
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
                       if (item.price != null && item.price! > 0)
-                        Text('€${item.price!.toStringAsFixed(2)}', style: textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
-                      if (item.price != null && item.price! > 0) const SizedBox(width: 8),
-                      Text('x${item.quantity}', style: textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                        Text(
+                          '€${item.price!.toStringAsFixed(2)}',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      if (item.price != null && item.price! > 0)
+                        const SizedBox(width: 8),
+                      Text(
+                        'x${item.quantity}',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -458,6 +543,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
                 semanticLabel: AppLocalizations.of(context)?.view ?? 'Ver',
                 onPressed: () => _openItemLink(item),
               ),
+            // SECURITY: Only show edit/delete buttons to owner
+            if (_isOwner) ...[
               AccessibleIconButton(
                 icon: Icons.edit_outlined,
                 tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
@@ -467,10 +554,12 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
               AccessibleIconButton(
                 icon: Icons.delete_outline,
                 tooltip: AppLocalizations.of(context)?.delete ?? 'Eliminar',
-                semanticLabel: AppLocalizations.of(context)?.delete ?? 'Eliminar',
+                semanticLabel:
+                    AppLocalizations.of(context)?.delete ?? 'Eliminar',
                 color: Theme.of(context).colorScheme.error,
                 onPressed: () => _showDeleteConfirmation(item),
               ),
+            ],
           ],
         ),
       ),
@@ -505,7 +594,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
             return Container(
               color: cs.surfaceContainerHighest,
               alignment: Alignment.center,
-              child: Icon(Icons.broken_image_outlined, color: cs.onSurfaceVariant, size: 24),
+              child: Icon(
+                Icons.broken_image_outlined,
+                color: cs.onSurfaceVariant,
+                size: 24,
+              ),
             );
           },
         ),
@@ -525,8 +618,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
           Spacing.horizontalS,
           Text(
             _isPrivate
-                ? (AppLocalizations.of(context)?.wishlistIsPrivate ?? 'Esta wishlist é privada')
-                : (AppLocalizations.of(context)?.wishlistIsPublic ?? 'Esta wishlist é pública'),
+                ? (AppLocalizations.of(context)?.wishlistIsPrivate ??
+                      'Esta wishlist é privada')
+                : (AppLocalizations.of(context)?.wishlistIsPublic ??
+                      'Esta wishlist é pública'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
@@ -537,20 +632,33 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
   Widget _buildEmptyState() {
     return WishlistEmptyState(
       icon: Icons.add_shopping_cart_rounded,
-      title: AppLocalizations.of(context)?.wishlistEmptyTitle ?? 'A sua wishlist está vazia',
-      subtitle: AppLocalizations.of(context)?.wishlistEmptySubtitle ?? 'Adicione o seu primeiro desejo!',
+      title:
+          AppLocalizations.of(context)?.wishlistEmptyTitle ??
+          'A sua wishlist está vazia',
+      subtitle:
+          AppLocalizations.of(context)?.wishlistEmptySubtitle ??
+          'Adicione o seu primeiro desejo!',
     );
   }
 
-
   void _editItem(WishItem item) {
+    // SECURITY: Only allow owner to edit items
+    if (!_isOwner) {
+      logW(
+        'SECURITY: Unauthorized edit attempt by user ${FirebaseAuth.instance.currentUser?.uid} on wishlist ${widget.wishlistId}',
+        tag: 'SECURITY',
+      );
+      _showSnackBar(
+        'Não tens permissão para editar esta wishlist',
+        isError: true,
+      );
+      return;
+    }
+
     Navigator.pushNamed(
       context,
       '/add_edit_item',
-      arguments: {
-        'wishlistId': widget.wishlistId,
-        'itemId': item.id,
-      },
+      arguments: {'wishlistId': widget.wishlistId, 'itemId': item.id},
     ).then((_) => _loadInitialData());
   }
 
@@ -560,28 +668,41 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
     final sanitized = ValidationUtils.sanitizeUrlForSave(raw);
     final uri = Uri.tryParse(sanitized);
     if (uri == null) {
-      if (mounted) _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+      if (mounted)
+        _showSnackBar(
+          AppLocalizations.of(context)?.couldNotOpenLink ??
+              'Não foi possível abrir o link',
+          isError: true,
+        );
       return;
     }
     try {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
-        _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+        _showSnackBar(
+          AppLocalizations.of(context)?.couldNotOpenLink ??
+              'Não foi possível abrir o link',
+          isError: true,
+        );
       }
     } catch (_) {
       if (mounted) {
-        _showSnackBar(AppLocalizations.of(context)?.couldNotOpenLink ?? 'Não foi possível abrir o link', isError: true);
+        _showSnackBar(
+          AppLocalizations.of(context)?.couldNotOpenLink ??
+              'Não foi possível abrir o link',
+          isError: true,
+        );
       }
     }
   }
-
 
   Widget _buildGridItem(WishItem item) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () => _editItem(item),
-      onLongPress: () => _showDeleteConfirmation(item),
+      // SECURITY: Only allow tap/long press to edit/delete if owner
+      onTap: _isOwner ? () => _editItem(item) : null,
+      onLongPress: _isOwner ? () => _showDeleteConfirmation(item) : null,
       child: RepaintBoundary(
         child: Container(
           decoration: BoxDecoration(
@@ -589,7 +710,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
             borderRadius: BorderRadius.circular(UIConstants.radiusM),
             boxShadow: [
               BoxShadow(
-                color: const Color(0x00000000).withValues(alpha: 0.05, red: 0, green: 0, blue: 0),
+                color: const Color(
+                  0x00000000,
+                ).withValues(alpha: 0.05, red: 0, green: 0, blue: 0),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -609,7 +732,8 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
                       ),
                       child: OptimizedCloudinaryImage(
                         originalUrl: item.imageUrl!,
-                        transformationType: cloudinary_service.ImageType.productLarge,
+                        transformationType:
+                            cloudinary_service.ImageType.productLarge,
                         width: double.infinity,
                         height: 120,
                         fit: BoxFit.cover,
@@ -631,7 +755,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: Icon(Icons.image_not_supported, color: colorScheme.onSurfaceVariant),
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   if (item.link != null && item.link!.isNotEmpty)
                     Positioned(
@@ -645,7 +772,11 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
                           onTap: () => _openItemLink(item),
                           child: const Padding(
                             padding: EdgeInsets.all(6.0),
-                            child: Icon(Icons.shopping_cart_outlined, size: 18, color: Colors.white),
+                            child: Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 18,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -662,13 +793,18 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
                       item.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     if (item.price != null && item.price! > 0)
                       Text(
                         '€${item.price!.toStringAsFixed(2)}',
-                        style: textTheme.bodySmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w600),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     if (item.category.isNotEmpty)
                       Padding(
@@ -677,7 +813,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
                           item.category,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                          style: textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                   ],
@@ -690,14 +828,29 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen> with Perf
     );
   }
 
-
   void _showDeleteConfirmation(WishItem item) {
+    // SECURITY: Only allow owner to delete items
+    if (!_isOwner) {
+      logW(
+        'SECURITY: Unauthorized delete attempt by user ${FirebaseAuth.instance.currentUser?.uid} on wishlist ${widget.wishlistId}',
+        tag: 'SECURITY',
+      );
+      _showSnackBar(
+        'Não tens permissão para eliminar itens desta wishlist',
+        isError: true,
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-  title: Text(AppLocalizations.of(context)?.deleteItemTitle ?? 'Eliminar item'),
+        title: Text(
+          AppLocalizations.of(context)?.deleteItemTitle ?? 'Eliminar item',
+        ),
         content: Text(
-          (AppLocalizations.of(context)?.deleteItemConfirmation(item.name) ?? 'Tens a certeza que queres eliminar "${item.name}"?'),
+          (AppLocalizations.of(context)?.deleteItemConfirmation(item.name) ??
+              'Tens a certeza que queres eliminar "${item.name}"?'),
         ),
         actions: [
           TextButton(

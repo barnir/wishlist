@@ -406,12 +406,15 @@ class _ExploreScreenState extends State<ExploreScreen>
               'Contact ${contact.displayName}: raw phone ${phone.number} -> normalized: $normalized',
               tag: 'CONTACT_DEBUG',
             );
-            phoneNumbers.add(phone.number);
+            // Add normalized phone number instead of raw number
+            if (normalized != null && normalized.isNotEmpty) {
+              phoneNumbers.add(normalized);
+            }
           }
         }
         for (final email in contact.emails) {
           if (email.address.isNotEmpty) {
-            emails.add(email.address);
+            emails.add(email.address.toLowerCase().trim());
           }
         }
       }

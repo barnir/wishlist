@@ -260,6 +260,33 @@ Serviços core: AuthService/FirebaseAuthService, ResourceManager, CloudinaryServ
 
 ---
 
+## SESSION UPDATE - CONTACT DETECTION BATCH PROCESSING FIX
+
+### ✅ ROOT CAUSE IDENTIFICADO E CORRIGIDO
+- **Problema**: Firestore whereIn queries falhavam com 327 contactos devido ao limite de 10 itens por query
+- **Solução**: Implementado batch processing no `findUsersByContacts` método do UserSearchRepository
+- **Resultado esperado**: Contact "Aamor" (+351913967588) deve agora ser reconhecido como utilizador registado Tânia
+
+### 🔧 Implementação do Batch Processing
+- **Ficheiro modificado**: `lib/repositories/user_search_repository.dart`
+- **Lógica**: Dividir 327 números de telefone em batches de 10 itens cada
+- **Queries**: 33 queries sequenciais em vez de 1 query com 327 itens (que falhava)
+- **Debug logging**: Adicionado logging específico para contacto Aamor e progresso de batches
+
+### 🚧 Build System Issues Resolved
+- **Problema**: Kotlin compilation cache corruption impedindo testes
+- **Solução**: Cache cleanup e build system restaurado
+- **Status**: Ready para deploy e teste da solução de batch processing
+
+### 📋 TODO Completed
+- ✅ Fix self-user display in explore
+- ✅ Debug Aamor contact filtering
+- ✅ Fix Firestore whereIn batch processing
+- ✅ Update session notes with findings
+- ⏳ Pending: Test batch processing solution on device
+
+---
+
  > Para automatizar: copie e cole este conteúdo aqui e eu salvarei automaticamente em `session-notes.md`.
  > Salve este documento como `session-notes.md` ao finalizar a sessão. Adicione links para PRs, commits ou issues relevantes.
 
