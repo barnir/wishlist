@@ -6,8 +6,8 @@ import '../widgets/ui_components.dart';
 import 'package:mywishstash/widgets/loading_message.dart';
 import '../constants/ui_constants.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
-import '../utils/page_transitions.dart';
 import 'user_profile_screen.dart';
+import '../utils/page_transitions.dart';
 
 class FriendSuggestionsScreen extends StatefulWidget {
   const FriendSuggestionsScreen({super.key});

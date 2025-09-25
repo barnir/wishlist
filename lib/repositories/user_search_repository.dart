@@ -195,13 +195,16 @@ class UserSearchRepository {
       final snapshot = await _firestore.collection('users').limit(10).get();
       logI('=== DATABASE USERS DEBUG ===', tag: 'CONTACT_DEBUG');
       logI('Total users found: ${snapshot.docs.length}', tag: 'CONTACT_DEBUG');
-      
+
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final displayName = data['display_name'] ?? 'Unknown';
         final phoneNumber = data['phone_number'] ?? 'No phone';
         final email = data['email'] ?? 'No email';
-        logI('User: $displayName | Phone: $phoneNumber | Email: $email', tag: 'CONTACT_DEBUG');
+        logI(
+          'User: $displayName | Phone: $phoneNumber | Email: $email',
+          tag: 'CONTACT_DEBUG',
+        );
       }
       logI('=== END DATABASE USERS DEBUG ===', tag: 'CONTACT_DEBUG');
     } catch (e) {
@@ -235,25 +238,46 @@ class UserSearchRepository {
         .where((e) => e.isNotEmpty)
         .toList();
 
-    // Search by phone numbers
+    // Search by phone numbers in batches (Firestore whereIn limit is 10)
     if (cleanPhones.isNotEmpty) {
       try {
-        final phoneQuery = await _firestore
-            .collection('users')
-            .where('phone_number', whereIn: cleanPhones)
-            .get();
+        const batchSize = 10;
+        final phoneBatches = <List<String>>[];
+        
+        // Split phones into batches of 10
+        for (int i = 0; i < cleanPhones.length; i += batchSize) {
+          final endIndex = (i + batchSize > cleanPhones.length) 
+              ? cleanPhones.length 
+              : i + batchSize;
+          phoneBatches.add(cleanPhones.sublist(i, endIndex));
+        }
 
-        for (final doc in phoneQuery.docs) {
-          final data = doc.data();
-          final mp = <String, dynamic>{'id': doc.id};
-          mp.addAll(data);
-          final user = UserProfile.fromMap(mp);
-          if (user.phoneNumber != null) {
-            logI(
-              'Found user ${user.displayName} with phone: ${user.phoneNumber}',
-              tag: 'CONTACT_SEARCH',
-            );
-            results[user.phoneNumber!] = user;
+        logI('Processing ${phoneBatches.length} phone batches (${cleanPhones.length} total phones)', tag: 'CONTACT_SEARCH');
+
+        // Query each batch separately
+        for (int batchNum = 0; batchNum < phoneBatches.length; batchNum++) {
+          final batch = phoneBatches[batchNum];
+          logI('Querying phone batch ${batchNum + 1}/${phoneBatches.length}: ${batch.length} phones', tag: 'CONTACT_SEARCH');
+
+          final phoneQuery = await _firestore
+              .collection('users')
+              .where('phone_number', whereIn: batch)
+              .get();
+
+          logI('Phone batch ${batchNum + 1} returned ${phoneQuery.docs.length} users', tag: 'CONTACT_SEARCH');
+
+          for (final doc in phoneQuery.docs) {
+            final data = doc.data();
+            final mp = <String, dynamic>{'id': doc.id};
+            mp.addAll(data);
+            final user = UserProfile.fromMap(mp);
+            if (user.phoneNumber != null) {
+              logI(
+                'Found user ${user.displayName} with phone: ${user.phoneNumber}',
+                tag: 'CONTACT_SEARCH',
+              );
+              results[user.phoneNumber!] = user;
+            }
           }
         }
       } catch (e) {
@@ -261,21 +285,46 @@ class UserSearchRepository {
       }
     }
 
-    // Search by emails
+    // Search by emails in batches (Firestore whereIn limit is 10)
     if (cleanEmails.isNotEmpty) {
       try {
-        final emailQuery = await _firestore
-            .collection('users')
-            .where('email', whereIn: cleanEmails)
-            .get();
+        const batchSize = 10;
+        final emailBatches = <List<String>>[];
+        
+        // Split emails into batches of 10
+        for (int i = 0; i < cleanEmails.length; i += batchSize) {
+          final endIndex = (i + batchSize > cleanEmails.length) 
+              ? cleanEmails.length 
+              : i + batchSize;
+          emailBatches.add(cleanEmails.sublist(i, endIndex));
+        }
 
-        for (final doc in emailQuery.docs) {
-          final data = doc.data();
-          final mp = <String, dynamic>{'id': doc.id};
-          mp.addAll(data);
-          final user = UserProfile.fromMap(mp);
-          if (user.email != null) {
-            results[user.email!.toLowerCase()] = user;
+        logI('Processing ${emailBatches.length} email batches (${cleanEmails.length} total emails)', tag: 'CONTACT_SEARCH');
+
+        // Query each batch separately
+        for (int batchNum = 0; batchNum < emailBatches.length; batchNum++) {
+          final batch = emailBatches[batchNum];
+          logI('Querying email batch ${batchNum + 1}/${emailBatches.length}: ${batch.length} emails', tag: 'CONTACT_SEARCH');
+
+          final emailQuery = await _firestore
+              .collection('users')
+              .where('email', whereIn: batch)
+              .get();
+
+          logI('Email batch ${batchNum + 1} returned ${emailQuery.docs.length} users', tag: 'CONTACT_SEARCH');
+
+          for (final doc in emailQuery.docs) {
+            final data = doc.data();
+            final mp = <String, dynamic>{'id': doc.id};
+            mp.addAll(data);
+            final user = UserProfile.fromMap(mp);
+            if (user.email != null) {
+              logI(
+                'Found user ${user.displayName} with email: ${user.email}',
+                tag: 'CONTACT_SEARCH',
+              );
+              results[user.email!.toLowerCase()] = user;
+            }
           }
         }
       } catch (e) {

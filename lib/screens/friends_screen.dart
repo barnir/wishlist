@@ -9,8 +9,8 @@ import 'package:mywishstash/widgets/loading_message.dart';
 import '../widgets/ui_components.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
-import '../utils/page_transitions.dart';
 import 'explore_screen.dart';
+import '../utils/page_transitions.dart';
 import 'user_profile_screen.dart';
 
 class FriendsScreen extends StatefulWidget {

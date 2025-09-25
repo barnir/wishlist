@@ -16,8 +16,8 @@ import 'package:mywishstash/utils/app_logger.dart';
 import 'package:mywishstash/repositories/favorites_repository.dart';
 import 'package:mywishstash/widgets/app_snack.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../utils/page_transitions.dart';
 import 'user_profile_screen.dart';
+import '../utils/page_transitions.dart';
 import '../widgets/animated_search_field.dart';
 
 class ExploreScreen extends StatefulWidget {
