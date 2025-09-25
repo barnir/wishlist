@@ -12,6 +12,7 @@ import 'package:mywishstash/services/monitoring_service.dart';
 import 'package:mywishstash/repositories/user_profile_repository.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
 import '../constants/ui_constants.dart';
+import 'package:mywishstash/utils/app_logger.dart';
 
 import 'package:mywishstash/widgets/app_snack.dart';
 
@@ -284,6 +285,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           .get();
       return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
     } catch (e) {
+      // Fallback se o índice composto ainda não estiver disponível
+      if (e.toString().contains('failed-precondition') ||
+          e.toString().contains('index')) {
+        logW(
+          'Composite index not ready, falling back to unordered query: $e',
+          tag: 'USER_PROFILE',
+        );
+        try {
+          final snap = await _firestore
+              .collection('wishlists')
+              .where('owner_id', isEqualTo: widget.userId)
+              .where('is_private', isEqualTo: false)
+              .get();
+
+          final docs = snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+          // Ordenar manualmente por created_at
+          docs.sort((a, b) {
+            final aCreated =
+                (a['created_at'] as Timestamp?)?.toDate() ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final bCreated =
+                (b['created_at'] as Timestamp?)?.toDate() ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return bCreated.compareTo(aCreated); // descending
+          });
+          return docs;
+        } catch (fallbackError) {
+          logE(
+            'Fallback query also failed: $fallbackError',
+            tag: 'USER_PROFILE',
+          );
+          rethrow;
+        }
+      }
       rethrow;
     }
   }

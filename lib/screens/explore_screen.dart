@@ -413,12 +413,27 @@ class _ExploreScreenState extends State<ExploreScreen>
 
         // Verifica se algum telefone ou email do contacto corresponde a um utilizador registado
         for (final phone in contact.phones) {
-          final cleanPhone = phone.number.replaceAll(RegExp(r'[^\d+]'), '');
-          if (registeredUsers.containsKey(cleanPhone)) {
+          final normalizedPhone = _normalizePhoneNumber(phone.number);
+          logI(
+            'Checking contact phone: ${phone.number} -> normalized: $normalizedPhone',
+            tag: 'CONTACT_DEBUG',
+          );
+          logI(
+            'Available registered phones: ${registeredUsers.keys.toList()}',
+            tag: 'CONTACT_DEBUG',
+          );
+
+          if (normalizedPhone != null && registeredUsers.containsKey(normalizedPhone)) {
             isRegistered = true;
-            matchedUser = registeredUsers[cleanPhone];
+            matchedUser = registeredUsers[normalizedPhone];
+            logI(
+              'MATCH FOUND! Contact ${contact.displayName} matches user ${matchedUser!.displayName} with phone: $normalizedPhone',
+              tag: 'CONTACT_DEBUG',
+            );
             break;
           }
+
+          if (isRegistered) break;
         }
 
         if (!isRegistered) {
@@ -1104,5 +1119,41 @@ class _ExploreScreenState extends State<ExploreScreen>
         );
       }
     }
+  }
+
+  /// Normalize phone number for database matching
+  /// Uses same logic as ContactsService and UserSearchRepository to ensure consistency
+  String? _normalizePhoneNumber(String phoneNumber) {
+    if (phoneNumber.trim().isEmpty) return null;
+    
+    // Remove all non-numeric characters except +
+    String cleaned = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    
+    // If starts with 00, replace with +
+    if (cleaned.startsWith('00')) {
+      cleaned = '+${cleaned.substring(2)}';
+    }
+    
+    // Portuguese phone normalization
+    if (!cleaned.startsWith('+')) {
+      // Portuguese mobile: 9 digits starting with 9
+      if (cleaned.length == 9 && cleaned.startsWith('9')) {
+        cleaned = '+351$cleaned';
+      }
+      // Portuguese with national code: 351XXXXXXXXX
+      else if (cleaned.length == 12 && cleaned.startsWith('351')) {
+        cleaned = '+$cleaned';
+      }
+      // Portuguese landline/mobile: starting with 2, 3 or 9
+      else if (cleaned.length == 9 && RegExp(r'^[239]').hasMatch(cleaned)) {
+        cleaned = '+351$cleaned';
+      }
+      // Old Portuguese landline: 8 digits starting with 2-3
+      else if (cleaned.length == 8 && RegExp(r'^[2-3]').hasMatch(cleaned)) {
+        cleaned = '+351$cleaned';
+      }
+    }
+    
+    return cleaned.isEmpty ? null : cleaned;
   }
 }

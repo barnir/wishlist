@@ -2,7 +2,14 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (24 Set 2025) - VERSÃO 0.1.5 DISTRIBUÍDA AOS TESTERS
+## STATUS ATUAL (25 Set 2025) - FIRESTORE INDEX ERROR CORRIGIDO
+- 🔧 **Erro de índice Firestore RESOLVIDO**: Adicionado índice composto em falta para queries de perfis de utilizador
+- ✅ **Índice deployado**: Novo índice composto para `wishlists` com campos `owner_id`, `is_private`, `created_at`
+- ✅ **Fallback implementado**: Query de fallback sem orderBy para casos temporários
+- ✅ **Qualidade mantida**: flutter analyze continua em 0 issues após correção
+- 🎯 **Problema resolvido**: Perfis de utilizador agora carregam sem erros de índice
+
+## STATUS ANTERIOR (24 Set 2025) - VERSÃO 0.1.5 DISTRIBUÍDA AOS TESTERS
 ### Resumo Geral da Sessão
 - **Detecção inteligente de contactos IMPLEMENTADA**: Sistema detecta contactos registados na app
 - **UserSearchRepository aprimorado**: Novo método `findUsersByContacts()` para matching por telefone/email
