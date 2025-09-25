@@ -6,18 +6,21 @@ import '../widgets/ui_components.dart';
 import 'package:mywishstash/widgets/loading_message.dart';
 import '../constants/ui_constants.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
+import '../utils/page_transitions.dart';
+import 'user_profile_screen.dart';
 
 class FriendSuggestionsScreen extends StatefulWidget {
   const FriendSuggestionsScreen({super.key});
 
   @override
-  State<FriendSuggestionsScreen> createState() => _FriendSuggestionsScreenState();
+  State<FriendSuggestionsScreen> createState() =>
+      _FriendSuggestionsScreenState();
 }
 
 class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
   final _contactsService = ContactsService();
   final _favoritesService = FavoritesService();
-  
+
   bool _isLoading = false;
   bool _hasPermission = false;
   List<Map<String, dynamic>> _suggestions = [];
@@ -30,18 +33,18 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
 
   Future<void> _checkPermissionAndLoadSuggestions() async {
     setState(() => _isLoading = true);
-    
+
     try {
       _hasPermission = await _contactsService.hasContactsPermission();
-      
+
       if (_hasPermission) {
         await _loadSuggestions();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
       }
     } finally {
       if (mounted) {
@@ -52,10 +55,10 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
 
   Future<void> _requestPermissionAndLoad() async {
     setState(() => _isLoading = true);
-    
+
     try {
       _hasPermission = await _contactsService.requestContactsPermission();
-      
+
       if (_hasPermission) {
         await _loadSuggestions();
       } else {
@@ -69,9 +72,9 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
       }
     } finally {
       if (mounted) {
@@ -101,13 +104,18 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
     try {
       await _favoritesService.addFavorite(userId);
       if (mounted) {
-        AppSnack.show(context, AppLocalizations.of(context)?.addedToFavorites ?? 'Adicionado aos favoritos!', type: SnackType.success);
+        AppSnack.show(
+          context,
+          AppLocalizations.of(context)?.addedToFavorites ??
+              'Adicionado aos favoritos!',
+          type: SnackType.success,
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
       }
     }
   }
@@ -116,7 +124,9 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WishlistAppBar(
-  title: AppLocalizations.of(context)?.contactSuggestionsTitle ?? 'Sugestões dos Contactos',
+        title:
+            AppLocalizations.of(context)?.contactSuggestionsTitle ??
+            'Sugestões dos Contactos',
       ),
       body: _buildBody(),
     );
@@ -124,7 +134,9 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: LoadingMessage(messageKey: 'loadingSuggestions'));
+      return const Center(
+        child: LoadingMessage(messageKey: 'loadingSuggestions'),
+      );
     }
 
     if (!_hasPermission) {
@@ -134,8 +146,12 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
     if (_suggestions.isEmpty) {
       return WishlistEmptyState(
         icon: Icons.contacts,
-        title: AppLocalizations.of(context)?.noSuggestionsTitle ?? 'Nenhuma sugestão',
-        subtitle: AppLocalizations.of(context)?.noSuggestionsSubtitle ?? 'Não foram encontrados utilizadores da app nos seus contactos.',
+        title:
+            AppLocalizations.of(context)?.noSuggestionsTitle ??
+            'Nenhuma sugestão',
+        subtitle:
+            AppLocalizations.of(context)?.noSuggestionsSubtitle ??
+            'Não foram encontrados utilizadores da app nos seus contactos.',
       );
     }
 
@@ -156,15 +172,17 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
             ),
             Spacing.l,
             Text(
-              AppLocalizations.of(context)?.contactsAccessTitle ?? 'Acesso aos Contactos',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              AppLocalizations.of(context)?.contactsAccessTitle ??
+                  'Acesso aos Contactos',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             Spacing.m,
             Text(
-              AppLocalizations.of(context)?.contactsAccessExplanation ?? 'Para encontrar amigos dos seus contactos que já usam a app, precisamos de acesso à sua lista de contactos.',
+              AppLocalizations.of(context)?.contactsAccessExplanation ??
+                  'Para encontrar amigos dos seus contactos que já usam a app, precisamos de acesso à sua lista de contactos.',
               style: Theme.of(context).textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
@@ -174,7 +192,10 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
               ),
-              child: Text(AppLocalizations.of(context)?.grantContactsAccess ?? 'Permitir Acesso aos Contactos'),
+              child: Text(
+                AppLocalizations.of(context)?.grantContactsAccess ??
+                    'Permitir Acesso aos Contactos',
+              ),
             ),
           ],
         ),
@@ -212,9 +233,9 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
         ),
         title: Text(
           displayName,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,11 +261,7 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
             if (value == 'favorite') {
               await _addToFavorites(userId);
             } else if (value == 'profile') {
-              Navigator.pushNamed(
-                context,
-                '/user_profile',
-                arguments: userId,
-              );
+              context.pushFadeScale(UserProfileScreen(userId: userId));
             }
           },
           itemBuilder: (context) => [
@@ -254,7 +271,10 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
                 children: [
                   const Icon(Icons.star),
                   const SizedBox(width: 8),
-                  Text(AppLocalizations.of(context)?.addToFavorites ?? 'Adicionar aos favoritos'),
+                  Text(
+                    AppLocalizations.of(context)?.addToFavorites ??
+                        'Adicionar aos favoritos',
+                  ),
                 ],
               ),
             ),
@@ -264,18 +284,16 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
                 children: [
                   const Icon(Icons.person),
                   const SizedBox(width: 8),
-                  Text(AppLocalizations.of(context)?.viewProfile ?? 'Ver perfil'),
+                  Text(
+                    AppLocalizations.of(context)?.viewProfile ?? 'Ver perfil',
+                  ),
                 ],
               ),
             ),
           ],
         ),
         onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/user_profile',
-            arguments: userId,
-          );
+          context.pushFadeScale(UserProfileScreen(userId: userId));
         },
       ),
     );

@@ -2,7 +2,42 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (25 Set 2025) - FIRESTORE INDEX ERROR CORRIGIDO
+## STATUS ATUAL (25 Set 2025) - COMPREHENSIVE ANIMATION IMPROVEMENTS COMPLETED
+- 🎨 **Sistema de animações COMPLETAMENTE APRIMORADO**: Transições de tela otimizadas com base em pesquisa Context7
+- ✨ **Page Transitions Enhanced**: 5 tipos de transição personalizados (slideFromRight, fadeWithScale, searchTransition, heroTransition, slideFromBottom)
+- 🔥 **AnimatedSearchField**: Novo campo de busca com animações de foco suaves e indicadores de loading
+- 🎯 **AnimatedTextField**: Widget de input reutilizável com animações de foco e visual feedback melhorado
+- 🚀 **AnimatedFloatingActionButton**: FAB customizado com animações de escala e feedback tátil
+- 🎪 **Extension Methods**: Métodos de navegação unificados (pushFadeScale, pushHero, pushSearch, pushBottomModal)
+- 📱 **Otimizações de Performance**: Durações otimizadas (200-320ms) e curvas suaves (easeOutCubic, easeOutQuart)
+- ✅ **Qualidade garantida**: flutter analyze (0 issues), flutter test (21/21 passed)
+
+### Melhorias Específicas de Animação
+- **Search Transitions**: Movimento mínimo (200ms) para interações de pesquisa
+- **Profile Transitions**: FadeScale (250ms) para transições de perfil suaves
+- **Detail Transitions**: Hero-style (300ms) para detalhes de wishlist com depth
+- **Modal Transitions**: SlideFromBottom (320ms) com fade para modais e sheets
+- **Focus Animations**: Border, shadow e color transitions em campos de input
+- **Visual Feedback**: Animações de press e scale em botões e FABs
+
+### Arquivos Modificados
+- **`lib/utils/page_transitions.dart`**: Sistema completo de transições unificado
+- **`lib/widgets/animated_search_field.dart`**: Campo de busca animado com loading states
+- **`lib/widgets/animated_text_field.dart`**: Input field reutilizável com animações
+- **`lib/widgets/animated_floating_action_button.dart`**: FAB com feedback visual melhorado
+- **`lib/main.dart`**: OnGenerateRoute atualizado para usar transições específicas
+- **`lib/screens/wishlists_screen.dart`**: Navegação para detalhes com hero transition
+- **`lib/screens/friends_screen.dart`**: Transições otimizadas para explore e profiles
+- **`lib/screens/explore_screen.dart`**: AnimatedSearchField integrado
+- **`lib/screens/friend_suggestions_screen.dart`**: Navegação de perfil com fade transition
+
+### Pesquisa Context7 Realizada
+- **Flutter Animation Best Practices**: Durações recomendadas e curvas otimizadas
+- **Material Design Guidelines**: Princípios de motion design aplicados
+- **Performance Optimization**: Redução de jank e smooth 60fps animations
+- **User Experience Patterns**: Transições contextualmente apropriadas
+
+## STATUS ANTERIOR (25 Set 2025) - FIRESTORE INDEX ERROR CORRIGIDO
 - 🔧 **Erro de índice Firestore RESOLVIDO**: Adicionado índice composto em falta para queries de perfis de utilizador
 - ✅ **Índice deployado**: Novo índice composto para `wishlists` com campos `owner_id`, `is_private`, `created_at`
 - ✅ **Fallback implementado**: Query de fallback sem orderBy para casos temporários

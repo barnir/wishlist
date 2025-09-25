@@ -36,23 +36,33 @@ class CustomPageTransitions {
     );
   }
 
-  /// Slide transition from bottom to top
+  /// Optimized slide transition from bottom to top
+  /// Enhanced for modal-like presentations and form screens
   static Route<T> slideFromBottom<T extends Object?>(Widget page) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: const Duration(milliseconds: 350),
-      reverseTransitionDuration: const Duration(milliseconds: 300),
+      transitionDuration: const Duration(milliseconds: 320), // Optimized timing
+      reverseTransitionDuration: const Duration(milliseconds: 250),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(0.0, 1.0);
         const end = Offset.zero;
-        const curve = Curves.easeOutExpo;
 
-        var tween = Tween(
-          begin: begin,
-          end: end,
-        ).chain(CurveTween(curve: curve));
+        final slideAnimation = animation.drive(
+          Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        );
 
-        return SlideTransition(position: animation.drive(tween), child: child);
+        // Add fade for smoother appearance
+        final fadeAnimation = animation.drive(
+          Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOut)),
+        );
+
+        return SlideTransition(
+          position: slideAnimation,
+          child: FadeTransition(opacity: fadeAnimation, child: child),
+        );
       },
     );
   }
@@ -118,6 +128,45 @@ class CustomPageTransitions {
     );
   }
 
+  /// Hero-style transition for detail screens
+  /// Perfect for wishlist details and item views
+  static Route<T> heroTransition<T extends Object?>(Widget page) {
+    return PageRouteBuilder<T>(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 250),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Combination of scale and fade for hero-like effect
+        final scaleAnimation = animation.drive(
+          Tween(
+            begin: 0.85,
+            end: 1.0,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        );
+
+        final fadeAnimation = animation.drive(
+          Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOut)),
+        );
+
+        // Subtle slide from center for depth
+        final slideAnimation = animation.drive(
+          Tween(
+            begin: const Offset(0.0, 0.05),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOutQuart)),
+        );
+
+        return SlideTransition(
+          position: slideAnimation,
+          child: ScaleTransition(
+            scale: scaleAnimation,
+            child: FadeTransition(opacity: fadeAnimation, child: child),
+          ),
+        );
+      },
+    );
+  }
+
   /// Transição de página para Android
   static Route<T> adaptiveTransition<T extends Object?>(
     Widget page,
@@ -127,12 +176,13 @@ class CustomPageTransitions {
     return fadeWithScale<T>(page);
   }
 
-  /// Modal bottom sheet transition
+  /// Enhanced modal bottom sheet transition with backdrop
+  /// Perfect for action sheets and modal dialogs
   static Route<T> modalBottomSheet<T extends Object?>(Widget page) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: const Duration(milliseconds: 300),
-      reverseTransitionDuration: const Duration(milliseconds: 250),
+      transitionDuration: const Duration(milliseconds: 280),
+      reverseTransitionDuration: const Duration(milliseconds: 220),
       opaque: false,
       barrierColor: Colors.black54,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -198,35 +248,61 @@ extension NavigatorStateExtensions on NavigatorState {
   }
 }
 
-/// Extension methods for BuildContext navigation
+/// Extension methods for BuildContext navigation with enhanced animations
 extension BuildContextExtensions on BuildContext {
   /// Push with slide from right animation
   Future<T?> pushSlideRight<T extends Object?>(Widget page) {
-    return Navigator.of(this).pushSlideRight<T>(page);
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.slideFromRight<T>(page));
   }
 
   /// Push with slide from bottom animation
   Future<T?> pushSlideBottom<T extends Object?>(Widget page) {
-    return Navigator.of(this).pushSlideBottom<T>(page);
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.slideFromBottom<T>(page));
   }
 
   /// Push with fade and scale animation
   Future<T?> pushFadeScale<T extends Object?>(Widget page) {
-    return Navigator.of(this).pushFadeScale<T>(page);
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.fadeWithScale<T>(page));
   }
 
   /// Push with search optimized animation
   Future<T?> pushSearch<T extends Object?>(Widget page) {
-    return Navigator.of(this).pushSearch<T>(page);
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.searchTransition<T>(page));
+  }
+
+  /// Push with hero transition for detail screens (wishlist, item details)
+  Future<T?> pushHero<T extends Object?>(Widget page) {
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.heroTransition<T>(page));
+  }
+
+  /// Push with bottom modal transition for sheets and dialogs
+  Future<T?> pushBottomModal<T extends Object?>(Widget page) {
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.slideFromBottom<T>(page));
   }
 
   /// Push with adaptive animation based on platform
   Future<T?> pushAdaptive<T extends Object?>(Widget page) {
-    return Navigator.of(this).pushAdaptive<T>(page, this);
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.adaptiveTransition<T>(page, this));
   }
 
   /// Push as modal bottom sheet
   Future<T?> pushModalBottomSheet<T extends Object?>(Widget page) {
-    return Navigator.of(this).pushModalBottomSheet<T>(page);
+    return Navigator.of(
+      this,
+    ).push(CustomPageTransitions.modalBottomSheet<T>(page));
   }
 }

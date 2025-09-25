@@ -13,6 +13,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/wishlist_card_item.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
+import 'wishlist_details_screen.dart';
+import '../utils/page_transitions.dart';
 
 class WishlistsScreen extends StatefulWidget {
   const WishlistsScreen({super.key});
@@ -295,7 +297,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   // Widget para construir cada card da wishlist - Modernizado
   Widget _buildWishlistCard(BuildContext context, Wishlist wishlist) => WishlistCardItem(
         wishlist: wishlist,
-        onTap: () => Navigator.pushNamed(context, '/wishlist_details', arguments: wishlist.id),
+        onTap: () => context.pushHero(WishlistDetailsScreen(wishlistId: wishlist.id)),
       );
 
   // _buildWishlistImage removido (lógica movida para WishlistCardItem)

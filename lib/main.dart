@@ -256,7 +256,7 @@ class _MyAppState extends State<MyApp> {
                   const RegisterScreen(),
                 );
               case '/profile':
-                return CustomPageTransitions.slideFromRight(
+                return CustomPageTransitions.fadeWithScale(
                   const ProfileScreen(),
                 );
               case '/wishlists':
@@ -284,7 +284,7 @@ class _MyAppState extends State<MyApp> {
                 );
               case '/wishlist_details':
                 final wishlistId = settings.arguments as String;
-                return CustomPageTransitions.slideFromRight(
+                return CustomPageTransitions.heroTransition(
                   WishlistDetailsScreen(wishlistId: wishlistId),
                 );
               case '/add_phone':
