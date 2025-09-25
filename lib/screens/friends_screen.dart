@@ -17,7 +17,8 @@ class FriendsScreen extends StatefulWidget {
   State<FriendsScreen> createState() => _FriendsScreenState();
 }
 
-class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserver {
+class _FriendsScreenState extends State<FriendsScreen>
+    with WidgetsBindingObserver {
   final _favoritesRepo = FavoritesRepository();
   final _scrollController = ScrollController();
 
@@ -57,7 +58,7 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
     setState(() {
       _isInitialLoading = true;
       _favorites.clear();
-  _lastDoc = null;
+      _lastDoc = null;
       _hasMoreData = true;
     });
 
@@ -101,7 +102,14 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)?.errorLoadingFavorites(e.toString()) ?? 'Erro ao carregar favoritos: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                    context,
+                  )?.errorLoadingFavorites(e.toString()) ??
+                  'Erro ao carregar favoritos: $e',
+            ),
+          ),
         );
       }
     }
@@ -135,31 +143,31 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
           ),
         ],
       ),
-    body: _isInitialLoading
-      ? const Center(child: LoadingMessage(messageKey: 'loadingFavorites'))
+      body: _isInitialLoading
+          ? const Center(child: LoadingMessage(messageKey: 'loadingFavorites'))
           : _favorites.isEmpty
-              ? WishlistEmptyState(
-                  icon: Icons.star_border,
-                  title: l10n.noFavoritesYet,
-                  subtitle: l10n.favoritesEmptySubtitle,
-                )
-              : RefreshIndicator(
-                  onRefresh: _onRefresh,
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: UIConstants.listPadding,
-                    itemCount: _favorites.length + (_isLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _favorites.length) {
-                        return Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Center(child: Text(l10n.loadingMoreFavorites)),
-                        );
-                      }
-                      return _buildFavoriteCard(_favorites[index]);
-                    },
-                  ),
-                ),
+          ? WishlistEmptyState(
+              icon: Icons.star_border,
+              title: l10n.noFavoritesYet,
+              subtitle: l10n.favoritesEmptySubtitle,
+            )
+          : RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: UIConstants.listPadding,
+                itemCount: _favorites.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _favorites.length) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Center(child: Text(l10n.loadingMoreFavorites)),
+                    );
+                  }
+                  return _buildFavoriteCard(_favorites[index]);
+                },
+              ),
+            ),
     );
   }
 
@@ -168,7 +176,7 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
     final email = favorite.email;
     final userId = favorite.favoriteUserId; // navegar para perfil do favorito
     final bio = favorite.bio;
-  // final isPrivate = favorite['is_private'] as bool? ?? false; // (não usado atualmente)
+    // final isPrivate = favorite['is_private'] as bool? ?? false; // (não usado atualmente)
     return Card(
       margin: UIConstants.cardMargin,
       elevation: UIConstants.elevationM,
@@ -213,11 +221,13 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
                     ),
                     child: Center(
                       child: Text(
-                        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                        displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : 'U',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -227,7 +237,9 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).extension<AppSemanticColors>()!.favorite,
+                        color: Theme.of(
+                          context,
+                        ).extension<AppSemanticColors>()!.favorite,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: Theme.of(context).colorScheme.surface,
@@ -254,31 +266,40 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
                         Expanded(
                           child: Text(
                             displayName,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).extension<AppSemanticColors>()!.favorite.withAlpha(51),
+                            color: Theme.of(context)
+                                .extension<AppSemanticColors>()!
+                                .favorite
+                                .withAlpha(51),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            AppLocalizations.of(context)?.favoriteBadge ?? 'FAVORITO',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).extension<AppSemanticColors>()!.favorite,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            ),
+                            AppLocalizations.of(context)?.favoriteBadge ??
+                                'FAVORITO',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).extension<AppSemanticColors>()!.favorite,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
                           ),
                         ),
                       ],
                     ),
-                    
+
                     if (email != null && email.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
@@ -290,7 +311,7 @@ class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserv
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    
+
                     if (bio != null && bio.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
