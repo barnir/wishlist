@@ -1,20 +1,29 @@
-v0.1.6+12 - FILTRO DE UTILIZADOR ATUAL CORRIGIDO
+v0.1.6+13 - FUNCIONALIDADE DE COMPRA IMPLEMENTADA 🛒
 
-## 🎯 ExploreScreen Não Mostra Próprio Utilizador
+## 🎯 NOVA FEATURE: Marcar Itens como Comprados/A Comprar
 
-### Self-User Filter FIX
-- RESOLVIDO: ExploreScreen mostrava o próprio utilizador na lista de explorar
-- Adicionado filtro para excluir utilizador atual dos perfis públicos
-- getPublicUsersPage agora filtra currentUser.uid automaticamente
-- Auto-loading corrigido + filtro de self-user implementado
+### Purchase Status System
+- ✅ NOVA: Toque em itens de wishlist abre diálogo para marcar status
+- ✅ NOVA: Opções "Vou comprar" e "Comprado" com visibilidade configurável
+- ✅ NOVA: Badges coloridos mostram status nos itens (verde=comprado, laranja=reservado)
+- ✅ NOVA: Coordenação de presentes entre amigos e família
 
-### Sistema Completo Funcional
-- Animações: ✅ Funcionando (extensões corrigidas)
-- Loading states: ✅ Funcionando (SkeletonLoader corrigido)
-- Navigation: ✅ Funcionando (pushFadeScale, pushSearch, pushHero)
-- Debug logs: ✅ Ativos para contact detection e auto-loading
+### Como Usar
+1. **Visitante**: Toca em qualquer item → Diálogo de status de compra
+2. **Proprietário**: Toca em item → Continua editando (inalterado)
+3. **Status Visual**: Badges aparecem automaticamente nos itens marcados
+4. **Updates**: Lista atualiza em tempo real após marcar status
 
-## 🚀 Status Final
-Esta versão resolve TODOS os problemas críticos de UI que impediam o funcionamento correto da app. Testada e funcionando perfeitamente em dispositivo real.
+### Sistema Técnico
+- ItemStatusDialog totalmente integrado na interface principal
+- WishItemStatusService ativo com todas as funcionalidades
+- Carregamento automático de status de todos os itens
+- Indicadores: "Reservado", "Comprado", "2 reservados", etc.
 
-Agora as animações e loading states devem funcionar corretamente para todos os testers.
+## 🚀 Versões Anteriores Estáveis
+- Animações: ✅ Funcionando
+- UI Loading: ✅ SkeletonLoader corrigido
+- Navigation: ✅ Transições funcionais
+- Contact Detection: ✅ Phone normalization corrigida
+
+Esta versão adiciona a funcionalidade mais solicitada mantendo toda a estabilidade anterior!

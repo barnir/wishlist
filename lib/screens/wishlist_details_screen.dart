@@ -23,9 +23,12 @@ import '../widgets/filter_bottom_sheet.dart';
 import '../constants/ui_constants.dart';
 import '../services/filter_preferences_service.dart';
 import '../widgets/app_snack.dart';
+import '../widgets/item_status_dialog.dart';
 import '../utils/validation_utils.dart';
 import 'package:mywishstash/utils/performance_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/wish_item_status_service.dart';
+import '../models/wish_item_status.dart';
 
 class WishlistDetailsScreen extends StatefulWidget {
   final String wishlistId;
@@ -41,6 +44,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
   final _wishlistRepo = WishlistRepository();
   final _wishItemRepo = WishItemRepository();
   final _scrollController = ScrollController();
+  final _statusService = WishItemStatusService();
 
   String _wishlistName = '';
   bool _isPrivate = false;
@@ -66,6 +70,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
   Timer? _reloadDebounce;
   DocumentSnapshot? _lastDoc; // cursor for Firestore pagination
   DateTime _lastScrollRequest = DateTime.fromMillisecondsSinceEpoch(0);
+
+  // Purchase statuses
+  Map<String, List<WishItemStatus>> _itemStatuses = {};
 
   @override
   void initState() {
@@ -158,6 +165,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
     });
 
     await _loadMoreData();
+    await _loadPurchaseStatuses();
 
     if (mounted) {
       setState(() {
@@ -491,8 +499,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     return InkWell(
-      // SECURITY: Only allow tap to edit if owner
-      onTap: _isOwner ? () => _editItem(item) : null,
+      // SECURITY: Owners can edit, non-owners can mark purchase status
+      onTap: _isOwner
+          ? () => _editItem(item)
+          : () => _showPurchaseStatusDialog(item),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2.0),
         child: Row(
@@ -531,6 +541,33 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
+                      // Purchase status indicator
+                      if (_getItemStatusText(item) != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getItemStatusColor(
+                              item,
+                            )?.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _getItemStatusColor(item) ?? Colors.grey,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            _getItemStatusText(item)!,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: _getItemStatusColor(item),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -700,9 +737,13 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
-      // SECURITY: Only allow tap/long press to edit/delete if owner
-      onTap: _isOwner ? () => _editItem(item) : null,
-      onLongPress: _isOwner ? () => _showDeleteConfirmation(item) : null,
+      // SECURITY: Owners can edit/delete, non-owners can mark purchase status
+      onTap: _isOwner
+          ? () => _editItem(item)
+          : () => _showPurchaseStatusDialog(item),
+      onLongPress: _isOwner
+          ? () => _showDeleteConfirmation(item)
+          : () => _showPurchaseStatusDialog(item),
       child: RepaintBoundary(
         child: Container(
           decoration: BoxDecoration(
@@ -818,6 +859,34 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
                           ),
                         ),
                       ),
+                    // Purchase status indicator
+                    if (_getItemStatusText(item) != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getItemStatusColor(
+                              item,
+                            )?.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _getItemStatusColor(item) ?? Colors.grey,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            _getItemStatusText(item)!,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: _getItemStatusColor(item),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -870,6 +939,114 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _loadPurchaseStatuses() async {
+    try {
+      final statuses = await _statusService.getWishlistStatuses(
+        widget.wishlistId,
+      );
+
+      // Group statuses by item ID
+      final statusMap = <String, List<WishItemStatus>>{};
+      for (final status in statuses) {
+        statusMap.putIfAbsent(status.wishItemId, () => []).add(status);
+      }
+
+      if (mounted) {
+        setState(() {
+          _itemStatuses = statusMap;
+        });
+      }
+    } catch (e) {
+      logE(
+        'Error loading purchase statuses',
+        tag: 'WISHLIST_DETAILS',
+        error: e,
+      );
+    }
+  }
+
+  String? _getItemStatusText(WishItem item) {
+    final statuses = _itemStatuses[item.id] ?? [];
+    if (statuses.isEmpty) return null;
+
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return null;
+
+    // Check if current user has status
+    final myStatus = statuses
+        .where((s) => s.userId == currentUserId)
+        .firstOrNull;
+    if (myStatus != null) {
+      return myStatus.status.shortDisplayName;
+    }
+
+    // Show how many people marked it
+    final purchasedCount = statuses
+        .where((s) => s.status == ItemPurchaseStatus.purchased)
+        .length;
+    final willBuyCount = statuses
+        .where((s) => s.status == ItemPurchaseStatus.willBuy)
+        .length;
+
+    if (purchasedCount > 0) {
+      return '$purchasedCount comprado${purchasedCount > 1 ? 's' : ''}';
+    } else if (willBuyCount > 0) {
+      return '$willBuyCount reservado${willBuyCount > 1 ? 's' : ''}';
+    }
+
+    return null;
+  }
+
+  Color? _getItemStatusColor(WishItem item) {
+    final statuses = _itemStatuses[item.id] ?? [];
+    if (statuses.isEmpty) return null;
+
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return null;
+
+    // Check if current user has status
+    final myStatus = statuses
+        .where((s) => s.userId == currentUserId)
+        .firstOrNull;
+    if (myStatus != null) {
+      return myStatus.status == ItemPurchaseStatus.purchased
+          ? Colors.green
+          : Colors.orange;
+    }
+
+    // Show status for others
+    final purchasedCount = statuses
+        .where((s) => s.status == ItemPurchaseStatus.purchased)
+        .length;
+    if (purchasedCount > 0) {
+      return Colors.green;
+    }
+
+    return Colors.orange;
+  }
+
+  void _showPurchaseStatusDialog(WishItem item) {
+    // Don't allow owners to mark their own items
+    if (_isOwner) {
+      return;
+    }
+
+    // Show the purchase status dialog
+    showDialog(
+      context: context,
+      builder: (context) => ItemStatusDialog(
+        wishItemId: item.id,
+        itemName: item.name,
+        isOwner: _isOwner,
+      ),
+    ).then((result) {
+      if (result == true) {
+        // Status was successfully updated, refresh the list
+        _loadInitialData();
+      }
+    });
   }
 
   void _showFilterBottomSheet() {

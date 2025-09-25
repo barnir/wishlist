@@ -189,26 +189,150 @@ class UserSearchRepository {
     return PageResult(items: users, lastDoc: lastDoc, hasMore: hasMore);
   });
 
+  /// Test basic database connectivity
+  Future<bool> testConnectivity() async {
+    try {
+      logI('Testing Firestore connectivity...', tag: 'CONTACT_DEBUG');
+
+      // Try to get current user's own profile first (should always work)
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+        if (userDoc.exists) {
+          logI('✅ User profile accessible', tag: 'CONTACT_DEBUG');
+        } else {
+          logW('⚠️ Current user profile does not exist', tag: 'CONTACT_DEBUG');
+        }
+      }
+
+      // Test basic query
+      final testQuery = await _firestore
+          .collection('users')
+          .limit(1)
+          .get(const GetOptions(source: Source.server)); // Force server query
+
+      logI(
+        '✅ Firestore connectivity OK - ${testQuery.docs.length} docs retrieved',
+        tag: 'CONTACT_DEBUG',
+      );
+      return true;
+    } catch (e) {
+      logE('❌ Firestore connectivity failed: $e', tag: 'CONTACT_DEBUG');
+
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('network') ||
+          errorStr.contains('unable to resolve host') ||
+          errorStr.contains('unavailable')) {
+        logW('📡 Network connectivity issue detected', tag: 'CONTACT_DEBUG');
+      } else if (errorStr.contains('permission')) {
+        logW(
+          '🔒 Permission denied - check Firestore rules',
+          tag: 'CONTACT_DEBUG',
+        );
+      } else {
+        logW('❓ Unknown connectivity error', tag: 'CONTACT_DEBUG');
+      }
+      return false;
+    }
+  }
+
   /// Debug method to check what users exist in the database
   Future<void> debugAllUsers() async => _withLatency('debugAllUsers', () async {
     try {
-      final snapshot = await _firestore.collection('users').limit(10).get();
-      logI('=== DATABASE USERS DEBUG ===', tag: 'CONTACT_DEBUG');
-      logI('Total users found: ${snapshot.docs.length}', tag: 'CONTACT_DEBUG');
+      logI('=== DATABASE USERS DEBUG START ===', tag: 'CONTACT_DEBUG');
 
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final displayName = data['display_name'] ?? 'Unknown';
-        final phoneNumber = data['phone_number'] ?? 'No phone';
-        final email = data['email'] ?? 'No email';
+      // Check current authentication
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
         logI(
-          'User: $displayName | Phone: $phoneNumber | Email: $email',
+          '📱 Authentication Status: ${currentUser.email} (${currentUser.uid})',
+          tag: 'CONTACT_DEBUG',
+        );
+      } else {
+        logW(
+          '❌ No authenticated user - this will cause permission issues',
+          tag: 'CONTACT_DEBUG',
+        );
+        return;
+      }
+
+      // Test connectivity first
+      final isConnected = await testConnectivity();
+      if (!isConnected) {
+        logW(
+          '❌ Database connectivity failed - skipping user enumeration',
+          tag: 'CONTACT_DEBUG',
+        );
+        return;
+      }
+
+      // Try to get ALL users first to see total count
+      final allUsersSnapshot = await _firestore.collection('users').get();
+      logI(
+        '📊 Total users in database: ${allUsersSnapshot.docs.length}',
+        tag: 'CONTACT_DEBUG',
+      );
+
+      if (allUsersSnapshot.docs.isEmpty) {
+        logW('⚠️ Database appears to be empty', tag: 'CONTACT_DEBUG');
+        return;
+      }
+
+      // Check for Portuguese phone numbers specifically
+      int portuguesePhoneCount = 0;
+      for (final doc in allUsersSnapshot.docs) {
+        final data = doc.data();
+        final phoneNumber = data['phone_number'] as String?;
+        final displayName = data['display_name'] as String? ?? 'Unknown';
+        final email = data['email'] as String? ?? 'No email';
+        final isPrivate = data['is_private'] as bool? ?? false;
+
+        if (phoneNumber != null && phoneNumber.contains('+351')) {
+          portuguesePhoneCount++;
+          logI(
+            '🇵🇹 Portuguese User: $displayName | Phone: $phoneNumber | Email: $email | Private: $isPrivate',
+            tag: 'CONTACT_DEBUG',
+          );
+        }
+      }
+
+      logI(
+        '📞 Users with Portuguese phone numbers: $portuguesePhoneCount',
+        tag: 'CONTACT_DEBUG',
+      );
+
+      if (portuguesePhoneCount == 0) {
+        logW(
+          '⚠️ No Portuguese phone numbers found in database',
+          tag: 'CONTACT_DEBUG',
+        );
+        logW(
+          'This explains why contact matching is failing',
           tag: 'CONTACT_DEBUG',
         );
       }
-      logI('=== END DATABASE USERS DEBUG ===', tag: 'CONTACT_DEBUG');
+
+      logI('=== DATABASE USERS DEBUG END ===', tag: 'CONTACT_DEBUG');
     } catch (e) {
-      logE('Error debugging users: $e', tag: 'CONTACT_DEBUG');
+      logE('❌ Error debugging users: $e', tag: 'CONTACT_DEBUG');
+
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('permission')) {
+        logW(
+          '🔒 Permission denied - this suggests Firestore rules need adjustment',
+          tag: 'CONTACT_DEBUG',
+        );
+      } else if (errorStr.contains('network')) {
+        logW(
+          '📡 Network error - check internet connection',
+          tag: 'CONTACT_DEBUG',
+        );
+      } else {
+        logW('❓ Unexpected error type', tag: 'CONTACT_DEBUG');
+      }
     }
   });
 
@@ -264,6 +388,7 @@ class UserSearchRepository {
             'Querying phone batch ${batchNum + 1}/${phoneBatches.length}: ${batch.length} phones',
             tag: 'CONTACT_SEARCH',
           );
+          logI('Phone numbers in batch: $batch', tag: 'CONTACT_SEARCH');
 
           final phoneQuery = await _firestore
               .collection('users')
@@ -274,6 +399,19 @@ class UserSearchRepository {
             'Phone batch ${batchNum + 1} returned ${phoneQuery.docs.length} users',
             tag: 'CONTACT_SEARCH',
           );
+
+          // Debug: log what phone numbers were actually found
+          if (phoneQuery.docs.isNotEmpty) {
+            for (final doc in phoneQuery.docs) {
+              final data = doc.data();
+              final foundPhone = data['phone_number'];
+              final userName = data['display_name'] ?? 'Unknown';
+              logI(
+                '  📞 Found user: $userName with phone: $foundPhone',
+                tag: 'CONTACT_SEARCH',
+              );
+            }
+          }
 
           for (final doc in phoneQuery.docs) {
             final data = doc.data();
@@ -290,7 +428,27 @@ class UserSearchRepository {
           }
         }
       } catch (e) {
-        logW('Error searching users by phone: $e', tag: 'SEARCH');
+        logE('Error searching users by phone: $e', tag: 'CONTACT_SEARCH');
+
+        // Categorize the error to help with debugging
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('network') ||
+            errorStr.contains('unable to resolve host')) {
+          logW(
+            'Network connectivity issue detected when searching by phone',
+            tag: 'CONTACT_SEARCH',
+          );
+        } else if (errorStr.contains('permission')) {
+          logW(
+            'Permission denied when searching by phone - check Firestore rules',
+            tag: 'CONTACT_SEARCH',
+          );
+        } else {
+          logW(
+            'Unknown error when searching by phone: $e',
+            tag: 'CONTACT_SEARCH',
+          );
+        }
       }
     }
 
@@ -346,7 +504,27 @@ class UserSearchRepository {
           }
         }
       } catch (e) {
-        logW('Error searching users by email: $e', tag: 'SEARCH');
+        logE('Error searching users by email: $e', tag: 'CONTACT_SEARCH');
+
+        // Categorize the error to help with debugging
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('network') ||
+            errorStr.contains('unable to resolve host')) {
+          logW(
+            'Network connectivity issue detected when searching by email',
+            tag: 'CONTACT_SEARCH',
+          );
+        } else if (errorStr.contains('permission')) {
+          logW(
+            'Permission denied when searching by email - check Firestore rules',
+            tag: 'CONTACT_SEARCH',
+          );
+        } else {
+          logW(
+            'Unknown error when searching by email: $e',
+            tag: 'CONTACT_SEARCH',
+          );
+        }
       }
     }
 

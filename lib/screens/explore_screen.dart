@@ -429,16 +429,50 @@ class _ExploreScreenState extends State<ExploreScreen>
       logI('Emails to search: $emails', tag: 'CONTACT_DEBUG');
 
       // Procura utilizadores registados que correspondam aos contactos
-      final registeredUsers = await _userSearchRepo.findUsersByContacts(
-        phoneNumbers: phoneNumbers,
-        emails: emails,
-      );
+      Map<String, UserProfile> registeredUsers = {};
+      try {
+        registeredUsers = await _userSearchRepo.findUsersByContacts(
+          phoneNumbers: phoneNumbers,
+          emails: emails,
+        );
 
-      logI(
-        'Users found in database: ${registeredUsers.length}',
-        tag: 'CONTACT_DEBUG',
-      );
-      logI('Registered users map: $registeredUsers', tag: 'CONTACT_DEBUG');
+        logI(
+          'Users found in database: ${registeredUsers.length}',
+          tag: 'CONTACT_DEBUG',
+        );
+        logI('Registered users map: $registeredUsers', tag: 'CONTACT_DEBUG');
+      } catch (e) {
+        logE('Error searching for registered users: $e', tag: 'CONTACT_DEBUG');
+
+        // If network is failing, try a simpler approach - check if there are any public users at all
+        try {
+          final testQuery = await _userSearchRepo.getPublicUsersPage(limit: 1);
+          if (testQuery.items.isEmpty) {
+            logW(
+              'No public users found in database - this might be expected in a test environment',
+              tag: 'CONTACT_DEBUG',
+            );
+          } else {
+            logI(
+              'Database connection working, but contact search failed. Retrying once...',
+              tag: 'CONTACT_DEBUG',
+            );
+            // Retry once with exponential backoff
+            await Future.delayed(const Duration(seconds: 2));
+            registeredUsers = await _userSearchRepo.findUsersByContacts(
+              phoneNumbers: phoneNumbers,
+              emails: emails,
+            );
+            logI(
+              'Retry successful - found ${registeredUsers.length} registered users',
+              tag: 'CONTACT_DEBUG',
+            );
+          }
+        } catch (retryError) {
+          logE('Retry also failed: $retryError', tag: 'CONTACT_DEBUG');
+          // Continue with empty results - all contacts will be treated as "invite"
+        }
+      }
 
       // Special debug for Aamor contact
       final aamorContacts = contactsWithPhones

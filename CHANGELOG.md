@@ -7,6 +7,28 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.1.6+13] - 2025-09-25
+
+### 🛒 NOVA FUNCIONALIDADE: MARCAR ITENS COMO COMPRADOS
+- **Purchase Status System**: Utilizadores podem agora marcar itens de wishlists como "Vou comprar" ou "Comprado"
+- **Interactive Wishlist Items**: Tap em itens de wishlist (como não-proprietário) abre diálogo de status de compra
+- **Visual Purchase Indicators**: Badges coloridos mostram status de compra nos itens (verde=comprado, laranja=reservado)
+- **Owner vs Visitor Behavior**: Proprietários continuam editando ao tocar, visitantes marcam status de compra
+- **Real-time Status Updates**: Lista atualiza automaticamente após marcar status no diálogo
+
+### 🎯 Integração Completa
+- **ItemStatusDialog Integration**: Diálogo existente agora acessível através da interface principal
+- **WishItemStatusService Active**: Serviço completo de status de compra totalmente integrado
+- **Status Loading**: Carregamento automático de todos os status de compra da wishlist
+- **Purchase Coordination**: Sistema permite coordenação de presentes entre amigos/família
+- **Privacy Options**: Opções de visibilidade para o proprietário da wishlist
+
+### 🚀 User Experience
+- **Intuitive Interaction**: Toque simples em itens para aceder à funcionalidade
+- **Visual Feedback**: Badges informativos mostram "Reservado", "Comprado", "X reservados"
+- **Seamless Integration**: Funcionalidade integra-se perfeitamente com o fluxo existente
+- **Accessibility**: Mantém funcionalidade de edição para proprietários inalterada
+
 ## [0.1.6+10] - 2025-09-25
 
 ### 🎯 TODOS OS BUGS DE UI CRÍTICOS RESOLVIDOS

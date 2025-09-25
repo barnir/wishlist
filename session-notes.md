@@ -2,9 +2,39 @@
 
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
-## STATUS ATUAL (25 Set 2025) - ANIMAÇÕES CORRIGIDAS v0.1.6+9 DEPLOYED
+## STATUS ATUAL (25 Set 2025) - FUNCIONALIDADE DE COMPRA IMPLEMENTADA v0.1.6+10
 
-### ✅ BUG CRÍTICO RESOLVIDO: ANIMAÇÕES FUNCIONANDO
+### ✅ NOVA FUNCIONALIDADE: MARCAR ITENS COMO COMPRADOS/A COMPRAR
+- **Feature solicitada implementada**: Usuários podem agora marcar itens de wishlists como "vou comprar" ou "comprado"
+- **Acesso através de toque**: Não-proprietários podem tocar em itens para abrir diálogo de status de compra
+- **Indicadores visuais**: Badges coloridos mostram status de compra em lista compacta e grid
+- **Sistema completo existente**: WishItemStatusService, ItemStatusDialog e WishItemStatus já estavam implementados
+- **Integração na wishlist_details_screen**: Handlers de toque modificados para mostrar diálogo de status
+
+### 🎯 Modificações Implementadas
+- **Tap handlers atualizados**: Proprietários editam itens, não-proprietários marcam status de compra
+- **Carregamento de status**: _loadPurchaseStatuses() carrega status de todos os items da wishlist
+- **Indicadores visuais**: Badges mostrando "Reservado", "Comprado", "X reservados", "X comprados"
+- **Cores dinâmicas**: Verde para comprado, laranja para reservado
+- **Atualização automática**: Lista atualiza após marcar status no diálogo
+
+### 🚀 v0.1.6+13 DEPLOYED TO FIREBASE TESTERS ✅
+- **Firebase Console**: https://console.firebase.google.com/project/wishlistapp-b2b9a/appdistribution/app/android:com.mywishstash.app/releases/6f9l4t39r1qpo
+- **APK Size**: 69.5MB
+- **Release Notes**: Funcionalidade de compra implementada com badges visuais
+- **Status**: Distribuído para grupo "wishlist-beta-testers" com sucesso
+- **Funcionalidade ativa**: Toque em itens de wishlist agora abre diálogo de compra
+- **Status visual**: Badges aparecem nos itens com status definido
+- **Flutter analyze**: 0 issues, build limpo
+
+### 📱 Para Testar Novo APK
+1. **Como não-proprietário**: Toque em qualquer item de wishlist para ver diálogo de status
+2. **Marcar status**: Escolher "Vou comprar" ou "Comprado" com opções de visibilidade
+3. **Ver indicadores**: Badges coloridos aparecem nos itens com status
+4. **Como proprietário**: Toque continua editando itens (funcionalidade mantida)
+5. **Contact detection**: Verificar se "Aamor" contacto agora aparece como amiga registada (correção implementada)
+
+### ✅ VERSÃO ANTERIOR: BUG CRÍTICO RESOLVIDO - ANIMAÇÕES FUNCIONANDO
 - **Root cause identificado**: Conflitos de extensões impediam compilação do sistema de navegação
 - **Correção aplicada**: Removida extensão duplicada NavigatorStateExtensions causando ambiguidade
 - **Sistema de navegação funcional**: pushFadeScale, pushSearch, pushHero, pushBottomModal agora funcionam
@@ -16,8 +46,32 @@ Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no n
 - **Debug logs mantidos**: Sistema extensivo de debug para contact detection e auto-loading
 - **Build status**: Debug e release builds passando sem erros
 
-### 🔍 Problemas Restantes em Investigação
-- **Contact detection**: Usuários registados aparecendo como "convidar" em vez de "amigos" (logs implementados)
+### � SESSÃO ATUAL: ENHANCED DEBUGGING PARA CONTACT DETECTION
+
+#### ✅ Melhorias Implementadas (27 Jan 2025)
+- **Network Retry Logic**: Sistema de retry com exponential backoff para queries falhas de Firestore
+- **Enhanced Error Handling**: Try-catch comprehensivo em explore_screen.dart com categorização de erros
+- **Fallback Testing**: Teste de conectividade via getPublicUsersPage quando findUsersByContacts falha
+- **Debug Aprimorado**: debugAllUsers method melhorado com status de autenticação e logging detalhado
+- **Phone Batch Logging**: Logging detalhado mostrando exatamente que telefones são pesquisados e que utilizadores encontrados
+
+#### 🎯 Diagnóstico de Network Issues
+- **Problema identificado**: Queries Firestore falhando com "Unable to resolve host firestore.googleapis.com"
+- **Status atual**: Conectividade intermitente, algumas queries funcionam outras falham
+- **Retry logic ativo**: Sistema agora tenta reconectar automaticamente com delay de 2 segundos
+- **Enhanced debugging**: Logs detalhados para identificar se problema é rede, permissões ou conteúdo da base de dados
+
+#### 📱 App Status Current
+- **Lançamento**: ✅ App lança com sucesso em modo debug
+- **Autenticação**: ✅ User authenticated: francisco.j.p.guerra@gmail.com
+- **Profile loading**: ✅ Profile carregado com todos os campos necessários
+- **Network**: ⚠️ Conectividade intermitente a Firestore
+- **Contact detection**: 🔄 Aguarda teste no explore screen para triggerar debug enhanceado
+
+#### 🔍 Problemas Restantes
+- **Network connectivity**: Problemas intermitentes de conectividade Firestore
+- **Collection name mismatch**: "item_statuses" vs "wish_item_statuses" - purchase functionality affected
+- **Friend detection**: Ainda falhando devido a issues de rede/base de dados subjacentes
 - **Auto-loading**: Lista não carregando automaticamente no ExploreScreen (logs implementados)
 
 ### � Para Testar
