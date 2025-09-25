@@ -189,6 +189,26 @@ class UserSearchRepository {
     return PageResult(items: users, lastDoc: lastDoc, hasMore: hasMore);
   });
 
+  /// Debug method to check what users exist in the database
+  Future<void> debugAllUsers() async => _withLatency('debugAllUsers', () async {
+    try {
+      final snapshot = await _firestore.collection('users').limit(10).get();
+      logI('=== DATABASE USERS DEBUG ===', tag: 'CONTACT_DEBUG');
+      logI('Total users found: ${snapshot.docs.length}', tag: 'CONTACT_DEBUG');
+      
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final displayName = data['display_name'] ?? 'Unknown';
+        final phoneNumber = data['phone_number'] ?? 'No phone';
+        final email = data['email'] ?? 'No email';
+        logI('User: $displayName | Phone: $phoneNumber | Email: $email', tag: 'CONTACT_DEBUG');
+      }
+      logI('=== END DATABASE USERS DEBUG ===', tag: 'CONTACT_DEBUG');
+    } catch (e) {
+      logE('Error debugging users: $e', tag: 'CONTACT_DEBUG');
+    }
+  });
+
   /// Finds registered users by phone numbers or emails.
   /// Returns a map where keys are the contact identifiers (phone/email) and values are UserProfile objects.
   Future<Map<String, UserProfile>> findUsersByContacts({
@@ -196,6 +216,9 @@ class UserSearchRepository {
     required List<String> emails,
   }) async => _withLatency('findUsersByContacts', () async {
     final results = <String, UserProfile>{};
+
+    // Debug: Check what users are in the database
+    await debugAllUsers();
 
     // Clean and normalize phone numbers (remove spaces, dashes, etc.)
     final cleanPhones = phoneNumbers
