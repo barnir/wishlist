@@ -17,7 +17,7 @@ class FriendsScreen extends StatefulWidget {
   State<FriendsScreen> createState() => _FriendsScreenState();
 }
 
-class _FriendsScreenState extends State<FriendsScreen> {
+class _FriendsScreenState extends State<FriendsScreen> with WidgetsBindingObserver {
   final _favoritesRepo = FavoritesRepository();
   final _scrollController = ScrollController();
 
@@ -34,12 +34,23 @@ class _FriendsScreenState extends State<FriendsScreen> {
     super.initState();
     _loadInitialData();
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // When app comes back to foreground, refresh favorites to reflect any changes
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadInitialData();
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -165,12 +176,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
         borderRadius: BorderRadius.circular(UIConstants.radiusM),
       ),
       child: InkWell(
-        onTap: () {
-          Navigator.pushNamed(
+        onTap: () async {
+          final result = await Navigator.pushNamed(
             context,
             '/user_profile',
             arguments: userId,
           );
+          // If user unfavorited this profile, refresh the list
+          if (result == 'unfavorited' && mounted) {
+            _loadInitialData();
+          }
         },
         borderRadius: BorderRadius.circular(UIConstants.radiusM),
         child: Container(

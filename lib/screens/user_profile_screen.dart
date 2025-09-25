@@ -404,6 +404,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             'profile_unfavorite',
             properties: {'profile_id': widget.userId},
           );
+          // Notify parent screen that favorite was removed
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context, 'unfavorited');
+          }
         }
       } else {
         await _favoritesService.addFavorite(widget.userId);
