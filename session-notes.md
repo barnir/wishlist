@@ -91,6 +91,35 @@ Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no n
 - ✅ Unit tests: 24/24 passando
 - ✅ Integração completa entre serviços
 
+### 📋 MELHORIA UX: INFORMAÇÃO DO PERÍODO DE 7 DIAS
+#### Nova Funcionalidade Implementada
+- **Interface informativa**: Quando usuário seleciona "vou comprar", aparece caixa explicativa sobre o período
+- **Localização completa**: Strings adicionadas em português e inglês
+- **Design consistente**: Caixa com ícone de relógio e estilo visual coerente
+
+#### Detalhes da Implementação
+1. **Novas strings de localização**:
+   - `willBuyDescription`: "Reservar para comprar mais tarde" / "Reserve to buy later"
+   - `willBuyReminderInfo`: Explicação completa do período de 7 dias
+   - `purchasedDescription`: "Já comprei este item" / "I already bought this item"
+
+2. **Interface melhorada no ItemStatusDialog**:
+   - Box informativo aparece quando "vou comprar" é selecionado
+   - Ícone de relógio (schedule) para contexto visual
+   - Texto explicativo: "Receberás lembretes nos dias 6 e 7. Após 7 dias, a reserva será cancelada automaticamente se não marcares como comprado."
+   - Design consistente com outras seções do diálogo
+
+3. **Experiência do usuário**:
+   - Informação clara sobre consequências da seleção
+   - Transparência sobre lembretes automáticos
+   - Avisos sobre cancelamento automático após 7 dias
+
+#### Validação
+- ✅ Strings regeneradas com `flutter gen-l10n`
+- ✅ Interface funcional e responsiva
+- ✅ Todos os testes continuam passando
+- ✅ Análise de código sem issues
+
 ### 🔒 CORREÇÕES CRÍTICAS DE SEGURANÇA - VALIDAÇÃO DE PROPRIEDADE
 **PROBLEMA IDENTIFICADO**: Usuários podiam editar wishlists e itens de outros usuários através de navegação direta
 

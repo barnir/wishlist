@@ -30,6 +30,16 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get willBuyDescription => 'Reservar para comprar mais tarde';
+
+  @override
+  String get willBuyReminderInfo =>
+      'Receberás lembretes nos dias 6 e 7. Após 7 dias, a reserva será cancelada automaticamente se não marcares como comprado.';
+
+  @override
+  String get purchasedDescription => 'Já comprei este item';
+
+  @override
   String errorLoadingProfile(Object error) {
     return 'Erro ao carregar perfil: $error';
   }

@@ -134,6 +134,52 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
               ),
             ),
             
+            // Informação sobre o período de 7 dias para "vou comprar"
+            if (_selectedStatus == ItemPurchaseStatus.willBuy) ...[
+              Spacing.m,
+              Container(
+                padding: UIConstants.paddingM,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                    width: 1.0,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          size: UIConstants.iconSizeS,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        Spacing.horizontalXS,
+                        Text(
+                          'Período de reserva',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Spacing.xs,
+                    Text(
+                      AppLocalizations.of(context)?.willBuyReminderInfo ?? 
+                      'Receberás lembretes nos dias 6 e 7. Após 7 dias, a reserva será cancelada automaticamente se não marcares como comprado.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            
             Spacing.m,
             
             // Visibilidade para o dono (só se for "comprado")
@@ -272,9 +318,9 @@ class _ItemStatusDialogState extends State<ItemStatusDialog> {
   String _getStatusDescription(ItemPurchaseStatus status) {
     switch (status) {
       case ItemPurchaseStatus.willBuy:
-        return 'Reservar para comprar mais tarde';
+        return AppLocalizations.of(context)?.willBuyDescription ?? 'Reservar para comprar mais tarde';
       case ItemPurchaseStatus.purchased:
-        return 'Já comprei este item';
+        return AppLocalizations.of(context)?.purchasedDescription ?? 'Já comprei este item';
     }
   }
 

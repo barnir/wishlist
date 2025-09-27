@@ -128,6 +128,24 @@ abstract class AppLocalizations {
   /// **'Error: {error}'**
   String removeStatusError(Object error);
 
+  /// Description for 'will buy' option
+  ///
+  /// In en, this message translates to:
+  /// **'Reserve to buy later'**
+  String get willBuyDescription;
+
+  /// Information about the 7-day period for reservations
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll receive reminders on days 6 and 7. After 7 days, the reservation will be automatically cancelled if you don\'t mark it as purchased.'**
+  String get willBuyReminderInfo;
+
+  /// Description for 'purchased' option
+  ///
+  /// In en, this message translates to:
+  /// **'I already bought this item'**
+  String get purchasedDescription;
+
   /// No description provided for @errorLoadingProfile.
   ///
   /// In en, this message translates to:
