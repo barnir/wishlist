@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mywishstash/models/user_profile.dart';
 import 'package:mywishstash/repositories/page.dart';
 import 'package:mywishstash/utils/app_logger.dart';
+import 'package:mywishstash/services/performance_metrics_service.dart';
 
 /// Simplified search repository for public users.
 /// Firestore doesn't support full text search natively; this performs a
@@ -15,10 +16,23 @@ class UserSearchRepository {
 
   Future<T> _withLatency<T>(String op, Future<T> Function() fn) async {
     final sw = Stopwatch()..start();
+    PerformanceMetricsService().start('repo_$op');
     try {
       final r = await fn();
+      PerformanceMetricsService().stop(
+        'repo_$op',
+        extra: {'success': true, 'elapsed_ms': sw.elapsedMilliseconds},
+      );
       return r;
     } catch (e, st) {
+      PerformanceMetricsService().stop(
+        'repo_$op',
+        extra: {
+          'success': false,
+          'error': e.toString(),
+          'elapsed_ms': sw.elapsedMilliseconds,
+        },
+      );
       logE(
         'UserSearchRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}',
         tag: 'SEARCH',

@@ -21,6 +21,8 @@ import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:mywishstash/services/analytics/analytics_service.dart';
 import 'package:mywishstash/services/analytics/firebase_analytics_provider.dart';
+import 'package:mywishstash/services/performance_metrics_service.dart';
+import 'package:mywishstash/config.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -119,6 +121,10 @@ void main() {
           // Prefetch imagens ao entrar na app
           await ImagePrefetchService().warmUp();
         }
+
+        // Configure performance metrics analytics forwarding (optional)
+        PerformanceMetricsService().enableAnalyticsForwarding =
+            Config.enablePerfAnalytics;
 
         runApp(const MyApp());
       } catch (e, st) {

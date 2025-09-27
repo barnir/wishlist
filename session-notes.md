@@ -19,6 +19,15 @@ Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no n
 - Rationale: Reduce perceptual jank (hard swaps / skeleton flash) and create consistent motion language across discovery and profile flows without adding heavy dependencies.
 - Performance: Short durations (≈250ms) + small scale delta (0.96→1) minimize layout thrash; only animating opacity/transform (GPU friendly).
 
+### 🧪 Performance Metrics Layer (New Capability)
+- Added `PerformanceMetricsService` (singleton) with `start`, `stop`, and `measureFuture` helpers + broadcast stream.
+- Added `ScreenPerformanceMixin` to capture first-frame render timing (emits `first_frame_<ScreenName>` sample with build_ms).
+- Instrumented `UserSearchRepository` operations (`repo_searchPage`, `repo_getPublicUsersPage`, etc.) to emit success/failure + elapsed_ms.
+- Config flag `ENABLE_PERF_ANALYTICS` (`.env`) controls forwarding of samples to analytics (`perf_<name>` events with duration_ms & meta_keys).
+- Updated `main.dart` to enable analytics forwarding based on `Config.enablePerfAnalytics`.
+- Added unit tests `performance_metrics_service_test.dart` validating basic timing, success metadata and error propagation.
+- Purpose: Foundation for future on-device performance dashboard & targeted optimization (latency hotspots, cold screen render times).
+
 
 ### 🔧 Melhoria Visual Recente (Explore Screen - Search Tab)
 - **AnimatedSwitcher** adicionado para transições entre estados (loading / vazio / resultados) evitando flash cinzento.
