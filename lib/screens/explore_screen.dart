@@ -2,6 +2,7 @@ import 'package:mywishstash/widgets/skeleton_loader.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mywishstash/widgets/accessible_icon_button.dart';
+import 'package:mywishstash/widgets/animated/animated_primitives.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import '../theme_extensions.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -10,6 +11,8 @@ import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywishstash/repositories/user_search_repository.dart';
 import 'package:mywishstash/models/user_profile.dart';
+import 'package:mywishstash/services/analytics/analytics_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/ui_components.dart';
 import '../constants/ui_constants.dart';
 import 'package:mywishstash/utils/app_logger.dart';
@@ -55,6 +58,16 @@ class _ExploreScreenState extends State<ExploreScreen>
   bool _isLoadingContacts = false;
   bool _hasContactsPermission = false;
   final Set<String> _favoriteIds = {};
+  StreamSubscription<Map<String, UserProfile>>?
+  _contactStreamSub; // cancellable incremental streaming
+  DateTime? _contactStreamStart;
+  bool _reportedFirstFriend = false;
+  bool _prefIncrementalContacts = true; // persisted user preference
+  static const _kPrefIncrementalKey = 'pref_incremental_contacts_v1';
+  static const _kContactsCacheKey = 'contacts_cache_payload_v1';
+  static const _kContactsCacheHashKey = 'contacts_cache_hash_v1';
+  static const _kContactsCacheTsKey = 'contacts_cache_ts_v1';
+  static const _kContactsCacheTtlMs = 1000 * 60 * 30; // 30 minutes
 
   final FavoritesRepository _favoritesRepo = FavoritesRepository();
 
@@ -62,20 +75,186 @@ class _ExploreScreenState extends State<ExploreScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
     _checkContactsPermission();
     // Load public profiles automatically when screen opens
     _loadPublicProfiles();
+    _loadIncrementalPreference();
   }
 
   @override
   void dispose() {
+    _contactStreamSub?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    // If user leaves the Contacts tab (index 1), cancel ongoing streaming to free resources
+    if (_tabController.index != 1) {
+      if (_contactStreamSub != null) {
+        logI(
+          'Cancelling contact streaming (tab switched)',
+          tag: 'CONTACT_DEBUG',
+        );
+        _contactStreamSub?.cancel();
+        _contactStreamSub = null;
+      }
+    } else {
+      // If user switches back and contacts not loaded yet, attempt reload
+      if (_friendsInApp.isEmpty &&
+          _contactsToInvite.isEmpty &&
+          !_isLoadingContacts &&
+          _hasContactsPermission) {
+        _loadContactsData();
+      }
+    }
+  }
+
+  Future<void> _loadIncrementalPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final v = prefs.getBool(_kPrefIncrementalKey);
+      if (v != null && v != _prefIncrementalContacts && mounted) {
+        setState(() => _prefIncrementalContacts = v);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleIncrementalPreference() async {
+    final newValue = !_prefIncrementalContacts;
+    setState(() => _prefIncrementalContacts = newValue);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kPrefIncrementalKey, newValue);
+    } catch (_) {}
+    // Optionally refresh contacts if on contacts tab
+    if (_tabController.index == 1) {
+      _friendsInApp.clear();
+      _contactsToInvite.clear();
+      _contactStreamSub?.cancel();
+      _contactStreamSub = null;
+      _loadContactsData();
+    }
+  }
+
+  // ============== CONTACTS CACHE HELPERS ==============
+  Future<String> _computeContactsHash(List<Contact> contacts) async {
+    final tokens = <String>[];
+    for (final c in contacts) {
+      for (final p in c.phones) {
+        final norm = _normalizePhoneNumber(p.number);
+        if (norm != null) tokens.add('p:$norm');
+      }
+      for (final e in c.emails) {
+        final em = e.address.toLowerCase().trim();
+        if (em.isNotEmpty) tokens.add('e:$em');
+      }
+    }
+    tokens.sort();
+    return tokens
+        .join('|')
+        .hashCode
+        .toRadixString(16); // quick hash; sufficient for change detection
+  }
+
+  Future<bool> _tryHydrateContactsFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ts = prefs.getInt(_kContactsCacheTsKey);
+      if (ts == null) return false;
+      final isExpired =
+          DateTime.now().millisecondsSinceEpoch - ts > _kContactsCacheTtlMs;
+      if (isExpired) return false;
+      final payload = prefs.getStringList(_kContactsCacheKey);
+      if (payload == null) return false;
+      final friends = <Map<String, dynamic>>[];
+      final invites =
+          <
+            Contact
+          >[]; // cannot reconstruct raw contacts easily; omit invites from cache for now
+      for (final entry in payload) {
+        // entry format: userId|displayName|email|phone|contactName|contactPhone
+        final parts = entry.split('\u0001');
+        if (parts.length < 6) continue;
+        friends.add({
+          'contact': {
+            'name': parts[4],
+            'phone': parts[5].isEmpty ? null : parts[5],
+          },
+          'user': {
+            'id': parts[0],
+            'display_name': parts[1].isEmpty ? null : parts[1],
+            'email': parts[2].isEmpty ? null : parts[2],
+            'phone_number': parts[3].isEmpty ? null : parts[3],
+            'photo_url': null,
+          },
+          'contact_name': parts[4],
+          'contact_phone': parts[5].isEmpty ? null : parts[5],
+        });
+      }
+      if (friends.isEmpty) return false;
+      if (mounted) {
+        setState(() {
+          _friendsInApp = friends;
+          _contactsToInvite =
+              invites; // invites will be re-derived on fresh load
+          _isLoadingContacts = false;
+        });
+      }
+      logI(
+        'Hydrated ${friends.length} contacts from cache',
+        tag: 'CONTACT_CACHE',
+      );
+      return true;
+    } catch (e) {
+      logW('Failed to hydrate contacts cache: $e', tag: 'CONTACT_CACHE');
+      return false;
+    }
+  }
+
+  Future<void> _persistContactsCache({
+    required List<Map<String, dynamic>> friends,
+    required String hash,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final payload = friends.map((f) {
+        final u = f['user'] as Map<String, dynamic>;
+        final c = f['contact'] as Map<String, dynamic>;
+        final userId = (u['id'] ?? '').toString();
+        final displayName = (u['display_name'] ?? '').toString();
+        final email = (u['email'] ?? '').toString();
+        final phone = (u['phone_number'] ?? '').toString();
+        final contactName = (c['name'] ?? '').toString();
+        final contactPhone = (c['phone'] ?? '').toString();
+        return [
+          userId,
+          displayName,
+          email,
+          phone,
+          contactName,
+          contactPhone,
+        ].join('\u0001');
+      }).toList();
+      await prefs.setStringList(_kContactsCacheKey, payload);
+      await prefs.setString(_kContactsCacheHashKey, hash);
+      await prefs.setInt(
+        _kContactsCacheTsKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      logI(
+        'Persisted contacts cache entries=${payload.length}',
+        tag: 'CONTACT_CACHE',
+      );
+    } catch (e) {
+      logW('Failed to persist contacts cache: $e', tag: 'CONTACT_CACHE');
+    }
   }
 
   void _onSearchChanged() {
@@ -369,6 +548,19 @@ class _ExploreScreenState extends State<ExploreScreen>
         _isLoadingContacts = true;
       });
 
+      // Attempt hydration from cache (fast path) if not already have data
+      if (_friendsInApp.isEmpty && _contactsToInvite.isEmpty) {
+        final hydrated = await _tryHydrateContactsFromCache();
+        if (hydrated) {
+          // Continue with async refresh in background without blocking UI
+          // but do not early return; we want fresh data if hash changed.
+          logI(
+            'Showing cached contacts while refreshing in background',
+            tag: 'CONTACT_CACHE',
+          );
+        }
+      }
+
       // Verifica permissão novamente antes de prosseguir
       final stillHasPermission = await FlutterContacts.requestPermission(
         readonly: true,
@@ -433,8 +625,32 @@ class _ExploreScreenState extends State<ExploreScreen>
       final useIncrementalContactStreaming = _incrementalContactsEnabled();
       Map<String, UserProfile> registeredUsers = {};
 
+      // Pre-compute hash of local contacts to compare to cache
+      final contactsHash = await _computeContactsHash(contactsWithPhones);
+      String? previousHash;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        previousHash = prefs.getString(_kContactsCacheHashKey);
+      } catch (_) {}
+
+      final cacheValid = previousHash == contactsHash;
+      if (cacheValid) {
+        logI(
+          'Contacts hash unchanged; will still stream/fetch for freshness but may skip persisting.',
+          tag: 'CONTACT_CACHE',
+        );
+      } else {
+        logI(
+          'Contacts hash changed (prev=$previousHash new=$contactsHash) -> will refresh and persist',
+          tag: 'CONTACT_CACHE',
+        );
+      }
+
       if (useIncrementalContactStreaming) {
-        logI('Starting incremental contact streaming...', tag: 'CONTACT_DEBUG');
+        logI(
+          'Starting incremental contact streaming (cancellable)...',
+          tag: 'CONTACT_DEBUG',
+        );
         try {
           // Build quick lookup maps for contacts to avoid re-normalizing on every delta.
           final contactPhoneIndex = <String, List<Contact>>{};
@@ -457,64 +673,154 @@ class _ExploreScreenState extends State<ExploreScreen>
           // Mutable working sets while streaming
           final friends = <Map<String, dynamic>>[];
           final inviteContacts = contactsWithPhones.toList();
-
-          await for (final delta in _userSearchRepo.streamUsersByContacts(
-            phoneNumbers: phoneNumbers,
-            emails: emails,
-          )) {
-            if (!mounted) break;
-            // Merge delta
-            registeredUsers.addAll(delta);
-            // For each new user, locate matching contacts and promote them to friends list if not already.
-            for (final entry in delta.entries) {
-              final key = entry.key;
-              final profile = entry.value;
-              final relatedContacts = <Contact>[];
-              if (contactPhoneIndex.containsKey(key)) {
-                relatedContacts.addAll(contactPhoneIndex[key]!);
-              }
-              if (contactEmailIndex.containsKey(key)) {
-                relatedContacts.addAll(contactEmailIndex[key]!);
-              }
-              for (final c in relatedContacts) {
-                // If this contact is still in invites, move it.
-                if (inviteContacts.remove(c)) {
-                  friends.add({
-                    'contact': {
-                      'name': c.displayName,
-                      'phone': c.phones.isNotEmpty
-                          ? c.phones.first.number
-                          : null,
-                    },
-                    'user': {
-                      'id': profile.id,
-                      'display_name': profile.displayName,
-                      'email': profile.email,
-                      'phone_number': profile.phoneNumber,
-                      'photo_url': profile.photoUrl,
-                    },
-                    'contact_name': c.displayName,
-                    'contact_phone': c.phones.isNotEmpty
-                        ? c.phones.first.number
-                        : null,
+          _contactStreamSub?.cancel();
+          _reportedFirstFriend = false;
+          _contactStreamStart = DateTime.now();
+          _contactStreamSub = _userSearchRepo
+              .streamUsersByContacts(phoneNumbers: phoneNumbers, emails: emails)
+              .listen(
+                (delta) {
+                  if (!mounted) return;
+                  registeredUsers.addAll(delta);
+                  for (final entry in delta.entries) {
+                    final key = entry.key;
+                    final profile = entry.value;
+                    final relatedContacts = <Contact>[];
+                    if (contactPhoneIndex.containsKey(key)) {
+                      relatedContacts.addAll(contactPhoneIndex[key]!);
+                    }
+                    if (contactEmailIndex.containsKey(key)) {
+                      relatedContacts.addAll(contactEmailIndex[key]!);
+                    }
+                    for (final c in relatedContacts) {
+                      if (inviteContacts.remove(c)) {
+                        friends.add({
+                          'contact': {
+                            'name': c.displayName,
+                            'phone': c.phones.isNotEmpty
+                                ? c.phones.first.number
+                                : null,
+                          },
+                          'user': {
+                            'id': profile.id,
+                            'display_name': profile.displayName,
+                            'email': profile.email,
+                            'phone_number': profile.phoneNumber,
+                            'photo_url': profile.photoUrl,
+                          },
+                          'contact_name': c.displayName,
+                          'contact_phone': c.phones.isNotEmpty
+                              ? c.phones.first.number
+                              : null,
+                        });
+                        if (!_reportedFirstFriend) {
+                          _reportedFirstFriend = true;
+                          final ttf = DateTime.now().difference(
+                            _contactStreamStart!,
+                          );
+                          logI(
+                            'TTF (time-to-first-friend) = ${ttf.inMilliseconds}ms',
+                            tag: 'CONTACT_DEBUG',
+                          );
+                        }
+                        logI(
+                          'Incremental friend match: ${c.displayName}',
+                          tag: 'CONTACT_DEBUG',
+                        );
+                      }
+                    }
+                  }
+                  setState(() {
+                    _friendsInApp = friends.toList();
+                    _contactsToInvite = inviteContacts.toList();
                   });
-                  logI(
-                    'Incremental friend match: ${c.displayName}',
+                },
+                onError: (e) async {
+                  logE(
+                    'Streaming error: $e (fallback to full lookup)',
                     tag: 'CONTACT_DEBUG',
                   );
-                }
-              }
-            }
-            // Push partial update to UI.
-            setState(() {
-              _friendsInApp = friends.toList();
-              _contactsToInvite = inviteContacts.toList();
-            });
-          }
-          logI(
-            'Incremental contact streaming complete (found=${registeredUsers.length})',
-            tag: 'CONTACT_DEBUG',
-          );
+                  await _contactStreamSub?.cancel();
+                  _contactStreamSub = null;
+                  try {
+                    registeredUsers = await _userSearchRepo.findUsersByContacts(
+                      phoneNumbers: phoneNumbers,
+                      emails: emails,
+                    );
+                  } catch (e2) {
+                    logE(
+                      'Fallback after streaming error also failed: $e2',
+                      tag: 'CONTACT_DEBUG',
+                    );
+                  }
+                },
+                onDone: () {
+                  if (_contactStreamStart != null) {
+                    final total = DateTime.now().difference(
+                      _contactStreamStart!,
+                    );
+                    logI(
+                      'Streaming complete totalDuration=${total.inMilliseconds}ms totalFriends=${friends.length}',
+                      tag: 'CONTACT_DEBUG',
+                    );
+                    // Fire analytics event (best-effort; swallow errors)
+                    () async {
+                      try {
+                        await AnalyticsService().log(
+                          'contact_stream_metrics',
+                          properties: {
+                            'mode': 'incremental',
+                            'total_ms': total.inMilliseconds,
+                            'friends_count': friends.length,
+                            'contacts_count': contactsWithPhones.length,
+                            'had_first_friend': _reportedFirstFriend,
+                          },
+                        );
+                      } catch (_) {}
+                      if (mounted && friends.isNotEmpty && !cacheValid) {
+                        await _persistContactsCache(
+                          friends: friends,
+                          hash: contactsHash,
+                        );
+                      }
+                      // Prefetch first few avatar images (if photo_url available)
+                      if (mounted && friends.isNotEmpty) {
+                        try {
+                          final toPrefetch = friends.take(3).toList();
+                          for (final f in toPrefetch) {
+                            final user = f['user'] as Map<String, dynamic>;
+                            final url = user['photo_url'] as String?;
+                            if (url != null &&
+                                url.isNotEmpty &&
+                                context.mounted) {
+                              // Use NetworkImage; in production consider a dedicated cached image widget
+                              await precacheImage(NetworkImage(url), context);
+                            }
+                          }
+                          logI(
+                            'Prefetched avatar images count=${toPrefetch.length}',
+                            tag: 'CONTACT_PREFETCH',
+                          );
+                        } catch (e) {
+                          logW(
+                            'Avatar prefetch failed: $e',
+                            tag: 'CONTACT_PREFETCH',
+                          );
+                        }
+                      }
+                    }();
+                  }
+                  // Mark loading complete if still mounted
+                  if (mounted) {
+                    setState(() {
+                      _isLoadingContacts = false;
+                    });
+                  }
+                },
+                cancelOnError: false,
+              );
+          // Early return: completion handled in onDone
+          return;
         } catch (e) {
           logE(
             'Incremental streaming failed, fallback to full lookup: $e',
@@ -525,6 +831,17 @@ class _ExploreScreenState extends State<ExploreScreen>
             phoneNumbers: phoneNumbers,
             emails: emails,
           );
+          // Emit analytics for fallback scenario
+          try {
+            await AnalyticsService().log(
+              'contact_stream_metrics',
+              properties: {
+                'mode': 'incremental_fallback',
+                'friends_count': registeredUsers.length,
+                'contacts_count': contactsWithPhones.length,
+              },
+            );
+          } catch (_) {}
         }
       } else {
         try {
@@ -538,6 +855,17 @@ class _ExploreScreenState extends State<ExploreScreen>
             tag: 'CONTACT_DEBUG',
           );
         }
+        // Analytics for batch mode
+        try {
+          await AnalyticsService().log(
+            'contact_stream_metrics',
+            properties: {
+              'mode': 'batch',
+              'friends_count': registeredUsers.length,
+              'contacts_count': contactsWithPhones.length,
+            },
+          );
+        } catch (_) {}
       }
 
       // Special debug for Aamor contact
@@ -653,6 +981,33 @@ class _ExploreScreenState extends State<ExploreScreen>
           _isLoadingContacts = false;
         });
       }
+      if (friends.isNotEmpty &&
+          !useIncrementalContactStreaming &&
+          !cacheValid) {
+        await _persistContactsCache(friends: friends, hash: contactsHash);
+      }
+      // Avatar prefetch for batch mode
+      if (friends.isNotEmpty && !useIncrementalContactStreaming && mounted) {
+        try {
+          final toPrefetch = friends.take(3).toList();
+          for (final f in toPrefetch) {
+            final user = f['user'] as Map<String, dynamic>;
+            final url = user['photo_url'] as String?;
+            if (url != null && url.isNotEmpty && context.mounted) {
+              await precacheImage(NetworkImage(url), context);
+            }
+          }
+          logI(
+            'Prefetched avatar images (batch mode) count=${toPrefetch.length}',
+            tag: 'CONTACT_PREFETCH',
+          );
+        } catch (e) {
+          logW(
+            'Avatar prefetch failed (batch mode): $e',
+            tag: 'CONTACT_PREFETCH',
+          );
+        }
+      }
     } catch (e) {
       logE('Error loading contacts', tag: 'UI', error: e);
       if (mounted) {
@@ -722,22 +1077,64 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    // Existing build logic continues below; we insert a modified AppBar with toggle action.
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.exploreTitle),
+        title: Text(AppLocalizations.of(context)?.explore ?? 'Explore'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'toggle_incremental') {
+                _toggleIncrementalPreference();
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'toggle_incremental',
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _prefIncrementalContacts
+                            ? (AppLocalizations.of(
+                                    context,
+                                  )?.disableIncrementalContacts ??
+                                  'Disable incremental contacts')
+                            : (AppLocalizations.of(
+                                    context,
+                                  )?.enableIncrementalContacts ??
+                                  'Enable incremental contacts'),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Switch(
+                      value: _prefIncrementalContacts,
+                      onChanged: (_) => _toggleIncrementalPreference(),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(icon: const Icon(Icons.search), text: l10n.searchTab),
-            Tab(icon: const Icon(Icons.people), text: l10n.friendsTab),
+            Tab(text: AppLocalizations.of(context)?.search ?? 'Search'),
+            Tab(text: AppLocalizations.of(context)?.contacts ?? 'Contacts'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildSearchTab(), _buildContactsTab()],
-      ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    return TabBarView(
+      controller: _tabController,
+      children: [_buildSearchTab(), _buildContactsSection()],
     );
   }
 
@@ -765,48 +1162,84 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   Widget _buildSearchContent() {
-    if (_isInitialLoading) {
-      return const SkeletonLoader(itemCount: 8);
-    }
+    // Wrap state transitions in AnimatedSwitcher to avoid hard visual jumps / grey flashes
+    final Widget stateChild;
 
-    // Show empty search state only when no query and no users loaded
-    if (_searchQuery.isEmpty && _users.isEmpty && !_isLoading) {
+    if (_isInitialLoading) {
+      stateChild = const SkeletonLoader(key: ValueKey('loading'), itemCount: 8);
+    } else if (_searchQuery.isEmpty && _users.isEmpty && !_isLoading) {
+      // Empty initial state (no query)
       final l10n = AppLocalizations.of(context)!;
-      return WishlistEmptyState(
+      stateChild = WishlistEmptyState(
+        key: const ValueKey('empty_initial'),
         icon: Icons.search,
         title: l10n.searchUsersTitle,
         subtitle: l10n.searchUsersSubtitle,
       );
-    }
-
-    // Show no results state when search query exists but no results
-    if (_searchQuery.isNotEmpty && _users.isEmpty && !_isLoading) {
+    } else if (_searchQuery.isNotEmpty && _users.isEmpty && !_isLoading) {
+      // No results for current query
       final l10n = AppLocalizations.of(context)!;
-      return WishlistEmptyState(
+      stateChild = WishlistEmptyState(
+        key: const ValueKey('empty_query'),
         icon: Icons.person_search,
         title: l10n.noResults,
         subtitle: l10n.noResultsSubtitle,
       );
+    } else {
+      // Results list
+      stateChild = RefreshIndicator(
+        key: const ValueKey('results'),
+        onRefresh: _onRefresh,
+        child: ListView.builder(
+          controller: _scrollController,
+          // Keep some physics even if few results to allow pull-to-refresh
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: UIConstants.listPadding,
+          itemCount: _users.length + (_isLoading ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == _users.length) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      AppLocalizations.of(context)!.loadingMoreResults,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              );
+            }
+            return _buildUserCard(_users[index]);
+          },
+        ),
+      );
     }
 
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: UIConstants.listPadding,
-        itemCount: _users.length + (_isLoading ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _users.length) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: Text(AppLocalizations.of(context)!.loadingMoreResults),
-              ),
-            );
-          }
-          return _buildUserCard(_users[index]);
-        },
-      ),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          children: <Widget>[
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
+      child: stateChild,
     );
   }
 
@@ -815,182 +1248,213 @@ class _ExploreScreenState extends State<ExploreScreen>
     final userId = user.id;
     final isPrivate = user.isPrivate;
     final String? bio = user.bio;
-
-    return Card(
-      margin: UIConstants.cardMargin,
-      elevation: UIConstants.elevationM,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
-      ),
-      child: InkWell(
-        onTap: () {
-          context.pushFadeScale(UserProfileScreen(userId: userId));
-        },
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
-        child: Container(
-          padding: UIConstants.paddingM,
-          child: Row(
-            children: [
-              // Avatar do utilizador maior
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(UIConstants.radiusM),
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withAlpha(204),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+    // Fade & slight scale-in on first build to reduce popping
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('user-${user.id}'),
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.scale(
+            scale: 0.98 + (value * 0.02),
+            alignment: Alignment.topCenter,
+            child: child,
+          ),
+        );
+      },
+      child: Card(
+        margin: UIConstants.cardMargin,
+        elevation: UIConstants.elevationM,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        ),
+        child: InkWell(
+          onTap: () {
+            context.pushFadeScale(UserProfileScreen(userId: userId));
+          },
+          borderRadius: BorderRadius.circular(UIConstants.radiusM),
+          child: Container(
+            padding: UIConstants.paddingM,
+            child: Row(
+              children: [
+                // Avatar do utilizador maior
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withAlpha(204),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Text(
-                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : 'U',
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ),
                 ),
-              ),
 
-              Spacing.horizontalM,
+                Spacing.horizontalM,
 
-              // Informação do utilizador
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nome do utilizador
-                    Text(
-                      displayName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    if (bio != null && bio.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                // Informação do utilizador
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Nome do utilizador
                       Text(
-                        bio,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
-                        ),
-                        maxLines: 2,
+                        displayName,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
 
-                    const SizedBox(height: 8),
-
-                    // Status de privacidade
-                    Row(
-                      children: [
-                        Icon(
-                          isPrivate
-                              ? Icons.lock_outlined
-                              : Icons.public_outlined,
-                          size: 14,
-                          color: isPrivate
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
+                      if (bio != null && bio.isNotEmpty) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          isPrivate
-                              ? (AppLocalizations.of(
-                                      context,
-                                    )?.privateProfileBadge ??
-                                    'Perfil privado')
-                              : (AppLocalizations.of(
-                                      context,
-                                    )?.publicProfileBadge ??
-                                    'Perfil público'),
-                          style: Theme.of(context).textTheme.labelSmall
+                          bio,
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: isPrivate
-                                    ? Theme.of(context).colorScheme.error
-                                    : Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w500,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
                               ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ),
-                  ],
-                ),
-              ),
 
-              // Seta de navegação
-              Icon(
-                Icons.arrow_forward,
-                size: UIConstants.iconSizeS,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ],
+                      const SizedBox(height: 8),
+
+                      // Status de privacidade
+                      Row(
+                        children: [
+                          Icon(
+                            isPrivate
+                                ? Icons.lock_outlined
+                                : Icons.public_outlined,
+                            size: 14,
+                            color: isPrivate
+                                ? Theme.of(context).colorScheme.error
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isPrivate
+                                ? (AppLocalizations.of(
+                                        context,
+                                      )?.privateProfileBadge ??
+                                      'Perfil privado')
+                                : (AppLocalizations.of(
+                                        context,
+                                      )?.publicProfileBadge ??
+                                      'Perfil público'),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: isPrivate
+                                      ? Theme.of(context).colorScheme.error
+                                      : Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Seta de navegação
+                Icon(
+                  Icons.arrow_forward,
+                  size: UIConstants.iconSizeS,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildContactsTab() {
-    if (!_hasContactsPermission) return _buildPermissionRequest();
-
-    if (_isLoadingContacts) {
+  Widget _buildContactsSection() {
+    Widget stateChild;
+    if (!_hasContactsPermission) {
+      stateChild = _buildPermissionRequest();
+    } else if (_isLoadingContacts) {
       final l10n = AppLocalizations.of(context)!;
-      return Center(
+      stateChild = Center(
+        key: const ValueKey('contacts-loading'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(),
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
             const SizedBox(height: 16),
             Text(l10n.discoveringFriends),
           ],
         ),
       );
+    } else {
+      final total = _friendsInApp.length + _contactsToInvite.length;
+      if (total == 0) {
+        final l10n = AppLocalizations.of(context)!;
+        stateChild = Center(
+          key: const ValueKey('contacts-empty'),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.contacts, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              Text(l10n.noFriendsFound),
+              const SizedBox(height: 8),
+              Text(
+                '${l10n.noFriendsFoundDescription}\n(Quando os teus contactos entrarem vais vê-los aqui)',
+                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      } else {
+        stateChild = RefreshIndicator(
+          key: const ValueKey('contacts-list'),
+          onRefresh: _loadContactsData,
+          child: ListView.builder(
+            padding: UIConstants.listPadding,
+            itemCount: total,
+            itemBuilder: (context, index) {
+              if (index < _friendsInApp.length) {
+                return _buildFriendCard(_friendsInApp[index]);
+              }
+              final contact = _contactsToInvite[index - _friendsInApp.length];
+              return _buildInviteCard(contact);
+            },
+          ),
+        );
+      }
     }
 
-    final total = _friendsInApp.length + _contactsToInvite.length;
-    if (total == 0) {
-      final l10n = AppLocalizations.of(context)!;
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.contacts, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(l10n.noFriendsFound),
-            const SizedBox(height: 8),
-            Text(
-              '${l10n.noFriendsFoundDescription}\n(Quando os teus contactos entrarem vais vê-los aqui)',
-              style: const TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadContactsData,
-      child: ListView.builder(
-        padding: UIConstants.listPadding,
-        itemCount: total,
-        itemBuilder: (context, index) {
-          if (index < _friendsInApp.length) {
-            return _buildFriendCard(_friendsInApp[index]);
-          }
-          final contact = _contactsToInvite[index - _friendsInApp.length];
-          return _buildInviteCard(contact);
-        },
-      ),
-    );
+    return ScaleFadeSwitcher(child: stateChild);
   }
 
   Widget _buildPermissionRequest() {
@@ -1044,42 +1508,188 @@ class _ExploreScreenState extends State<ExploreScreen>
     final contactName = contact['name'] as String? ?? displayName;
 
     final isFav = _favoriteIds.contains(userId);
-    return Card(
-      margin: UIConstants.cardMargin,
-      elevation: UIConstants.elevationM,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+    return FadeIn(
+      child: Card(
+        margin: UIConstants.cardMargin,
+        elevation: UIConstants.elevationM,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        ),
+        child: InkWell(
+          onTap: () {
+            context.pushFadeScale(UserProfileScreen(userId: userId));
+          },
+          borderRadius: BorderRadius.circular(UIConstants.radiusM),
+          child: Container(
+            padding: UIConstants.paddingM,
+            child: Row(
+              children: [
+                // Avatar do utilizador
+                Hero(
+                  tag: 'profile-avatar-$userId',
+                  flightShuttleBuilder:
+                      (context, animation, direction, fromCtx, toCtx) {
+                        return ScaleTransition(
+                          scale: Tween<double>(begin: 0.95, end: 1).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
+                          child: toCtx.widget,
+                        );
+                      },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.primary.withAlpha(204),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : 'U',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                // Informação do utilizador
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (contactName != displayName) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '${AppLocalizations.of(context)!.contactLabel}: $contactName',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (email != null && email.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          email,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Actions (favorite toggle)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AccessibleIconButton(
+                      icon: isFav ? Icons.star : Icons.star_border,
+                      color: isFav
+                          ? Colors.amber
+                          : Theme.of(context).colorScheme.primary,
+                      semanticLabel: isFav
+                          ? AppLocalizations.of(context)?.removeFromFavorites ??
+                                'Remover dos favoritos'
+                          : AppLocalizations.of(context)?.addToFavorites ??
+                                'Adicionar aos favoritos',
+                      tooltip: isFav
+                          ? AppLocalizations.of(context)?.removeFromFavorites ??
+                                'Remover dos favoritos'
+                          : AppLocalizations.of(context)?.addToFavorites ??
+                                'Adicionar aos favoritos',
+                      onPressed: () => _toggleFavorite(userId, isFav),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      child: InkWell(
-        onTap: () {
-          context.pushFadeScale(UserProfileScreen(userId: userId));
-        },
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
+    );
+  }
+
+  Widget _buildInviteCard(Contact contact) {
+    final displayName = contact.displayName;
+    final phone = contact.phones.isNotEmpty ? contact.phones.first.number : '';
+
+    return FadeIn(
+      child: Card(
+        margin: UIConstants.cardMargin,
+        elevation: UIConstants.elevationM,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UIConstants.radiusM),
+        ),
         child: Container(
           padding: UIConstants.paddingM,
           child: Row(
             children: [
-              // Avatar do utilizador
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(UIConstants.radiusM),
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withAlpha(204),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              // Avatar do contacto
+              Hero(
+                tag: 'profile-avatar-contact-${contact.id.hashCode}',
+                flightShuttleBuilder:
+                    (context, animation, direction, fromCtx, toCtx) {
+                      return ScaleTransition(
+                        scale: Tween<double>(begin: 0.95, end: 1).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        ),
+                        child: toCtx.widget,
+                      );
+                    },
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(UIConstants.radiusM),
+                    color: Colors.grey[300],
                   ),
-                ),
-                child: Center(
-                  child: Text(
-                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : 'C',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -1087,7 +1697,7 @@ class _ExploreScreenState extends State<ExploreScreen>
 
               const SizedBox(width: 16),
 
-              // Informação do utilizador
+              // Informação do contacto
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1100,21 +1710,10 @@ class _ExploreScreenState extends State<ExploreScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (contactName != displayName) ...[
+                    if (phone.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        '${AppLocalizations.of(context)!.contactLabel}: $contactName',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    if (email != null && email.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        email,
+                        phone,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -1126,112 +1725,20 @@ class _ExploreScreenState extends State<ExploreScreen>
                 ),
               ),
 
-              // Actions (favorite toggle)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AccessibleIconButton(
-                    icon: isFav ? Icons.star : Icons.star_border,
-                    color: isFav
-                        ? Colors.amber
-                        : Theme.of(context).colorScheme.primary,
-                    semanticLabel: isFav
-                        ? AppLocalizations.of(context)?.removeFromFavorites ??
-                              'Remover dos favoritos'
-                        : AppLocalizations.of(context)?.addToFavorites ??
-                              'Adicionar aos favoritos',
-                    tooltip: isFav
-                        ? AppLocalizations.of(context)?.removeFromFavorites ??
-                              'Remover dos favoritos'
-                        : AppLocalizations.of(context)?.addToFavorites ??
-                              'Adicionar aos favoritos',
-                    onPressed: () => _toggleFavorite(userId, isFav),
+              // Botão de convite
+              OutlinedButton.icon(
+                onPressed: () => _inviteContact(contact),
+                icon: const Icon(Icons.share, size: 16),
+                label: Text(AppLocalizations.of(context)!.inviteButton),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInviteCard(Contact contact) {
-    final displayName = contact.displayName;
-    final phone = contact.phones.isNotEmpty ? contact.phones.first.number : '';
-
-    return Card(
-      margin: UIConstants.cardMargin,
-      elevation: UIConstants.elevationM,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(UIConstants.radiusM),
-      ),
-      child: Container(
-        padding: UIConstants.paddingM,
-        child: Row(
-          children: [
-            // Avatar do contacto
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(UIConstants.radiusM),
-                color: Colors.grey[300],
-              ),
-              child: Center(
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : 'C',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            // Informação do contacto
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (phone.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      phone,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Botão de convite
-            OutlinedButton.icon(
-              onPressed: () => _inviteContact(contact),
-              icon: const Icon(Icons.share, size: 16),
-              label: Text(AppLocalizations.of(context)!.inviteButton),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -1339,7 +1846,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   bool _incrementalContactsEnabled() {
-    // Future: wire to user settings / remote config. Returning true enables streaming path.
-    return true;
+    return _prefIncrementalContacts;
   }
 }

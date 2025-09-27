@@ -707,4 +707,12 @@
   "@contactsPermissionManual": {"description": "Mensagem instruindo usuário a ativar permissão manualmente"},
   "contactsPermissionRevoked": "Permissão de contactos foi revogada. Tenta novamente.",
   "@contactsPermissionRevoked": {"description": "Mensagem de erro quando permissão de contactos foi revogada"}
+  ,"enableIncrementalContacts": "Ativar contactos incrementais"
+  ,"@enableIncrementalContacts": {"description": "Ação de menu para ativar descoberta incremental (streaming) de contactos"}
+  ,"disableIncrementalContacts": "Desativar contactos incrementais"
+  ,"@disableIncrementalContacts": {"description": "Ação de menu para desativar descoberta incremental (streaming) de contactos"}
+  ,"search": "Pesquisar"
+  ,"@search": {"description": "Rótulo genérico de pesquisa / texto da aba"}
+  ,"contacts": "Contactos"
+  ,"@contacts": {"description": "Rótulo genérico para contactos / texto da aba"}
 }

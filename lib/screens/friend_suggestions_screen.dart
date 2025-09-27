@@ -8,6 +8,8 @@ import '../constants/ui_constants.dart';
 import 'package:mywishstash/generated/l10n/app_localizations.dart';
 import 'user_profile_screen.dart';
 import '../utils/page_transitions.dart';
+// Animation primitives for consistent motion language
+import '../widgets/animated/animated_primitives.dart';
 
 class FriendSuggestionsScreen extends StatefulWidget {
   const FriendSuggestionsScreen({super.key});
@@ -133,29 +135,38 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
   }
 
   Widget _buildBody() {
+    Widget stateChild;
     if (_isLoading) {
-      return const Center(
+      stateChild = const Center(
+        key: ValueKey('loading'),
         child: LoadingMessage(messageKey: 'loadingSuggestions'),
       );
-    }
-
-    if (!_hasPermission) {
-      return _buildPermissionRequest();
-    }
-
-    if (_suggestions.isEmpty) {
-      return WishlistEmptyState(
-        icon: Icons.contacts,
-        title:
-            AppLocalizations.of(context)?.noSuggestionsTitle ??
-            'Nenhuma sugestão',
-        subtitle:
-            AppLocalizations.of(context)?.noSuggestionsSubtitle ??
-            'Não foram encontrados utilizadores da app nos seus contactos.',
+    } else if (!_hasPermission) {
+      stateChild = KeyedSubtree(
+        key: const ValueKey('permission'),
+        child: _buildPermissionRequest(),
+      );
+    } else if (_suggestions.isEmpty) {
+      stateChild = KeyedSubtree(
+        key: const ValueKey('empty'),
+        child: WishlistEmptyState(
+          icon: Icons.contacts,
+          title:
+              AppLocalizations.of(context)?.noSuggestionsTitle ??
+              'Nenhuma sugestão',
+          subtitle:
+              AppLocalizations.of(context)?.noSuggestionsSubtitle ??
+              'Não foram encontrados utilizadores da app nos seus contactos.',
+        ),
+      );
+    } else {
+      stateChild = KeyedSubtree(
+        key: const ValueKey('data'),
+        child: _buildSuggestionsList(),
       );
     }
 
-    return _buildSuggestionsList();
+    return ScaleFadeSwitcher(child: stateChild);
   }
 
   Widget _buildPermissionRequest() {
@@ -207,9 +218,8 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
     return ListView.builder(
       padding: UIConstants.listPadding,
       itemCount: _suggestions.length,
-      itemBuilder: (context, index) {
-        return _buildSuggestionCard(_suggestions[index]);
-      },
+      itemBuilder: (context, index) =>
+          FadeIn(child: _buildSuggestionCard(_suggestions[index])),
     );
   }
 
@@ -221,13 +231,16 @@ class _FriendSuggestionsScreenState extends State<FriendSuggestionsScreen> {
 
     return WishlistCard(
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          child: Text(
-            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontWeight: FontWeight.bold,
+        leading: Hero(
+          tag: 'profile-avatar-$userId',
+          child: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: Text(
+              displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),

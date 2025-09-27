@@ -1332,4 +1332,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get contactsPermissionRevoked =>
       'Contacts permission was revoked. Try again.';
+
+  @override
+  String get enableIncrementalContacts => 'Enable incremental contacts';
+
+  @override
+  String get disableIncrementalContacts => 'Disable incremental contacts';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get contacts => 'Contacts';
 }

@@ -15,6 +15,8 @@ import '../constants/ui_constants.dart';
 import 'package:mywishstash/utils/app_logger.dart';
 
 import 'package:mywishstash/widgets/app_snack.dart';
+// Animated primitives for smoother visual transitions
+import '../widgets/animated/animated_primitives.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -126,7 +128,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ],
       ),
-      body: Column(children: [_buildProfileHeader(), _buildTabSection()]),
+      body: Column(
+        children: [
+          // Header fade in for subtle entrance
+          FadeIn(child: _buildProfileHeader()),
+          _buildTabSection(),
+        ],
+      ),
     );
   }
 
@@ -150,13 +158,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: UIConstants.imageSizeXL / 2,
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            child: Icon(
-              Icons.person,
-              size: UIConstants.iconSizeXXL / 2,
-              color: Theme.of(context).colorScheme.onPrimary,
+          // Hero for avatar continuity from explore/friends list
+          Hero(
+            tag: 'profile-avatar-${widget.userId}',
+            flightShuttleBuilder:
+                (context, animation, direction, fromCtx, toCtx) {
+                  return ScaleTransition(
+                    scale: Tween<double>(begin: 0.95, end: 1).animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      ),
+                    ),
+                    child: toCtx.widget,
+                  );
+                },
+            child: CircleAvatar(
+              radius: UIConstants.imageSizeXL / 2,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: Icon(
+                Icons.person,
+                size: UIConstants.iconSizeXXL / 2,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
             ),
           ),
           Spacing.m,
@@ -243,34 +267,44 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _fetchPublicWishlists(),
       builder: (context, snapshot) {
+        Widget stateChild;
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildWishlistSkeletonList();
-        }
-
-        if (snapshot.hasError) {
+          stateChild = KeyedSubtree(
+            key: const ValueKey('loading'),
+            child: _buildWishlistSkeletonList(),
+          );
+        } else if (snapshot.hasError) {
           final l10n = AppLocalizations.of(context)!;
-          return Center(
-            child: Text(l10n.errorPrefix(snapshot.error.toString())),
+          stateChild = KeyedSubtree(
+            key: const ValueKey('error'),
+            child: Center(
+              child: Text(l10n.errorPrefix(snapshot.error.toString())),
+            ),
+          );
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          final l10n = AppLocalizations.of(context)!;
+          stateChild = KeyedSubtree(
+            key: const ValueKey('empty'),
+            child: WishlistEmptyState(
+              icon: Icons.list_alt_outlined,
+              title: l10n.noPublicWishlists,
+              subtitle: l10n.noPublicWishlistsSubtitle,
+            ),
+          );
+        } else {
+          final wishlists = snapshot.data!;
+          stateChild = KeyedSubtree(
+            key: const ValueKey('data'),
+            child: ListView.builder(
+              padding: UIConstants.listPadding,
+              itemCount: wishlists.length,
+              itemBuilder: (context, index) =>
+                  FadeIn(child: _buildWishlistCard(wishlists[index])),
+            ),
           );
         }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          final l10n = AppLocalizations.of(context)!;
-          return WishlistEmptyState(
-            icon: Icons.list_alt_outlined,
-            title: l10n.noPublicWishlists,
-            subtitle: l10n.noPublicWishlistsSubtitle,
-          );
-        }
-
-        final wishlists = snapshot.data!;
-        return ListView.builder(
-          padding: UIConstants.listPadding,
-          itemCount: wishlists.length,
-          itemBuilder: (context, index) {
-            return _buildWishlistCard(wishlists[index]);
-          },
-        );
+        return ScaleFadeSwitcher(child: stateChild);
       },
     );
   }

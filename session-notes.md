@@ -3,6 +3,30 @@
 Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no novo documento de auditoria.
 
 ## STATUS ATUAL (25 Set 2025) - FUNCIONALIDADE DE COMPRA IMPLEMENTADA v0.1.6+10
+### 🎨 Visual Polish Incremental (Current Delta)
+- Added unified animation primitives file `lib/widgets/animated/animated_primitives.dart` introducing `FadeIn` (opacity tween, optional delay) and `ScaleFadeSwitcher` (AnimatedSwitcher preset with fade + slight scale) to eliminate gray flashes when states swap.
+- Applied smooth state transitions to:
+  * `explore_screen.dart` (contacts section) replacing direct conditional UI with `ScaleFadeSwitcher`; friend & invite cards wrapped in `FadeIn`.
+  * `wishlist_details_screen.dart` tri-state (loading / empty / data) now animated; individual items fade in.
+  * `wishlists_screen.dart` root list transitions animated; each wishlist card uses `FadeIn`.
+  * `user_profile_screen.dart` header now fades in and avatar participates in Hero transition; public wishlists FutureBuilder uses `ScaleFadeSwitcher` with keyed children (loading, error, empty, data) and per-card `FadeIn`.
+- Extended polish to remaining social flows:
+  * `friends_screen.dart` refactored body to keyed states (loading, empty, data) inside `ScaleFadeSwitcher`; each friend row & pagination footer wrapped in `FadeIn`; avatars now use unified `Hero(tag: 'profile-avatar-<userId>')` with gentle scale flight.
+  * `friend_suggestions_screen.dart` consolidated permission/loading/empty/data states into a single `ScaleFadeSwitcher` with distinct `ValueKey`s; suggestion tiles wrapped in `FadeIn`; avatars converted to Hero using the same tag pattern for seamless navigation to profile.
+  * Established consistent Hero avatar convention across explore, friends, suggestions, and profile for cohesive motion continuity.
+- Introduced Hero continuity between explore friend cards and profile screen (`tag: profile-avatar-<userId>`); avatar containers wrapped in `Hero` with gentle scale flight.
+- Analyzer: 0 issues after changes; all 21 unit tests pass (multiple consecutive runs).
+- Rationale: Reduce perceptual jank (hard swaps / skeleton flash) and create consistent motion language across discovery and profile flows without adding heavy dependencies.
+- Performance: Short durations (≈250ms) + small scale delta (0.96→1) minimize layout thrash; only animating opacity/transform (GPU friendly).
+
+
+### 🔧 Melhoria Visual Recente (Explore Screen - Search Tab)
+- **AnimatedSwitcher** adicionado para transições entre estados (loading / vazio / resultados) evitando flash cinzento.
+- **Fade + micro scale-in** em cada card de utilizador (TweenAnimationBuilder) reduzindo popping brusco.
+- **Loader de paginação refinado**: substituído texto isolado por indicador circular + label discreta.
+- **RefreshIndicator sempre disponível** (AlwaysScrollableScrollPhysics) para UX consistente mesmo com poucos resultados.
+- **Motivação**: Corrigir glitch visual reportado (área cinza grande ao iniciar digitação) – agora transição suave.
+- **Impacto de performance**: animações curtas (250–280ms) com curvas easeOutCubic, custo de build mínimo.
 
 ### ✅ NOVA FUNCIONALIDADE: MARCAR ITENS COMO COMPRADOS/A COMPRAR
 - **Feature solicitada implementada**: Usuários podem agora marcar itens de wishlists como "vou comprar" ou "comprado"
@@ -398,6 +422,48 @@ Implementado método `streamUsersByContacts()` em `UserSearchRepository` que emi
 1. Iniciar com estado de loading.
 2. Atualizar listas de "amigos" vs "convidar" incrementalmente conforme batches produzem resultados.
 3. Manter fallback automático para caminho síncrono se ocorrer exceção no streaming.
+4. (Refinamento posterior) Tornar o streaming cancelável e instrumentado com métricas.
+
+### 🔄 Refinamento (Cancellable + Metrics & Analytics) — 27 Set 2025
+Após validação inicial do streaming incremental, aplicámos melhorias adicionais:
+
+#### 🛠️ Alterações Técnicas
+- Refatoração de `await for` para `StreamSubscription` armazenada em `_contactStreamSub` permitindo:
+  - Cancelar ao alternar separador (tab) ou ao fazer dispose do ecrã.
+  - Evitar processamento extra quando o utilizador deixa a aba de contactos.
+- Adicionadas métricas temporais:
+  - `TTF` (time-to-first-friend) logado em ms quando o primeiro contacto registado é encontrado.
+  - `totalDuration` calculado no `onDone`.
+- Mapas de index (`contactPhoneIndex` / `contactEmailIndex`) pré-construídos para mapear deltas rápidos sem re-normalizar.
+- Fallback resiliente: em erro no streaming, cancela subscrição e executa `findUsersByContacts` tradicional.
+- Emissão de evento Analytics (via `AnalyticsService`) ao concluir:
+  - Evento: `contact_stream_metrics`
+  - Propriedades:
+    - `mode`: 'incremental' | 'incremental_fallback' | 'batch'
+    - `total_ms` (quando incremental)
+    - `friends_count`
+    - `contacts_count`
+    - `had_first_friend` (bool em incremental)
+
+#### 📁 Ficheiros Modificados
+- `lib/screens/explore_screen.dart` — Adicionada import do `AnalyticsService` e chamadas `AnalyticsService().log('contact_stream_metrics', ...)` nos caminhos incremental, fallback e batch.
+
+#### ✅ Validação
+- `flutter analyze` (pré-execução dos testes) — sem novos issues esperados.
+- `flutter test` — 21/21 testes continuam a passar (nenhuma lógica central alterada fora do ecrã de UI).
+
+#### 🔍 Observações / Decisões
+- Não armazenamos PII em analytics: apenas contagens e tempos agregados.
+- `TTF` não é reenviado; apenas `total_ms` e indicadores agregados no evento final.
+- Estrutura já preparada para futura adição de cache persistente (hash de contactos) e toggle de feature flag.
+
+#### 🔮 Próximos Passos Recomendados
+1. Persistir hash de contactos normalizados para evitar recomputar em sessões consecutivas (daily cache TTL).
+2. Prefetch de avatares Cloudinary após primeiros 3 amigos para melhorar perceção de velocidade.
+3. Toggle experimental em Settings para comparar 'batch' vs 'incremental'.
+4. Dashboard simples (export periódico de analytics agregados) para observar distribuição de `total_ms` (p50/p95).
+
+---
 
 ### 🔧 Implementação Técnica
 - Novo método streaming com interleaving: alterna batches de telefones e emails para maximizar probabilidade de primeiros matches cedo.

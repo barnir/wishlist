@@ -2545,6 +2545,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contacts permission was revoked. Try again.'**
   String get contactsPermissionRevoked;
+
+  /// Menu action to enable incremental (streaming) contacts discovery
+  ///
+  /// In en, this message translates to:
+  /// **'Enable incremental contacts'**
+  String get enableIncrementalContacts;
+
+  /// Menu action to disable incremental (streaming) contacts discovery
+  ///
+  /// In en, this message translates to:
+  /// **'Disable incremental contacts'**
+  String get disableIncrementalContacts;
+
+  /// Generic search label/tab text (fallback)
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// Generic contacts label/tab text (fallback)
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get contacts;
 }
 
 class _AppLocalizationsDelegate

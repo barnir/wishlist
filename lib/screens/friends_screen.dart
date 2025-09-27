@@ -12,6 +12,8 @@ import '../constants/ui_constants.dart';
 import 'explore_screen.dart';
 import '../utils/page_transitions.dart';
 import 'user_profile_screen.dart';
+// Animation primitives for smoother state transitions
+import '../widgets/animated/animated_primitives.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -146,31 +148,48 @@ class _FriendsScreenState extends State<FriendsScreen>
           ),
         ],
       ),
-      body: _isInitialLoading
-          ? const Center(child: LoadingMessage(messageKey: 'loadingFavorites'))
-          : _favorites.isEmpty
-          ? WishlistEmptyState(
-              icon: Icons.star_border,
-              title: l10n.noFavoritesYet,
-              subtitle: l10n.favoritesEmptySubtitle,
-            )
-          : RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: UIConstants.listPadding,
-                itemCount: _favorites.length + (_isLoading ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == _favorites.length) {
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(child: Text(l10n.loadingMoreFavorites)),
-                    );
-                  }
-                  return _buildFavoriteCard(_favorites[index]);
-                },
+      body: ScaleFadeSwitcher(
+        child: _isInitialLoading
+            ? const Center(
+                key: ValueKey('loading'),
+                child: LoadingMessage(messageKey: 'loadingFavorites'),
+              )
+            : _favorites.isEmpty
+            ? KeyedSubtree(
+                key: const ValueKey('empty'),
+                child: WishlistEmptyState(
+                  icon: Icons.star_border,
+                  title: l10n.noFavoritesYet,
+                  subtitle: l10n.favoritesEmptySubtitle,
+                ),
+              )
+            : KeyedSubtree(
+                key: const ValueKey('data'),
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: UIConstants.listPadding,
+                    itemCount: _favorites.length + (_isLoading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _favorites.length) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: FadeIn(
+                            child: Center(
+                              child: Text(l10n.loadingMoreFavorites),
+                            ),
+                          ),
+                        );
+                      }
+                      return FadeIn(
+                        child: _buildFavoriteCard(_favorites[index]),
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -203,58 +222,76 @@ class _FriendsScreenState extends State<FriendsScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.primary.withAlpha(204),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        displayName.isNotEmpty
-                            ? displayName[0].toUpperCase()
-                            : 'U',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
+              Hero(
+                tag: 'profile-avatar-$userId',
+                flightShuttleBuilder:
+                    (context, animation, direction, fromCtx, toCtx) {
+                      return ScaleTransition(
+                        scale: Tween<double>(begin: 0.95, end: 1).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
+                        child: toCtx.widget,
+                      );
+                    },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).extension<AppSemanticColors>()!.favorite,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.surface,
-                          width: 2,
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          colors: [
+                            Theme.of(context).colorScheme.primary,
+                            Theme.of(
+                              context,
+                            ).colorScheme.primary.withAlpha(204),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.star,
-                        size: 12,
-                        color: Colors.white,
+                      child: Center(
+                        child: Text(
+                          displayName.isNotEmpty
+                              ? displayName[0].toUpperCase()
+                              : 'U',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).extension<AppSemanticColors>()!.favorite,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.surface,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.star,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Spacing.horizontalM,
               Expanded(

@@ -1,4 +1,5 @@
 import 'package:mywishstash/widgets/skeleton_loader.dart';
+import 'package:mywishstash/widgets/animated/animated_primitives.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'dart:async';
@@ -449,53 +450,54 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
   }
 
   Widget _buildContent() {
+    Widget stateChild;
     if (_isInitialLoading) {
-      return const SkeletonLoader(itemCount: 6);
-    }
-
-    if (_items.isEmpty && !_isLoading) {
-      return _buildEmptyState();
-    }
-
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      child: _isCompactList
-          ? ListView.builder(
-              controller: _scrollController,
-              padding: UIConstants.listPadding.copyWith(top: 4, bottom: 12),
-              itemExtent: 68,
-              itemCount: _items.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (_isInitialLoading) {
-                  return const SkeletonLoader(itemCount: 1);
-                }
-                if (index == _items.length) {
-                  return const SkeletonLoader(itemCount: 1);
-                }
-                return _buildCompactRow(_items[index]);
-              },
-            )
-          : GridView.builder(
-              controller: _scrollController,
-              padding: UIConstants.listPadding.copyWith(top: 4, bottom: 8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 4,
-                crossAxisSpacing: 10,
-                childAspectRatio: 0.82,
+      stateChild = const SkeletonLoader(
+        key: ValueKey('wl-loading'),
+        itemCount: 6,
+      );
+    } else if (_items.isEmpty && !_isLoading) {
+      stateChild = KeyedSubtree(
+        key: const ValueKey('wl-empty'),
+        child: _buildEmptyState(),
+      );
+    } else {
+      stateChild = RefreshIndicator(
+        key: const ValueKey('wl-data'),
+        onRefresh: _onRefresh,
+        child: _isCompactList
+            ? ListView.builder(
+                controller: _scrollController,
+                padding: UIConstants.listPadding.copyWith(top: 4, bottom: 12),
+                itemExtent: 68,
+                itemCount: _items.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _items.length) {
+                    return const SkeletonLoader(itemCount: 1);
+                  }
+                  return FadeIn(child: _buildCompactRow(_items[index]));
+                },
+              )
+            : GridView.builder(
+                controller: _scrollController,
+                padding: UIConstants.listPadding.copyWith(top: 4, bottom: 8),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 0.82,
+                ),
+                itemCount: _items.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _items.length) {
+                    return const SkeletonLoader(itemCount: 1);
+                  }
+                  return FadeIn(child: _buildGridItem(_items[index]));
+                },
               ),
-              itemCount: _items.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (_isInitialLoading) {
-                  return const SkeletonLoader(itemCount: 1);
-                }
-                if (index == _items.length) {
-                  return const SkeletonLoader(itemCount: 1);
-                }
-                return _buildGridItem(_items[index]);
-              },
-            ),
-    );
+      );
+    }
+    return ScaleFadeSwitcher(child: stateChild);
   }
 
   Widget _buildCompactRow(WishItem item) {
