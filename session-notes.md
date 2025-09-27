@@ -340,6 +340,106 @@ Serviços core: AuthService/FirebaseAuthService, ResourceManager, CloudinaryServ
 - ⏳ Pending: Test batch processing solution on device
 
 ---
+## SESSION UPDATE - CONTACT LOOKUP PERFORMANCE OPTIMIZATION (BATCH v2)
+
+### 🎯 Objective
+Reducir latência e carga de CPU / Firestore reads no processo de detecção de contactos (explore_screen) para listas grandes (300+ contactos).
+
+### 🔁 Problemas Anteriores
+- Batching conservador (whereIn limite assumido = 10) ⇒ muitas roundtrips sequenciais.
+- debugAllUsers() chamado em cada lookup ⇒ custo desnecessário (lista completa de users) e potencial impacto de privacidade/performance.
+- Logging extremamente verboso em cada batch (ruído em produção).
+- Sem deduplicação ⇒ números/e-mails repetidos causavam queries redundantes.
+- Batches processados sequencialmente ⇒ maior tempo até primeiro resultado.
+
+### ✅ Melhorias Implementadas
+1. Aumento de batch size para 30 (limite atual suportado pelo Firestore for whereIn) para reduzir número de queries.
+2. Execução concorrente controlada (janela de max 6 batches) para equilibrar throughput e evitar rate limits.
+3. Deduplicação de inputs (phones / emails) via Set antes de consultar.
+4. Normalização consolidada (map(whereType) + trim) reduz código e erros.
+5. Cache em memória por invocação (seenDocIds) evita processar o mesmo doc várias vezes se aparecer em batch de telefone e email.
+6. Removido debugAllUsers() do fluxo normal; agora só corre se debug=true passado explicitamente (não ativado pelo explore_screen por enquanto).
+7. Logging reduzido a um sumário (tag SEARCH) + logging detalhado opcional apenas com debug=true.
+8. Refatoração para sub-função _processBatch reutilizável.
+9. Troca de loop sequencial por janelas de Future.wait para concluir grupos de batches mais rapidamente.
+
+### 🧪 Validação
+- flutter analyze → sem erros (após patch; warnings externos de versões não impactam).
+- flutter test → 21 testes existentes passaram (nenhum impacto regressivo).
+- Nenhum ajuste necessário nos call sites (assinatura aceita flag opcional debug; explore_screen usa defaults).
+
+### 📈 Benefícios Esperados
+- Menos leituras totais (menos roundtrips devido a batches maiores).
+- Menor tempo total de lookup em contactos grandes (paralelismo controlado).
+- Menor poluição de logs em produção.
+- Base preparada para futura camada de caching persistente (ex: Hive / shared prefs hash snapshot).
+
+### 🔒 Considerações de Segurança / Privacidade
+- Remoção de debugAllUsers() por defeito evita enumerar todos os utilizadores em contextos normais.
+- Continue a respeitar Firestore rules existentes (apenas documentos públicos ou acessíveis ao utilizador autenticado).
+
+### 📌 Ficheiros Alterados
+- `lib/repositories/user_search_repository.dart` (função findUsersByContacts reescrita com otimizações).
+
+### 🔮 Próximos Passos Sugeridos (ver secção Propostas também)
+- Streaming incremental de resultados (emitir partial matches early na UI).
+- Cache local (ex: checksum por dia dos contactos normalizados para evitar re-busca completa).
+- Index auxiliar: armazenar array "phone_hashes" (sha256 parcial) para queries mais flexíveis no futuro.
+- Telemetria: medir tempo médio (p50/p95) de lookup e nº de batches executados.
+
+---
+## SESSION UPDATE - INCREMENTAL CONTACT STREAMING (BATCH v3)
+
+### 🎯 Objetivo
+Reduzir o tempo até primeiro resultado (TTFR) na deteção de contactos registados, fornecendo feedback progressivo ao utilizador enquanto as queries Firestore ainda decorrem.
+
+### 🆕 Funcionalidade
+Implementado método `streamUsersByContacts()` em `UserSearchRepository` que emite mapas delta (`Stream<Map<String,UserProfile>>`) à medida que cada batch (telefone ou email) conclui. A UI (ExploreScreen) passa a:
+1. Iniciar com estado de loading.
+2. Atualizar listas de "amigos" vs "convidar" incrementalmente conforme batches produzem resultados.
+3. Manter fallback automático para caminho síncrono se ocorrer exceção no streaming.
+
+### 🔧 Implementação Técnica
+- Novo método streaming com interleaving: alterna batches de telefones e emails para maximizar probabilidade de primeiros matches cedo.
+- Limites mantidos: batchSize = 30 (whereIn Firestore), mesma normalização de telefones/emails que a função otimizada anterior (v2).
+- Evita duplicados via `seenDocIds` por execução (não re-emite o mesmo utilizador em múltiplos deltas).
+- Emissão só de deltas (map contém apenas novos utilizadores encontrados naquele batch) — UI faz merge cumulativo.
+- ExploreScreen: `_loadContactsData()` passa a usar flag `useIncrementalContactStreaming` (helper `_incrementalContactsEnabled()` → atualmente retorna `true`). Caso `false` ou falha, executa caminho antigo completo.
+- Construção incremental das listas: contactos movidos da lista "invites" para "friends" assim que há match.
+- Montado com verificações `if (!mounted) break;` para evitar setState após dispose.
+
+### 🛡️ Resiliência & Fallback
+- Try/catch envolve o streaming; se falhar (ex: erro rede) recorre a `findUsersByContacts()` tradicional.
+- Feature flag isolada em helper para futura ligação a Remote Config / settings.
+- Não altera modelo de dados nem semântica externa — apenas melhora experiência.
+
+### 📁 Ficheiros Modificados
+- `lib/repositories/user_search_repository.dart` — adicionada função `streamUsersByContacts` + refactors de nomes locais para evitar lint (chunkLists, processBatch, runBatch).
+- `lib/screens/explore_screen.dart` — integração incremental com merges parciais e UI updates progressivos.
+
+### ✅ Qualidade
+- Análise estática: `flutter analyze` → 0 issues (warnings anteriores de underscore locais resolvidos).
+- Lints em `wishlist_details_screen.dart` (curly braces) também corrigidos no processo (manter baseline zero).
+- Estrutura de logs reduzida; apenas logs essenciais de progresso (`Incremental friend match`) quando streaming ativo.
+
+### 📈 Benefícios Esperados
+- Perceção imediata de progresso para listas grandes (300+ contactos) — primeiros amigos aparecem antes do término de todas as queries.
+- Menos sensação de bloqueio na interface (lista vai “preenchendo” gradualmente).
+- Base pronta para futura abordagem de cancelamento / progress metrics / telemetry.
+
+### 🔮 Próximos Passos (potenciais v4)
+1. Cancelamento explícito se o utilizador sair do separador antes de concluir (stream subscription management dedicado se migrarmos de await for para subscription manual).
+2. Métricas: capturar timestamps por delta (p50 time-to-first-friend, total duration) e enviar a Analytics.
+3. Prefetch de avatares Cloudinary para utilizadores encontrados (com throttling) numa micro-tarefa após cada delta.
+4. Persistência leve (cache diária hash dos contactos normalizados) para evitar full re-scan em reentradas rápidas.
+5. Toggle utilizador nas definições para optar entre modo rápido (stream) vs modo silencioso (batch único) se necessário.
+
+### 📌 Nota
+Flag atual sempre ativa; alterar `_incrementalContactsEnabled()` para false desativa facilmente sem tocar em lógica de parsing.
+
+---
+
+---
 
  > Para automatizar: copie e cole este conteúdo aqui e eu salvarei automaticamente em `session-notes.md`.
  > Salve este documento como `session-notes.md` ao finalizar a sessão. Adicione links para PRs, commits ou issues relevantes.

@@ -341,205 +341,229 @@ class UserSearchRepository {
   Future<Map<String, UserProfile>> findUsersByContacts({
     required List<String> phoneNumbers,
     required List<String> emails,
+    bool debug = false,
   }) async => _withLatency('findUsersByContacts', () async {
     final results = <String, UserProfile>{};
 
-    // Debug: Check what users are in the database
-    await debugAllUsers();
+    // Light-weight debug (avoid full enumeration unless explicitly required)
+    if (debug) {
+      logI('Debug contact lookup enabled', tag: 'CONTACT_SEARCH');
+    }
 
-    // Clean and normalize phone numbers (remove spaces, dashes, etc.)
+    // 1. Normalize & deduplicate inputs early
     final cleanPhones = phoneNumbers
-        .map((p) => _normalizePhoneNumber(p))
-        .where((p) => p != null && p.isNotEmpty)
-        .cast<String>()
+        .map(_normalizePhoneNumber)
+        .whereType<String>()
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toSet() // dedupe
         .toList();
 
-    logI('Searching for phones: $cleanPhones', tag: 'CONTACT_SEARCH');
-
-    // Normalize emails to lowercase
     final cleanEmails = emails
         .map((e) => e.toLowerCase().trim())
         .where((e) => e.isNotEmpty)
+        .toSet()
         .toList();
 
-    // Search by phone numbers in batches (Firestore whereIn limit is 10)
-    if (cleanPhones.isNotEmpty) {
-      try {
-        const batchSize = 10;
-        final phoneBatches = <List<String>>[];
+    if (debug) {
+      logI(
+        'Normalized inputs phones=${cleanPhones.length} emails=${cleanEmails.length}',
+        tag: 'CONTACT_SEARCH',
+      );
+    }
 
-        // Split phones into batches of 10
-        for (int i = 0; i < cleanPhones.length; i += batchSize) {
-          final endIndex = (i + batchSize > cleanPhones.length)
-              ? cleanPhones.length
-              : i + batchSize;
-          phoneBatches.add(cleanPhones.sublist(i, endIndex));
+    // 2. Short-circuit if nothing to do
+    if (cleanPhones.isEmpty && cleanEmails.isEmpty) {
+      return results;
+    }
+
+    // 3. Partition for whereIn batching. Modern Firestore supports up to 30 values per whereIn.
+    const phoneBatchSize = 30; // previously 10
+    const emailBatchSize = 30; // previously 10
+
+    List<List<String>> chunkLists(List<String> source, int size) {
+      final chunks = <List<String>>[];
+      for (var i = 0; i < source.length; i += size) {
+        chunks.add(
+          source.sublist(
+            i,
+            i + size > source.length ? source.length : i + size,
+          ),
+        );
+      }
+      return chunks;
+    }
+
+    final phoneBatches = chunkLists(cleanPhones, phoneBatchSize);
+    final emailBatches = chunkLists(cleanEmails, emailBatchSize);
+
+    // Simple per-execution cache to avoid duplicate Firestore lookups in the same call
+    final seenDocIds = <String>{};
+
+    Future<void> processBatch({
+      required List<String> values,
+      required String field,
+    }) async {
+      if (values.isEmpty) return;
+      final query = await _firestore
+          .collection('users')
+          .where(field, whereIn: values)
+          .get();
+      for (final doc in query.docs) {
+        if (seenDocIds.add(doc.id)) {
+          final data = doc.data();
+          final mp = <String, dynamic>{'id': doc.id}..addAll(data);
+          final user = UserProfile.fromMap(mp);
+          // Store under both phone/email canonical keys when present for faster lookup
+          if (user.phoneNumber != null) {
+            results[user.phoneNumber!] = user;
+          }
+          if (user.email != null) {
+            results[user.email!.toLowerCase()] = user;
+          }
         }
-
+      }
+      if (debug) {
         logI(
-          'Processing ${phoneBatches.length} phone batches (${cleanPhones.length} total phones)',
+          'Batch field=$field size=${values.length} -> docs=${seenDocIds.length}',
           tag: 'CONTACT_SEARCH',
         );
-
-        // Query each batch separately
-        for (int batchNum = 0; batchNum < phoneBatches.length; batchNum++) {
-          final batch = phoneBatches[batchNum];
-          logI(
-            'Querying phone batch ${batchNum + 1}/${phoneBatches.length}: ${batch.length} phones',
-            tag: 'CONTACT_SEARCH',
-          );
-          logI('Phone numbers in batch: $batch', tag: 'CONTACT_SEARCH');
-
-          final phoneQuery = await _firestore
-              .collection('users')
-              .where('phone_number', whereIn: batch)
-              .get();
-
-          logI(
-            'Phone batch ${batchNum + 1} returned ${phoneQuery.docs.length} users',
-            tag: 'CONTACT_SEARCH',
-          );
-
-          // Debug: log what phone numbers were actually found
-          if (phoneQuery.docs.isNotEmpty) {
-            for (final doc in phoneQuery.docs) {
-              final data = doc.data();
-              final foundPhone = data['phone_number'];
-              final userName = data['display_name'] ?? 'Unknown';
-              logI(
-                '  📞 Found user: $userName with phone: $foundPhone',
-                tag: 'CONTACT_SEARCH',
-              );
-            }
-          }
-
-          for (final doc in phoneQuery.docs) {
-            final data = doc.data();
-            final mp = <String, dynamic>{'id': doc.id};
-            mp.addAll(data);
-            final user = UserProfile.fromMap(mp);
-            if (user.phoneNumber != null) {
-              logI(
-                'Found user ${user.displayName} with phone: ${user.phoneNumber}',
-                tag: 'CONTACT_SEARCH',
-              );
-              results[user.phoneNumber!] = user;
-            }
-          }
-        }
-      } catch (e) {
-        logE('Error searching users by phone: $e', tag: 'CONTACT_SEARCH');
-
-        // Categorize the error to help with debugging
-        final errorStr = e.toString().toLowerCase();
-        if (errorStr.contains('network') ||
-            errorStr.contains('unable to resolve host')) {
-          logW(
-            'Network connectivity issue detected when searching by phone',
-            tag: 'CONTACT_SEARCH',
-          );
-        } else if (errorStr.contains('permission')) {
-          logW(
-            'Permission denied when searching by phone - check Firestore rules',
-            tag: 'CONTACT_SEARCH',
-          );
-        } else {
-          logW(
-            'Unknown error when searching by phone: $e',
-            tag: 'CONTACT_SEARCH',
-          );
-        }
       }
     }
 
-    // Search by emails in batches (Firestore whereIn limit is 10)
-    if (cleanEmails.isNotEmpty) {
-      try {
-        const batchSize = 10;
-        final emailBatches = <List<String>>[];
+    // 4. Execute phone & email batches concurrently (bounded by # of batches)
+    // Build all tasks
+    final tasks = <Future<void>>[
+      for (final batch in phoneBatches)
+        processBatch(values: batch, field: 'phone_number'),
+      for (final batch in emailBatches)
+        processBatch(values: batch, field: 'email'),
+    ];
 
-        // Split emails into batches of 10
-        for (int i = 0; i < cleanEmails.length; i += batchSize) {
-          final endIndex = (i + batchSize > cleanEmails.length)
-              ? cleanEmails.length
-              : i + batchSize;
-          emailBatches.add(cleanEmails.sublist(i, endIndex));
-        }
-
-        logI(
-          'Processing ${emailBatches.length} email batches (${cleanEmails.length} total emails)',
-          tag: 'CONTACT_SEARCH',
-        );
-
-        // Query each batch separately
-        for (int batchNum = 0; batchNum < emailBatches.length; batchNum++) {
-          final batch = emailBatches[batchNum];
-          logI(
-            'Querying email batch ${batchNum + 1}/${emailBatches.length}: ${batch.length} emails',
-            tag: 'CONTACT_SEARCH',
-          );
-
-          final emailQuery = await _firestore
-              .collection('users')
-              .where('email', whereIn: batch)
-              .get();
-
-          logI(
-            'Email batch ${batchNum + 1} returned ${emailQuery.docs.length} users',
-            tag: 'CONTACT_SEARCH',
-          );
-
-          for (final doc in emailQuery.docs) {
-            final data = doc.data();
-            final mp = <String, dynamic>{'id': doc.id};
-            mp.addAll(data);
-            final user = UserProfile.fromMap(mp);
-            if (user.email != null) {
-              logI(
-                'Found user ${user.displayName} with email: ${user.email}',
-                tag: 'CONTACT_SEARCH',
-              );
-              results[user.email!.toLowerCase()] = user;
-            }
-          }
-        }
-      } catch (e) {
-        logE('Error searching users by email: $e', tag: 'CONTACT_SEARCH');
-
-        // Categorize the error to help with debugging
-        final errorStr = e.toString().toLowerCase();
-        if (errorStr.contains('network') ||
-            errorStr.contains('unable to resolve host')) {
-          logW(
-            'Network connectivity issue detected when searching by email',
-            tag: 'CONTACT_SEARCH',
-          );
-        } else if (errorStr.contains('permission')) {
-          logW(
-            'Permission denied when searching by email - check Firestore rules',
-            tag: 'CONTACT_SEARCH',
-          );
-        } else {
-          logW(
-            'Unknown error when searching by email: $e',
-            tag: 'CONTACT_SEARCH',
-          );
-        }
-      }
+    // Throttle concurrency manually by processing in windows
+    const maxConcurrent = 6;
+    for (var i = 0; i < tasks.length; i += maxConcurrent) {
+      final window = tasks.sublist(
+        i,
+        i + maxConcurrent > tasks.length ? tasks.length : i + maxConcurrent,
+      );
+      await Future.wait(window); // wait each window to complete
     }
 
-    logI(
-      'Contact search completed',
-      tag: 'SEARCH',
-      data: {
-        'phones_searched': cleanPhones.length,
-        'emails_searched': cleanEmails.length,
-        'users_found': results.length,
-      },
-    );
+    if (debug) {
+      logI(
+        'Contact search finished phones=${cleanPhones.length} emails=${cleanEmails.length} users_found=${results.length}',
+        tag: 'CONTACT_SEARCH',
+      );
+    } else {
+      logI(
+        'Contact search summary',
+        tag: 'SEARCH',
+        data: {
+          'phones': cleanPhones.length,
+          'emails': cleanEmails.length,
+          'found': results.length,
+        },
+      );
+    }
 
     return results;
   });
+
+  /// Streaming variant: emits partial maps as batches complete so UI can update incrementally.
+  /// Each event contains only the newly discovered users (delta) keyed by phone/email canonical form.
+  Stream<Map<String, UserProfile>> streamUsersByContacts({
+    required List<String> phoneNumbers,
+    required List<String> emails,
+    bool debug = false,
+  }) async* {
+    // Reuse normalization logic similar to findUsersByContacts (duplicated minimally to keep streaming lazy semantics).
+    final cleanPhones = phoneNumbers
+        .map(_normalizePhoneNumber)
+        .whereType<String>()
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toSet()
+        .toList();
+    final cleanEmails = emails
+        .map((e) => e.toLowerCase().trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (cleanPhones.isEmpty && cleanEmails.isEmpty) {
+      if (debug) {
+        logI('streamUsersByContacts empty input', tag: 'CONTACT_SEARCH');
+      }
+      return;
+    }
+
+    const phoneBatchSize = 30;
+    const emailBatchSize = 30;
+    List<List<String>> chunkLists(List<String> src, int size) {
+      final out = <List<String>>[];
+      for (var i = 0; i < src.length; i += size) {
+        out.add(src.sublist(i, i + size > src.length ? src.length : i + size));
+      }
+      return out;
+    }
+
+    final phoneBatches = chunkLists(cleanPhones, phoneBatchSize);
+    final emailBatches = chunkLists(cleanEmails, emailBatchSize);
+    final seenDocIds = <String>{};
+
+    Future<Map<String, UserProfile>> runBatch(
+      List<String> values,
+      String field,
+    ) async {
+      if (values.isEmpty) return {};
+      try {
+        final snap = await _firestore
+            .collection('users')
+            .where(field, whereIn: values)
+            .get();
+        final delta = <String, UserProfile>{};
+        for (final doc in snap.docs) {
+          if (seenDocIds.add(doc.id)) {
+            final data = doc.data();
+            final mp = <String, dynamic>{'id': doc.id}..addAll(data);
+            final user = UserProfile.fromMap(mp);
+            if (user.phoneNumber != null) {
+              delta[user.phoneNumber!] = user;
+            }
+            if (user.email != null) {
+              delta[user.email!.toLowerCase()] = user;
+            }
+          }
+        }
+        if (debug) {
+          logI(
+            'stream batch field=$field in=${values.length} -> delta=${delta.length}',
+            tag: 'CONTACT_SEARCH',
+          );
+        }
+        return delta;
+      } catch (e) {
+        logE('stream batch error field=$field: $e', tag: 'CONTACT_SEARCH');
+        return {};
+      }
+    }
+
+    // Interleave phone then email batches for quicker first hits.
+    final maxLen = phoneBatches.length > emailBatches.length
+        ? phoneBatches.length
+        : emailBatches.length;
+    for (var i = 0; i < maxLen; i++) {
+      if (i < phoneBatches.length) {
+        final delta = await runBatch(phoneBatches[i], 'phone_number');
+        if (delta.isNotEmpty) yield delta;
+      }
+      if (i < emailBatches.length) {
+        final delta = await runBatch(emailBatches[i], 'email');
+        if (delta.isNotEmpty) yield delta;
+      }
+    }
+  }
 
   /// Normalize phone number for database matching
   /// Uses same logic as ContactsService to ensure consistency

@@ -428,49 +428,115 @@ class _ExploreScreenState extends State<ExploreScreen>
       logI('Phone numbers to search: $phoneNumbers', tag: 'CONTACT_DEBUG');
       logI('Emails to search: $emails', tag: 'CONTACT_DEBUG');
 
-      // Procura utilizadores registados que correspondam aos contactos
+      // Feature flag for incremental streaming; can toggle later or via settings / remote config.
+      // Intentionally resolved via helper to avoid analyzer treating alternate branch as dead code.
+      final useIncrementalContactStreaming = _incrementalContactsEnabled();
       Map<String, UserProfile> registeredUsers = {};
-      try {
-        registeredUsers = await _userSearchRepo.findUsersByContacts(
-          phoneNumbers: phoneNumbers,
-          emails: emails,
-        );
 
-        logI(
-          'Users found in database: ${registeredUsers.length}',
-          tag: 'CONTACT_DEBUG',
-        );
-        logI('Registered users map: $registeredUsers', tag: 'CONTACT_DEBUG');
-      } catch (e) {
-        logE('Error searching for registered users: $e', tag: 'CONTACT_DEBUG');
-
-        // If network is failing, try a simpler approach - check if there are any public users at all
+      if (useIncrementalContactStreaming) {
+        logI('Starting incremental contact streaming...', tag: 'CONTACT_DEBUG');
         try {
-          final testQuery = await _userSearchRepo.getPublicUsersPage(limit: 1);
-          if (testQuery.items.isEmpty) {
-            logW(
-              'No public users found in database - this might be expected in a test environment',
-              tag: 'CONTACT_DEBUG',
-            );
-          } else {
-            logI(
-              'Database connection working, but contact search failed. Retrying once...',
-              tag: 'CONTACT_DEBUG',
-            );
-            // Retry once with exponential backoff
-            await Future.delayed(const Duration(seconds: 2));
-            registeredUsers = await _userSearchRepo.findUsersByContacts(
-              phoneNumbers: phoneNumbers,
-              emails: emails,
-            );
-            logI(
-              'Retry successful - found ${registeredUsers.length} registered users',
-              tag: 'CONTACT_DEBUG',
-            );
+          // Build quick lookup maps for contacts to avoid re-normalizing on every delta.
+          final contactPhoneIndex = <String, List<Contact>>{};
+          final contactEmailIndex = <String, List<Contact>>{};
+          for (final c in contactsWithPhones) {
+            for (final p in c.phones) {
+              final norm = _normalizePhoneNumber(p.number);
+              if (norm != null) {
+                contactPhoneIndex.putIfAbsent(norm, () => []).add(c);
+              }
+            }
+            for (final e in c.emails) {
+              final em = e.address.toLowerCase().trim();
+              if (em.isNotEmpty) {
+                contactEmailIndex.putIfAbsent(em, () => []).add(c);
+              }
+            }
           }
-        } catch (retryError) {
-          logE('Retry also failed: $retryError', tag: 'CONTACT_DEBUG');
-          // Continue with empty results - all contacts will be treated as "invite"
+
+          // Mutable working sets while streaming
+          final friends = <Map<String, dynamic>>[];
+          final inviteContacts = contactsWithPhones.toList();
+
+          await for (final delta in _userSearchRepo.streamUsersByContacts(
+            phoneNumbers: phoneNumbers,
+            emails: emails,
+          )) {
+            if (!mounted) break;
+            // Merge delta
+            registeredUsers.addAll(delta);
+            // For each new user, locate matching contacts and promote them to friends list if not already.
+            for (final entry in delta.entries) {
+              final key = entry.key;
+              final profile = entry.value;
+              final relatedContacts = <Contact>[];
+              if (contactPhoneIndex.containsKey(key)) {
+                relatedContacts.addAll(contactPhoneIndex[key]!);
+              }
+              if (contactEmailIndex.containsKey(key)) {
+                relatedContacts.addAll(contactEmailIndex[key]!);
+              }
+              for (final c in relatedContacts) {
+                // If this contact is still in invites, move it.
+                if (inviteContacts.remove(c)) {
+                  friends.add({
+                    'contact': {
+                      'name': c.displayName,
+                      'phone': c.phones.isNotEmpty
+                          ? c.phones.first.number
+                          : null,
+                    },
+                    'user': {
+                      'id': profile.id,
+                      'display_name': profile.displayName,
+                      'email': profile.email,
+                      'phone_number': profile.phoneNumber,
+                      'photo_url': profile.photoUrl,
+                    },
+                    'contact_name': c.displayName,
+                    'contact_phone': c.phones.isNotEmpty
+                        ? c.phones.first.number
+                        : null,
+                  });
+                  logI(
+                    'Incremental friend match: ${c.displayName}',
+                    tag: 'CONTACT_DEBUG',
+                  );
+                }
+              }
+            }
+            // Push partial update to UI.
+            setState(() {
+              _friendsInApp = friends.toList();
+              _contactsToInvite = inviteContacts.toList();
+            });
+          }
+          logI(
+            'Incremental contact streaming complete (found=${registeredUsers.length})',
+            tag: 'CONTACT_DEBUG',
+          );
+        } catch (e) {
+          logE(
+            'Incremental streaming failed, fallback to full lookup: $e',
+            tag: 'CONTACT_DEBUG',
+          );
+          // Fallback to original full fetch path below.
+          registeredUsers = await _userSearchRepo.findUsersByContacts(
+            phoneNumbers: phoneNumbers,
+            emails: emails,
+          );
+        }
+      } else {
+        try {
+          registeredUsers = await _userSearchRepo.findUsersByContacts(
+            phoneNumbers: phoneNumbers,
+            emails: emails,
+          );
+        } catch (e) {
+          logE(
+            'Error searching for registered users: $e',
+            tag: 'CONTACT_DEBUG',
+          );
         }
       }
 
@@ -503,83 +569,72 @@ class _ExploreScreenState extends State<ExploreScreen>
         logI('=== END AAMOR DEBUG ===', tag: 'CONTACT_DEBUG');
       }
 
-      // Separa contactos entre amigos registados e contactos para convidar
-      final friends = <Map<String, dynamic>>[];
-      final inviteContacts = <Contact>[];
+      // Separa contactos entre amigos registados e contactos para convidar (skip if already built by streaming)
+      final alreadyBuilt = useIncrementalContactStreaming;
+      final friends = alreadyBuilt ? _friendsInApp : <Map<String, dynamic>>[];
+      final inviteContacts = alreadyBuilt ? _contactsToInvite : <Contact>[];
 
-      for (final contact in contactsWithPhones) {
-        bool isRegistered = false;
-        UserProfile? matchedUser;
+      if (!alreadyBuilt) {
+        for (final contact in contactsWithPhones) {
+          bool isRegistered = false;
+          UserProfile? matchedUser;
 
-        // Verifica se algum telefone ou email do contacto corresponde a um utilizador registado
-        for (final phone in contact.phones) {
-          final normalizedPhone = _normalizePhoneNumber(phone.number);
-          logI(
-            'Checking contact phone: ${phone.number} -> normalized: $normalizedPhone',
-            tag: 'CONTACT_DEBUG',
-          );
-          logI(
-            'Available registered phones: ${registeredUsers.keys.toList()}',
-            tag: 'CONTACT_DEBUG',
-          );
-
-          if (normalizedPhone != null &&
-              registeredUsers.containsKey(normalizedPhone)) {
-            isRegistered = true;
-            matchedUser = registeredUsers[normalizedPhone];
+          // Verifica se algum telefone do contacto corresponde a um utilizador registado
+          for (final phone in contact.phones) {
+            final normalizedPhone = _normalizePhoneNumber(phone.number);
             logI(
-              'MATCH FOUND! Contact ${contact.displayName} matches user ${matchedUser!.displayName} with phone: $normalizedPhone',
+              'Checking contact phone: ${phone.number} -> normalized: $normalizedPhone',
               tag: 'CONTACT_DEBUG',
             );
-            break;
-          }
-
-          if (isRegistered) break;
-        }
-
-        if (!isRegistered) {
-          for (final email in contact.emails) {
-            final cleanEmail = email.address.toLowerCase().trim();
-            if (registeredUsers.containsKey(cleanEmail)) {
+            if (normalizedPhone != null &&
+                registeredUsers.containsKey(normalizedPhone)) {
               isRegistered = true;
-              matchedUser = registeredUsers[cleanEmail];
+              matchedUser = registeredUsers[normalizedPhone];
+              logI(
+                'MATCH FOUND! Contact ${contact.displayName} matches user ${matchedUser!.displayName} with phone: $normalizedPhone',
+                tag: 'CONTACT_DEBUG',
+              );
               break;
             }
           }
-        }
 
-        if (isRegistered && matchedUser != null) {
-          // Contacto está registado na app - adiciona aos amigos
-          logI(
-            '✅ REGISTERED: ${contact.displayName} -> ${matchedUser.displayName}',
-            tag: 'CONTACT_DEBUG',
-          );
-          friends.add({
-            'contact': {
-              'name': contact.displayName,
-              'phone': contact.phones.isNotEmpty
+          // Se não encontrou por telefone, tenta por email
+          if (!isRegistered) {
+            for (final email in contact.emails) {
+              final cleanEmail = email.address.toLowerCase().trim();
+              if (registeredUsers.containsKey(cleanEmail)) {
+                isRegistered = true;
+                matchedUser = registeredUsers[cleanEmail];
+                break;
+              }
+            }
+          }
+
+          if (isRegistered && matchedUser != null) {
+            // Contacto está registado na app - adiciona aos amigos
+            friends.add({
+              'contact': {
+                'name': contact.displayName,
+                'phone': contact.phones.isNotEmpty
+                    ? contact.phones.first.number
+                    : null,
+              },
+              'user': {
+                'id': matchedUser.id,
+                'display_name': matchedUser.displayName,
+                'email': matchedUser.email,
+                'phone_number': matchedUser.phoneNumber,
+                'photo_url': matchedUser.photoUrl,
+              },
+              'contact_name': contact.displayName,
+              'contact_phone': contact.phones.isNotEmpty
                   ? contact.phones.first.number
                   : null,
-            },
-            'user': {
-              'id': matchedUser.id,
-              'display_name': matchedUser.displayName,
-              'email': matchedUser.email,
-              'phone_number': matchedUser.phoneNumber,
-              'photo_url': matchedUser.photoUrl,
-            },
-            'contact_name': contact.displayName,
-            'contact_phone': contact.phones.isNotEmpty
-                ? contact.phones.first.number
-                : null,
-          });
-        } else {
-          // Contacto não está registado - adiciona aos convites
-          logI(
-            '❌ NOT REGISTERED: ${contact.displayName} - phones: ${contact.phones.map((p) => p.number).join(", ")} - emails: ${contact.emails.map((e) => e.address).join(", ")}',
-            tag: 'CONTACT_DEBUG',
-          );
-          inviteContacts.add(contact);
+            });
+          } else {
+            // Contacto não está registado - adiciona aos convites
+            inviteContacts.add(contact);
+          }
         }
       }
 
@@ -1281,5 +1336,10 @@ class _ExploreScreenState extends State<ExploreScreen>
     }
 
     return cleaned.isEmpty ? null : cleaned;
+  }
+
+  bool _incrementalContactsEnabled() {
+    // Future: wire to user settings / remote config. Returning true enables streaming path.
+    return true;
   }
 }

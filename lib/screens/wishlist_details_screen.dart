@@ -177,8 +177,9 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
   Future<void> _loadMoreData() async {
     if (_isLoading || !_hasMoreData) return;
     final now = DateTime.now();
-    if (now.difference(_lastScrollRequest).inMilliseconds < 150)
-      return; // throttle
+    if (now.difference(_lastScrollRequest).inMilliseconds < 150) {
+      return; // throttle (throttled rapid scroll events)
+    }
     _lastScrollRequest = now;
 
     setState(() {
@@ -248,8 +249,10 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
 
   void _scheduleFirstImagePrecache(List<WishItem> newItems) {
     if (!mounted) return;
-    if (_items.length != newItems.length || newItems.isEmpty)
-      return; // apenas primeira página
+    if (_items.length != newItems.length || newItems.isEmpty) {
+      // apenas primeira página
+      return;
+    }
     final firstWithImage = newItems.firstWhere(
       (w) => w.imageUrl != null && w.imageUrl!.isNotEmpty,
       orElse: () => newItems.first,
@@ -700,17 +703,20 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
   }
 
   Future<void> _openItemLink(WishItem item) async {
-    if (item.link == null || item.link!.isEmpty) return;
+    if (item.link == null || item.link!.isEmpty) {
+      return; // nothing to open
+    }
     final raw = item.link!.trim();
     final sanitized = ValidationUtils.sanitizeUrlForSave(raw);
     final uri = Uri.tryParse(sanitized);
     if (uri == null) {
-      if (mounted)
+      if (mounted) {
         _showSnackBar(
           AppLocalizations.of(context)?.couldNotOpenLink ??
               'Não foi possível abrir o link',
           isError: true,
         );
+      }
       return;
     }
     try {
