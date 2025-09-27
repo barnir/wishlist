@@ -1037,11 +1037,31 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
     return Colors.orange;
   }
 
+  /// Get current user's status for a specific item
+  WishItemStatus? _getCurrentUserStatus(String itemId) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return null;
+
+    final itemStatuses = _itemStatuses[itemId];
+    if (itemStatuses == null) return null;
+
+    try {
+      return itemStatuses.firstWhere(
+        (status) => status.userId == currentUserId,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   void _showPurchaseStatusDialog(WishItem item) {
     // Don't allow owners to mark their own items
     if (_isOwner) {
       return;
     }
+
+    // Get current user's status for this item
+    final currentStatus = _getCurrentUserStatus(item.id);
 
     // Show the purchase status dialog
     showDialog(
@@ -1049,6 +1069,7 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
       builder: (context) => ItemStatusDialog(
         wishItemId: item.id,
         itemName: item.name,
+        currentStatus: currentStatus,
         isOwner: _isOwner,
       ),
     ).then((result) {

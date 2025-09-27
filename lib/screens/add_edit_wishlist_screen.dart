@@ -57,7 +57,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
         final currentUserId = _authService.currentUser?.uid;
         if (currentUserId == null || wishlist.ownerId != currentUserId) {
           _showError('Não tens permissão para editar esta wishlist');
-          Navigator.of(context).pop();
+          if (mounted) Navigator.of(context).pop();
           return;
         }
 

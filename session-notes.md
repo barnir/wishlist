@@ -49,6 +49,48 @@ Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no n
 - **Carregamento de status**: _loadPurchaseStatuses() carrega status de todos os items da wishlist
 - **Indicadores visuais**: Badges mostrando "Reservado", "Comprado", "X reservados", "X comprados"
 
+### 🔔 NOVA FUNCIONALIDADE: SISTEMA DE LEMBRETES DE COMPRA 7 DIAS
+#### Funcionalidade Implementada
+- **Lembretes automáticos**: Quando usuário marca item como "vou comprar", sistema agenda lembretes para 6º e 7º dias
+- **Notificações push**: Usa FCM para enviar notificações aos dispositivos dos usuários
+- **Limpeza automática**: Após 7 dias, status "vou comprar" é removido automaticamente se não foi atualizado para "comprado"
+- **Memória de status**: Diálogo agora lembra status previamente selecionado pelo usuário
+
+#### Componentes Implementados
+1. **PurchaseReminderService** (`lib/services/purchase_reminder_service.dart`)
+   - Agendamento automático de lembretes ao marcar "vou comprar"
+   - Cancelamento de lembretes ao atualizar status
+   - Processamento de lembretes expirados
+   - Integração com Firestore e FCM
+
+2. **Integração com WishItemStatusService**
+   - `setItemStatus()` automaticamente agenda lembretes para "will_buy"
+   - `removeItemStatus()` cancela lembretes pendentes
+   - Status memory fix: diálogo lembra seleção anterior
+
+3. **Cloud Functions Automáticas** (`functions/src/index.ts`)
+   - `processPurchaseReminders`: Executa a cada hora, envia notificações nos dias 6 e 7
+   - `cleanupExpiredReminders`: Executa diariamente, remove status expirados após 7 dias
+   - `processNotificationQueue`: Executa a cada 5 minutos, processa fila de notificações FCM
+
+4. **Estrutura Firestore**
+   - Collection `purchase_reminders`: Armazena lembretes agendados com datas de envio
+   - Collection `notifications_queue`: Fila de notificações para processamento assíncrono
+   - Campos de controle: status, datas de envio, expiração
+
+#### Fluxo Completo
+1. Usuário marca item como "vou comprar"
+2. Sistema cria reminder no Firestore com datas calculadas (6º e 7º dias)
+3. Cloud Functions monitoram lembretes e enviam notificações via FCM
+4. Após 7 dias, se não atualizado, status é removido automaticamente
+5. Notificação de expiração é enviada ao usuário
+
+#### Testes e Validação
+- ✅ Cloud Functions compilam sem erros
+- ✅ Flutter analyze: 0 issues
+- ✅ Unit tests: 24/24 passando
+- ✅ Integração completa entre serviços
+
 ### 🔒 CORREÇÕES CRÍTICAS DE SEGURANÇA - VALIDAÇÃO DE PROPRIEDADE
 **PROBLEMA IDENTIFICADO**: Usuários podiam editar wishlists e itens de outros usuários através de navegação direta
 

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/wish_item_status.dart';
+import 'purchase_reminder_service.dart';
 
 /// Serviço para gerenciar o status de compra dos itens da wishlist usando Firebase
 ///
@@ -105,7 +106,15 @@ class WishItemStatusService {
 
       debugPrint('✅ Item status set successfully');
 
-      return WishItemStatus(
+      // Gerir lembretes de compra
+      final reminderService = PurchaseReminderService();
+      await reminderService.updateReminderStatus(
+        wishItemId: wishItemId,
+        userId: currentUserId!,
+        newStatus: status,
+      );
+
+      final wishItemStatus = WishItemStatus(
         id: result['id'],
         wishItemId: result['wish_item_id'],
         userId: result['user_id'],
@@ -115,6 +124,8 @@ class WishItemStatusService {
         createdAt: createdAt,
         updatedAt: updatedAt,
       );
+
+      return wishItemStatus;
     } catch (e) {
       debugPrint('❌ Error setting item status: $e');
       rethrow;
@@ -270,6 +281,15 @@ class WishItemStatusService {
 
       if (querySnapshot.docs.isNotEmpty) {
         await querySnapshot.docs.first.reference.delete();
+
+        // Cancelar lembretes quando status é removido
+        final reminderService = PurchaseReminderService();
+        await reminderService.cancelReminders(
+          wishItemId: wishItemId,
+          userId: currentUserId!,
+          reason: 'status_removed',
+        );
+
         debugPrint('✅ Item status removed successfully');
       }
     } catch (e) {
