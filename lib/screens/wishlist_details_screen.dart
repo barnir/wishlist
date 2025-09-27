@@ -402,19 +402,21 @@ class _WishlistDetailsScreenState extends State<WishlistDetailsScreen>
               tooltip: _layoutMode.tooltip,
               onPressed: _toggleLayoutMode,
             ),
-            AccessibleIconButton(
-              icon: Icons.edit,
-              semanticLabel:
-                  '${AppLocalizations.of(context)?.edit ?? 'Editar'} wishlist',
-              tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/add_edit_wishlist',
-                  arguments: widget.wishlistId,
-                ).then((_) => _loadWishlistDetails());
-              },
-            ),
+            // SECURITY: Only show edit button to owner
+            if (_isOwner)
+              AccessibleIconButton(
+                icon: Icons.edit,
+                semanticLabel:
+                    '${AppLocalizations.of(context)?.edit ?? 'Editar'} wishlist',
+                tooltip: AppLocalizations.of(context)?.edit ?? 'Editar',
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/add_edit_wishlist',
+                    arguments: widget.wishlistId,
+                  ).then((_) => _loadWishlistDetails());
+                },
+              ),
           ],
         ),
         body: Column(

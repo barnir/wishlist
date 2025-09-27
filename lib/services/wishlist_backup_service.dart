@@ -38,10 +38,7 @@ class WishlistImportSummary {
 }
 
 class WishlistBackupPayloadEntry {
-  WishlistBackupPayloadEntry({
-    required this.wishlist,
-    required this.items,
-  });
+  WishlistBackupPayloadEntry({required this.wishlist, required this.items});
 
   final Wishlist wishlist;
   final List<WishItem> items;
@@ -63,7 +60,9 @@ class WishlistBackupPayloadEntry {
   }
 
   static WishlistBackupPayloadEntry fromJson(Map<String, dynamic> json) {
-    final wishlistJson = Map<String, dynamic>.from(json['wishlist'] as Map<String, dynamic>);
+    final wishlistJson = Map<String, dynamic>.from(
+      json['wishlist'] as Map<String, dynamic>,
+    );
     final itemsJson = (json['items'] as List<dynamic>? ?? [])
         .map((item) => Map<String, dynamic>.from(item as Map<String, dynamic>))
         .toList();
@@ -87,18 +86,22 @@ class WishlistBackupPayload {
   final List<WishlistBackupPayloadEntry> entries;
 
   Map<String, dynamic> toJson() => {
-        'version': version,
-        'generatedAt': generatedAt.toIso8601String(),
-        'wishlists': entries.map((entry) => entry.toJson()).toList(),
-      };
+    'version': version,
+    'generatedAt': generatedAt.toIso8601String(),
+    'wishlists': entries.map((entry) => entry.toJson()).toList(),
+  };
 
   static WishlistBackupPayload fromJson(Map<String, dynamic> json) {
     final version = json['version'] as int? ?? 1;
-    final generatedAt = DateTime.tryParse(json['generatedAt'] as String? ?? '') ?? DateTime.now();
+    final generatedAt =
+        DateTime.tryParse(json['generatedAt'] as String? ?? '') ??
+        DateTime.now();
     final wishlists = (json['wishlists'] as List<dynamic>? ?? [])
-        .map((raw) => WishlistBackupPayloadEntry.fromJson(
-              Map<String, dynamic>.from(raw as Map<String, dynamic>),
-            ))
+        .map(
+          (raw) => WishlistBackupPayloadEntry.fromJson(
+            Map<String, dynamic>.from(raw as Map<String, dynamic>),
+          ),
+        )
         .toList(growable: false);
 
     return WishlistBackupPayload(
@@ -114,9 +117,9 @@ class WishlistBackupService {
     WishlistRepository? wishlistRepository,
     WishItemRepository? wishItemRepository,
     AuthService? authService,
-  })  : _wishlistRepository = wishlistRepository ?? WishlistRepository(),
-        _wishItemRepository = wishItemRepository ?? WishItemRepository(),
-        _authService = authService ?? AuthService();
+  }) : _wishlistRepository = wishlistRepository ?? WishlistRepository(),
+       _wishItemRepository = wishItemRepository ?? WishItemRepository(),
+       _authService = authService ?? AuthService();
 
   final WishlistRepository _wishlistRepository;
   final WishItemRepository _wishItemRepository;
@@ -125,7 +128,10 @@ class WishlistBackupService {
   Future<WishlistExportResult?> exportToFile() async {
     final userId = _authService.currentUser?.uid;
     if (userId == null) {
-      appLog('Cannot export wishlists without authenticated user', tag: 'BACKUP');
+      appLog(
+        'Cannot export wishlists without authenticated user',
+        tag: 'BACKUP',
+      );
       return null;
     }
 
@@ -136,12 +142,7 @@ class WishlistBackupService {
     for (final wishlist in wishlists) {
       final items = await _wishItemRepository.fetchAllForWishlist(wishlist.id);
       totalItems += items.length;
-      entries.add(
-        WishlistBackupPayloadEntry(
-          wishlist: wishlist,
-          items: items,
-        ),
-      );
+      entries.add(WishlistBackupPayloadEntry(wishlist: wishlist, items: items));
     }
 
     final payload = WishlistBackupPayload(
@@ -150,18 +151,25 @@ class WishlistBackupService {
     );
 
     final dir = await getTemporaryDirectory();
-    final sanitizedStamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+    final sanitizedStamp = DateTime.now().toIso8601String().replaceAll(
+      ':',
+      '-',
+    );
     final file = File('${dir.path}/wishlists-export-$sanitizedStamp.json');
     await file.writeAsString(
       const JsonEncoder.withIndent('  ').convert(payload.toJson()),
       flush: true,
     );
 
-    appLog('Wishlists exported', tag: 'BACKUP', data: {
-      'wishlists': wishlists.length,
-      'items': totalItems,
-      'path': file.path,
-    });
+    appLog(
+      'Wishlists exported',
+      tag: 'BACKUP',
+      data: {
+        'wishlists': wishlists.length,
+        'items': totalItems,
+        'path': file.path,
+      },
+    );
 
     return WishlistExportResult(
       file: file,
@@ -220,18 +228,23 @@ class WishlistBackupService {
 
           // Post-import enrichment: if item has link but no image, fetch metadata/image asynchronously
           final hasLink = (item.link != null && item.link!.trim().isNotEmpty);
-          final hasImage = (item.imageUrl != null && item.imageUrl!.trim().isNotEmpty);
+          final hasImage =
+              (item.imageUrl != null && item.imageUrl!.trim().isNotEmpty);
           if (hasLink && !hasImage) {
-            _scheduleItemEnrichment(createdItemId, item);
+            _scheduleItemEnrichment(createdItemId, item, userId);
           }
         }
       }
 
-      appLog('Wishlist import finished', tag: 'BACKUP', data: {
-        'wishlists': wishlistsCreated,
-        'items': itemsCreated,
-        'errors': errors.length,
-      });
+      appLog(
+        'Wishlist import finished',
+        tag: 'BACKUP',
+        data: {
+          'wishlists': wishlistsCreated,
+          'items': itemsCreated,
+          'errors': errors.length,
+        },
+      );
 
       return WishlistImportSummary(
         wishlistsCreated: wishlistsCreated,
@@ -254,7 +267,11 @@ class WishlistBackupService {
   }
 
   // Schedules enrichment for an imported item and updates its document with results (image/price/link/status).
-  void _scheduleItemEnrichment(String newItemId, WishItem importedItem) {
+  void _scheduleItemEnrichment(
+    String newItemId,
+    WishItem importedItem,
+    String userId,
+  ) {
     try {
       final link = importedItem.link;
       if (link == null || link.trim().isEmpty) return;
@@ -263,9 +280,12 @@ class WishlistBackupService {
         try {
           final svc = ShareEnrichmentService();
           final res = await svc.processSharedText(link);
-          final data = await res.enrichmentFuture; // may be null if parsing failed
+          final data =
+              await res.enrichmentFuture; // may be null if parsing failed
           if (data == null) {
-            await _wishItemRepository.update(newItemId, {'enrich_status': 'failed'});
+            await _wishItemRepository.update(newItemId, {
+              'enrich_status': 'failed',
+            }, currentUserId: userId);
             return;
           }
 
@@ -281,12 +301,15 @@ class WishlistBackupService {
             var finalImageUrl = image;
             if (!_isCloudinaryUrl(image)) {
               try {
-                final mirror = await FirebaseFunctionsService().mirrorToCloudinary(
-                  url: image,
-                  folder: 'wishlist/products',
-                  publicIdHint: 'import_$newItemId',
-                );
-                final secureUrl = (mirror['secure_url'] ?? '').toString().trim();
+                final mirror = await FirebaseFunctionsService()
+                    .mirrorToCloudinary(
+                      url: image,
+                      folder: 'wishlist/products',
+                      publicIdHint: 'import_$newItemId',
+                    );
+                final secureUrl = (mirror['secure_url'] ?? '')
+                    .toString()
+                    .trim();
                 if (secureUrl.isNotEmpty) {
                   finalImageUrl = secureUrl;
                 }
@@ -320,20 +343,40 @@ class WishlistBackupService {
             update['enrich_status'] = enriched ? 'enriched' : 'failed';
           }
 
-          final ok = await _wishItemRepository.update(newItemId, update);
+          final ok = await _wishItemRepository.update(
+            newItemId,
+            update,
+            currentUserId: userId,
+          );
           if (!ok) {
-            appLog('Post-import enrichment update failed', tag: 'BACKUP', data: {'itemId': newItemId});
+            appLog(
+              'Post-import enrichment update failed',
+              tag: 'BACKUP',
+              data: {'itemId': newItemId},
+            );
           }
         } catch (e, st) {
-          logE('Post-import enrichment error', tag: 'BACKUP', error: e, stackTrace: st, data: {'itemId': newItemId});
+          logE(
+            'Post-import enrichment error',
+            tag: 'BACKUP',
+            error: e,
+            stackTrace: st,
+            data: {'itemId': newItemId},
+          );
           try {
-            await _wishItemRepository.update(newItemId, {'enrich_status': 'failed'});
+            await _wishItemRepository.update(newItemId, {
+              'enrich_status': 'failed',
+            }, currentUserId: userId);
           } catch (_) {}
         }
       });
     } catch (e) {
       // non-fatal; import should succeed regardless
-      appLog('Failed to schedule enrichment', tag: 'BACKUP', data: {'itemId': newItemId, 'err': e.toString()});
+      appLog(
+        'Failed to schedule enrichment',
+        tag: 'BACKUP',
+        data: {'itemId': newItemId, 'err': e.toString()},
+      );
     }
   }
 
@@ -341,7 +384,10 @@ class WishlistBackupService {
     if (v == null) return null;
     if (v is num) return v.toDouble();
     if (v is String) {
-      final s = v.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll('.', '').replaceAll(',', '.');
+      final s = v
+          .replaceAll(RegExp(r'[^0-9.,-]'), '')
+          .replaceAll('.', '')
+          .replaceAll(',', '.');
       return double.tryParse(s);
     }
     return null;

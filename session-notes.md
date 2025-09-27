@@ -48,6 +48,30 @@ Snapshot conciso para continuidade. Histórico detalhado vive nos commits e no n
 - **Tap handlers atualizados**: Proprietários editam itens, não-proprietários marcam status de compra
 - **Carregamento de status**: _loadPurchaseStatuses() carrega status de todos os items da wishlist
 - **Indicadores visuais**: Badges mostrando "Reservado", "Comprado", "X reservados", "X comprados"
+
+### 🔒 CORREÇÕES CRÍTICAS DE SEGURANÇA - VALIDAÇÃO DE PROPRIEDADE
+**PROBLEMA IDENTIFICADO**: Usuários podiam editar wishlists e itens de outros usuários através de navegação direta
+
+#### Correções na Interface (Client-Side)
+- **add_edit_wishlist_screen.dart**: Adicionada validação de ownership em `_loadWishlistData()` - impede carregamento para edição se user não for proprietário
+- **add_edit_item_screen.dart**: Adicionada validação de ownership em `_loadItemData()` e `_saveItem()` - impede edição de itens de wishlists que não pertencem ao usuário
+- **wishlist_details_screen.dart**: Botão de editar wishlist agora é condicional ao `_isOwner` (antes mostrava sempre)
+- **user_profile_screen.dart**: Verificado - apenas navega para telas de visualização, sem problemas de segurança
+
+#### Correções no Backend (Repository-Level)
+- **WishlistRepository.update()**: Agora requer `currentUserId` e valida ownership antes de permitir updates
+- **WishItemRepository.update()**: Agora requer `currentUserId` e valida ownership da wishlist pai antes de permitir updates de itens
+- **WishlistBackupService**: Atualizadas todas as chamadas de update para incluir userId para validação
+
+#### Validações Implementadas
+- **Ownership validation**: Verifica se `current_user.uid == wishlist.owner_id` antes de qualquer operação de edição
+- **Security logging**: Logs de segurança quando tentativas não autorizadas são detectadas
+- **Graceful failures**: Operações falhadas retornam false/null ao invés de lançar exceções
+
+#### Resultado dos Testes
+- **Analyzer**: 0 issues encontrados
+- **Unit tests**: 24 testes passando
+- **Validação**: Users não conseguem mais editar conteúdo de outros usuários
 - **Cores dinâmicas**: Verde para comprado, laranja para reservado
 - **Atualização automática**: Lista atualiza após marcar status no diálogo
 

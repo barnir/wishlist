@@ -37,7 +37,8 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   bool _isUploading = false;
   Uint8List? _imageBytes; // raw bytes for newly picked image
   String? _existingImageUrl; // Added to store original image URL
-  String? _localPreviewPath; // local file path for immediate preview (new selection)
+  String?
+  _localPreviewPath; // local file path for immediate preview (new selection)
 
   @override
   void initState() {
@@ -52,6 +53,14 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
     try {
       final wishlist = await _wishlistRepo.fetchById(widget.wishlistId!);
       if (wishlist != null) {
+        // SECURITY: Only allow owner to edit wishlist
+        final currentUserId = _authService.currentUser?.uid;
+        if (currentUserId == null || wishlist.ownerId != currentUserId) {
+          _showError('Não tens permissão para editar esta wishlist');
+          Navigator.of(context).pop();
+          return;
+        }
+
         setState(() {
           _nameController.text = wishlist.name;
           _isPrivate = wishlist.isPrivate;
@@ -124,13 +133,19 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
               newId,
               oldImageUrl: null,
             );
-            await _wishlistRepo.update(newId, {'image_url': uploadedImageUrl});
+            await _wishlistRepo.update(newId, {
+              'image_url': uploadedImageUrl,
+            }, currentUserId: ownerId);
             _existingImageUrl = uploadedImageUrl;
             if (uploadedImageUrl != null) {
               await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
-              MonitoringService.logImageUploadSuccess('wishlist', id: newId, bytes: _imageBytes?.length);
+              MonitoringService.logImageUploadSuccess(
+                'wishlist',
+                id: newId,
+                bytes: _imageBytes?.length,
+              );
             }
-                    } catch (e) {
+          } catch (e) {
             MonitoringService.logImageUploadFail('wishlist', e, id: newId);
             _showError('Imagem criada mas falhou upload: $e');
           }
@@ -141,25 +156,33 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
 
         if (tempFileForUpload != null) {
           // New image selected -> upload first to get secure URL
-            try {
-              uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(
-                tempFileForUpload, 
-                id,
-                oldImageUrl: _existingImageUrl, // Pass existing image for cleanup
-              );
-              _existingImageUrl = uploadedImageUrl;
-              MonitoringService.logImageUploadSuccess('wishlist', id: id, bytes: _imageBytes?.length);
-                        } catch (e) {
-              MonitoringService.logImageUploadFail('wishlist', e, id: id);
-              _showError('Falha upload imagem: $e');
-            }
+          try {
+            uploadedImageUrl = await _cloudinaryService.uploadWishlistImage(
+              tempFileForUpload,
+              id,
+              oldImageUrl: _existingImageUrl, // Pass existing image for cleanup
+            );
+            _existingImageUrl = uploadedImageUrl;
+            MonitoringService.logImageUploadSuccess(
+              'wishlist',
+              id: id,
+              bytes: _imageBytes?.length,
+            );
+          } catch (e) {
+            MonitoringService.logImageUploadFail('wishlist', e, id: id);
+            _showError('Falha upload imagem: $e');
+          }
         }
+
+        final currentUserId = _authService.currentUser?.uid;
+        if (currentUserId == null)
+          throw Exception('Utilizador não autenticado');
 
         await _wishlistRepo.update(id, {
           'name': ValidationUtils.sanitizeTextInput(_nameController.text),
           'is_private': _isPrivate,
           'image_url': uploadedImageUrl ?? _existingImageUrl,
-        });
+        }, currentUserId: currentUserId);
 
         if (uploadedImageUrl != null) {
           await ImageCacheService.putFile(uploadedImageUrl, _imageBytes!);
@@ -179,11 +202,7 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   }
 
   void _showError(String message) {
-    AppSnack.show(
-      context,
-      message,
-      type: SnackType.error,
-    );
+    AppSnack.show(context, message, type: SnackType.error);
   }
 
   @override
@@ -195,13 +214,15 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  appBar: WishlistAppBar(
-    title: widget.wishlistId == null
-    ? (AppLocalizations.of(context)?.createWishlistTitle ?? 'Criar Wishlist')
-    : (AppLocalizations.of(context)?.editWishlistTitle ?? 'Editar Wishlist'),
-  ),
-    body: _isLoading && widget.wishlistId != null
-      ? const Center(child: LoadingMessage(messageKey: 'loadingWishlist'))
+      appBar: WishlistAppBar(
+        title: widget.wishlistId == null
+            ? (AppLocalizations.of(context)?.createWishlistTitle ??
+                  'Criar Wishlist')
+            : (AppLocalizations.of(context)?.editWishlistTitle ??
+                  'Editar Wishlist'),
+      ),
+      body: _isLoading && widget.wishlistId != null
+          ? const Center(child: LoadingMessage(messageKey: 'loadingWishlist'))
           : SingleChildScrollView(
               padding: UIConstants.paddingM,
               child: Form(
@@ -211,28 +232,30 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                   children: [
                     // Header section
                     Text(
-                      AppLocalizations.of(context)?.wishlistDetailsSection ?? 'Detalhes da Wishlist',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      AppLocalizations.of(context)?.wishlistDetailsSection ??
+                          'Detalhes da Wishlist',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    
+
                     Spacing.m,
-                    
+
                     // Image picker section - modernizado
                     Center(
                       child: WishlistCard(
                         child: Column(
                           children: [
                             Text(
-                              AppLocalizations.of(context)?.wishlistImageSection ?? 'Imagem da Wishlist',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                              AppLocalizations.of(
+                                    context,
+                                  )?.wishlistImageSection ??
+                                  'Imagem da Wishlist',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
                             ),
-                            
+
                             Spacing.m,
-                            
+
                             SelectableImagePreview(
                               existingUrl: _existingImageUrl,
                               localPreviewPath: _localPreviewPath,
@@ -245,37 +268,50 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                               fallbackIcon: Icon(
                                 Icons.add_photo_alternate,
                                 size: UIConstants.iconSizeXL,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            
+
                             Spacing.s,
-                            
+
                             Text(
-                              AppLocalizations.of(context)?.recommendedImageSize ?? 'Recomendado: 400x400px ou superior',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontStyle: FontStyle.italic,
-                              ),
+                              AppLocalizations.of(
+                                    context,
+                                  )?.recommendedImageSize ??
+                                  'Recomendado: 400x400px ou superior',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    
+
                     Spacing.l,
-                    
+
                     // Form fields section
                     WishlistTextField(
-                      label: AppLocalizations.of(context)?.wishlistNameLabel ?? 'Nome da Wishlist',
-                      hint: AppLocalizations.of(context)?.wishlistNameHint ?? 'Digite o nome da sua wishlist',
+                      label:
+                          AppLocalizations.of(context)?.wishlistNameLabel ??
+                          'Nome da Wishlist',
+                      hint:
+                          AppLocalizations.of(context)?.wishlistNameHint ??
+                          'Digite o nome da sua wishlist',
                       controller: _nameController,
                       prefixIcon: const Icon(Icons.card_giftcard),
-                      validator: (value) => ValidationUtils.validateWishlistName(value, context),
+                      validator: (value) =>
+                          ValidationUtils.validateWishlistName(value, context),
                     ),
-                    
+
                     Spacing.l,
-                    
+
                     // Privacy settings
                     WishlistCard(
                       child: Column(
@@ -290,28 +326,40 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                               ),
                               Spacing.horizontalS,
                               Text(
-                                AppLocalizations.of(context)?.privacySectionTitle ?? 'Privacidade',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                AppLocalizations.of(
+                                      context,
+                                    )?.privacySectionTitle ??
+                                    'Privacidade',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
-                          
+
                           Spacing.s,
-                          
+
                           SwitchListTile(
                             title: Text(
-                              AppLocalizations.of(context)?.privateWishlist ?? 'Wishlist Privada',
+                              AppLocalizations.of(context)?.privateWishlist ??
+                                  'Wishlist Privada',
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
                             subtitle: Text(
                               _isPrivate
-                                  ? (AppLocalizations.of(context)?.privateWishlistSubtitle ?? 'Apenas tu podes ver esta wishlist')
-                                  : (AppLocalizations.of(context)?.publicWishlistSubtitle ?? 'Outros utilizadores podem ver esta wishlist'),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                                  ? (AppLocalizations.of(
+                                          context,
+                                        )?.privateWishlistSubtitle ??
+                                        'Apenas tu podes ver esta wishlist')
+                                  : (AppLocalizations.of(
+                                          context,
+                                        )?.publicWishlistSubtitle ??
+                                        'Outros utilizadores podem ver esta wishlist'),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                             value: _isPrivate,
                             onChanged: (newValue) {
@@ -320,29 +368,35 @@ class _AddEditWishlistScreenState extends State<AddEditWishlistScreen> {
                             },
                             secondary: Icon(
                               _isPrivate ? Icons.lock : Icons.public,
-                              color: _isPrivate 
-                                ? Theme.of(context).colorScheme.error
-                                : Theme.of(context).colorScheme.primary,
+                              color: _isPrivate
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.primary,
                             ),
                             contentPadding: EdgeInsets.zero,
                           ),
                         ],
                       ),
                     ),
-                    
+
                     Spacing.xl,
-                    
+
                     // Save button
                     WishlistButton(
                       text: widget.wishlistId == null
-                          ? (AppLocalizations.of(context)?.createWishlistTitle ?? 'Criar Wishlist')
-                          : (AppLocalizations.of(context)?.saveChanges ?? 'Guardar Alterações'),
-                      onPressed: _isLoading || _isUploading ? null : _saveWishlist,
+                          ? (AppLocalizations.of(
+                                  context,
+                                )?.createWishlistTitle ??
+                                'Criar Wishlist')
+                          : (AppLocalizations.of(context)?.saveChanges ??
+                                'Guardar Alterações'),
+                      onPressed: _isLoading || _isUploading
+                          ? null
+                          : _saveWishlist,
                       isLoading: _isLoading || _isUploading,
                       icon: widget.wishlistId == null ? Icons.add : Icons.save,
                       width: double.infinity,
                     ),
-                    
+
                     Spacing.l,
                   ],
                 ),

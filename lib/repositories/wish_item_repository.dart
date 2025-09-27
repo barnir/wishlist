@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' hide Category; // Avoid clash with our domain Category
+import 'package:flutter/foundation.dart'
+    hide Category; // Avoid clash with our domain Category
 import 'package:mywishstash/models/wish_item.dart';
 import 'package:mywishstash/models/category.dart';
 import 'package:mywishstash/models/sort_options.dart';
@@ -9,7 +10,8 @@ import 'package:mywishstash/utils/app_logger.dart';
 /// Repository providing typed access to wish items with cursor pagination.
 class WishItemRepository {
   final FirebaseFirestore _firestore;
-  WishItemRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+  WishItemRepository({FirebaseFirestore? firestore})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Executa até três tentativas hierárquicas capturando FirebaseException code=failed-precondition.
   /// Usado para fallback de índices (composite → single → simple). Testável isoladamente.
@@ -42,14 +44,20 @@ class WishItemRepository {
       final r = await fn();
       return r;
     } catch (e, st) {
-  logE('WishItemRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);
+      logE(
+        'WishItemRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}',
+        tag: 'DB',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
 
   /// Fetch a page of items for a wishlist using cursor pagination.
 
-  Future<List<WishItem>> fetchAllForWishlist(String wishlistId) async => _withLatency('fetchAllForWishlist', () async {
+  Future<List<WishItem>> fetchAllForWishlist(String wishlistId) async =>
+      _withLatency('fetchAllForWishlist', () async {
         try {
           final snapshot = await _firestore
               .collection('wish_items')
@@ -60,7 +68,13 @@ class WishItemRepository {
               .map((d) => WishItem.fromMap({'id': d.id, ...d.data()}))
               .toList(growable: false);
         } catch (e, st) {
-          logE('WishItem fetchAllForWishlist error', tag: 'DB', error: e, stackTrace: st, data: {'wishlistId': wishlistId});
+          logE(
+            'WishItem fetchAllForWishlist error',
+            tag: 'DB',
+            error: e,
+            stackTrace: st,
+            data: {'wishlistId': wishlistId},
+          );
           return <WishItem>[];
         }
       });
@@ -73,9 +87,11 @@ class WishItemRepository {
     DocumentSnapshot? startAfter,
   }) async => _withLatency('fetchPage', () async {
     try {
-      var baseQuery = _firestore.collection('wish_items').where('wishlist_id', isEqualTo: wishlistId);
+      var baseQuery = _firestore
+          .collection('wish_items')
+          .where('wishlist_id', isEqualTo: wishlistId);
 
-  // Legacy support: if first page & no startAfter we will later optionally try 'wishlistId' field name.
+      // Legacy support: if first page & no startAfter we will later optionally try 'wishlistId' field name.
 
       if (category != null && category.isNotEmpty) {
         // Expand to possible legacy stored variants (alias vs new label)
@@ -84,7 +100,10 @@ class WishItemRepository {
           baseQuery = baseQuery.where('category', isEqualTo: candidates.first);
         } else if (candidates.isNotEmpty) {
           // Firestore whereIn max 10; our list is tiny (<=3)
-          baseQuery = baseQuery.where('category', whereIn: candidates.take(10).toList());
+          baseQuery = baseQuery.where(
+            'category',
+            whereIn: candidates.take(10).toList(),
+          );
         }
       }
 
@@ -94,44 +113,65 @@ class WishItemRepository {
       if (sortOptions != null) {
         switch (sortOptions) {
           case SortOptions.nameAsc:
-            orderField = 'name'; descending = false; break;
+            orderField = 'name';
+            descending = false;
+            break;
           case SortOptions.nameDesc:
-            orderField = 'name'; descending = true; break;
+            orderField = 'name';
+            descending = true;
+            break;
           case SortOptions.priceAsc:
-            orderField = 'price'; descending = false; break;
+            orderField = 'price';
+            descending = false;
+            break;
           case SortOptions.priceDesc:
-            orderField = 'price'; descending = true; break;
+            orderField = 'price';
+            descending = true;
+            break;
         }
       }
 
-      Query queryWithOrdering = baseQuery.orderBy(orderField, descending: descending).orderBy('created_at', descending: true);
+      Query queryWithOrdering = baseQuery
+          .orderBy(orderField, descending: descending)
+          .orderBy('created_at', descending: true);
       if (startAfter != null) {
         queryWithOrdering = queryWithOrdering.startAfterDocument(startAfter);
       }
 
-  final QuerySnapshot snap = await WishItemRepository.runWithFirestoreFallback<QuerySnapshot>(
+      final QuerySnapshot
+      snap = await WishItemRepository.runWithFirestoreFallback<QuerySnapshot>(
         primary: () => queryWithOrdering.limit(limit).get(),
         firstFallback: () async {
-          logW('Missing Firestore composite index for wish_items. Falling back to single order.',
-              tag: 'DB',
-              data: {
-                'wishlistId': wishlistId,
-                'orderField': orderField,
-                'categoryFilter': category,
-                'hint': 'Add composite index: wishlist_id + category(optional) orderBy $orderField & created_at'
-              });
-          var fallbackQuery = baseQuery.orderBy(orderField, descending: descending);
-            if (startAfter != null) {
-              fallbackQuery = fallbackQuery.startAfterDocument(startAfter);
-            }
+          logW(
+            'Missing Firestore composite index for wish_items. Falling back to single order.',
+            tag: 'DB',
+            data: {
+              'wishlistId': wishlistId,
+              'orderField': orderField,
+              'categoryFilter': category,
+              'hint':
+                  'Add composite index: wishlist_id + category(optional) orderBy $orderField & created_at',
+            },
+          );
+          var fallbackQuery = baseQuery.orderBy(
+            orderField,
+            descending: descending,
+          );
+          if (startAfter != null) {
+            fallbackQuery = fallbackQuery.startAfterDocument(startAfter);
+          }
           return fallbackQuery.limit(limit).get();
         },
         secondFallback: () async {
-          logW('Second-level index fallback (no orderBy) engaged', tag: 'DB', data: {
-            'wishlistId': wishlistId,
-            'orderField': orderField,
-            'categoryFilter': category,
-          });
+          logW(
+            'Second-level index fallback (no orderBy) engaged',
+            tag: 'DB',
+            data: {
+              'wishlistId': wishlistId,
+              'orderField': orderField,
+              'categoryFilter': category,
+            },
+          );
           var simpleFallback = baseQuery;
           if (startAfter != null) {
             logW('Ignoring startAfter due to no-order fallback', tag: 'DB');
@@ -144,7 +184,7 @@ class WishItemRepository {
 
       var docs = snap.docs;
       var items = docs.map((d) {
-        final raw = d.data() as Map<String, dynamic> ;
+        final raw = d.data() as Map<String, dynamic>;
         return WishItem.fromMap({'id': d.id, ...raw});
       }).toList();
 
@@ -155,7 +195,11 @@ class WishItemRepository {
         // created_at ordering might not be present. We'll still sort to be safe.
         try {
           if (orderField == 'name') {
-            items.sort((a, b) => descending ? b.name.compareTo(a.name) : a.name.compareTo(b.name));
+            items.sort(
+              (a, b) => descending
+                  ? b.name.compareTo(a.name)
+                  : a.name.compareTo(b.name),
+            );
           } else if (orderField == 'price') {
             items.sort((a, b) => (a.price ?? 0).compareTo(b.price ?? 0));
             if (descending) items = items.reversed.toList();
@@ -165,12 +209,16 @@ class WishItemRepository {
 
       // Diagnostic fallback: if first page returned empty, attempt simplified / legacy field queries
       if (items.isEmpty && startAfter == null) {
-  logW('Primary query returned 0 items. Running diagnostic fallback queries.', tag: 'DB', data: {
-          'wishlistId': wishlistId,
-          'categoryFilter': category,
-          'orderField': orderField,
-          'descending': descending,
-        });
+        logW(
+          'Primary query returned 0 items. Running diagnostic fallback queries.',
+          tag: 'DB',
+          data: {
+            'wishlistId': wishlistId,
+            'categoryFilter': category,
+            'orderField': orderField,
+            'descending': descending,
+          },
+        );
 
         // 1) Simple query without ordering (just to see raw docs)
         try {
@@ -181,7 +229,14 @@ class WishItemRepository {
               .get();
           if (simple.docs.isNotEmpty) {
             docs = simple.docs;
-            items = docs.map((d) => WishItem.fromMap({'id': d.id, ...d.data() as Map<String,dynamic>})).toList();
+            items = docs
+                .map(
+                  (d) => WishItem.fromMap({
+                    'id': d.id,
+                    ...d.data() as Map<String, dynamic>,
+                  }),
+                )
+                .toList();
           }
         } catch (e) {
           logE('DIAG simple query error', tag: 'DB', error: e);
@@ -197,7 +252,14 @@ class WishItemRepository {
                 .get();
             if (legacy.docs.isNotEmpty) {
               docs = legacy.docs;
-              items = docs.map((d) => WishItem.fromMap({'id': d.id, ...d.data() as Map<String,dynamic>})).toList();
+              items = docs
+                  .map(
+                    (d) => WishItem.fromMap({
+                      'id': d.id,
+                      ...d.data() as Map<String, dynamic>,
+                    }),
+                  )
+                  .toList();
             }
           } catch (e) {
             logE('DIAG legacy query error', tag: 'DB', error: e);
@@ -206,97 +268,196 @@ class WishItemRepository {
       }
       final last = docs.isNotEmpty ? docs.last : null;
       final hasMore = docs.length == limit && last != null;
-      logI('WishItem page loaded', tag: 'DB', data: {'wishlistId': wishlistId, 'count': items.length, 'hasMore': hasMore});
+      logI(
+        'WishItem page loaded',
+        tag: 'DB',
+        data: {
+          'wishlistId': wishlistId,
+          'count': items.length,
+          'hasMore': hasMore,
+        },
+      );
       return PageResult(items: items, lastDoc: last, hasMore: hasMore);
     } catch (e) {
-      logE('WishItem page load error', tag: 'DB', error: e, data: {'wishlistId': wishlistId});
+      logE(
+        'WishItem page load error',
+        tag: 'DB',
+        error: e,
+        data: {'wishlistId': wishlistId},
+      );
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
   });
 
-  Future<bool> deleteItem(String itemId) async => _withLatency('deleteItem', () async {
+  Future<bool> deleteItem(String itemId) async =>
+      _withLatency('deleteItem', () async {
         try {
           await _firestore.collection('wish_items').doc(itemId).delete();
           logI('WishItem deleted', tag: 'DB', data: {'itemId': itemId});
           return true;
         } catch (e) {
-          logE('WishItem delete error', tag: 'DB', error: e, data: {'itemId': itemId});
+          logE(
+            'WishItem delete error',
+            tag: 'DB',
+            error: e,
+            data: {'itemId': itemId},
+          );
           return false;
         }
       });
 
-  Future<String?> create(Map<String, dynamic> data) async => _withLatency('create', () async {
+  Future<String?> create(Map<String, dynamic> data) async =>
+      _withLatency('create', () async {
         try {
           final doc = _firestore.collection('wish_items').doc();
           await doc.set({
             ...data,
-            if (!data.containsKey('owner_id')) 'owner_id': data['owner_id'] ?? data['user_id'] ?? 'UNKNOWN',
+            if (!data.containsKey('owner_id'))
+              'owner_id': data['owner_id'] ?? data['user_id'] ?? 'UNKNOWN',
             'created_at': FieldValue.serverTimestamp(),
             'updated_at': FieldValue.serverTimestamp(),
           });
           return doc.id;
         } catch (e) {
-          logE('WishItem create error', tag: 'DB', error: e, data: {'data': data});
+          logE(
+            'WishItem create error',
+            tag: 'DB',
+            error: e,
+            data: {'data': data},
+          );
           return null;
         }
       });
 
-  Future<bool> update(String id, Map<String, dynamic> data) async => _withLatency('update', () async {
-        try {
-          await _firestore.collection('wish_items').doc(id).update({
-            ...data,
-            if (!data.containsKey('owner_id')) 'owner_id': data['owner_id'] ?? data['user_id'] ?? 'UNKNOWN',
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-          return true;
-        } catch (e) {
-          logE('WishItem update error', tag: 'DB', error: e, data: {'itemId': id});
-          return false;
-        }
-      });
+  Future<bool> update(
+    String id,
+    Map<String, dynamic> data, {
+    required String currentUserId,
+  }) async => _withLatency('update', () async {
+    try {
+      // SECURITY: Verify ownership before allowing updates by checking wishlist ownership
+      final itemDoc = await _firestore.collection('wish_items').doc(id).get();
+      if (!itemDoc.exists) {
+        logW(
+          'SECURITY: Update attempt on non-existent item',
+          tag: 'SECURITY',
+          data: {'id': id, 'userId': currentUserId},
+        );
+        return false;
+      }
 
+      final itemData = itemDoc.data()!;
+      final wishlistId = itemData['wishlist_id'] as String?;
+
+      if (wishlistId == null) {
+        logW(
+          'SECURITY: Item without wishlist_id cannot be updated',
+          tag: 'SECURITY',
+          data: {'id': id, 'userId': currentUserId},
+        );
+        return false;
+      }
+
+      // Check if user owns the wishlist that contains this item
+      final wishlistDoc = await _firestore
+          .collection('wishlists')
+          .doc(wishlistId)
+          .get();
+      if (!wishlistDoc.exists) {
+        logW(
+          'SECURITY: Update attempt on item from non-existent wishlist',
+          tag: 'SECURITY',
+          data: {'id': id, 'wishlistId': wishlistId, 'userId': currentUserId},
+        );
+        return false;
+      }
+
+      final wishlistData = wishlistDoc.data()!;
+      final wishlistOwnerId = wishlistData['owner_id'] as String?;
+
+      if (wishlistOwnerId != currentUserId) {
+        logW(
+          'SECURITY: Unauthorized item update attempt',
+          tag: 'SECURITY',
+          data: {
+            'id': id,
+            'wishlistId': wishlistId,
+            'userId': currentUserId,
+            'ownerId': wishlistOwnerId,
+          },
+        );
+        return false;
+      }
+
+      await itemDoc.reference.update({
+        ...data,
+        if (!data.containsKey('owner_id'))
+          'owner_id': data['owner_id'] ?? data['user_id'] ?? 'UNKNOWN',
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      logE(
+        'WishItem update error',
+        tag: 'DB',
+        error: e,
+        data: {'itemId': id, 'userId': currentUserId},
+      );
+      return false;
+    }
+  });
 
   Future<String?> createFromBackup({
     required String wishlistId,
     required String ownerId,
     required WishItem item,
   }) async => _withLatency('createFromBackup', () async {
-        try {
-          final doc = _firestore.collection('wish_items').doc();
-          final payload = item.toMap();
-          payload.remove('id');
-          payload.remove('image_url');
-          final data = {
-            ...payload,
-            'wishlist_id': wishlistId,
-            'owner_id': ownerId,
-            'legacy_id': item.id,
-            'image_url': null,
-            'created_at': Timestamp.fromDate(item.createdAt),
-            'updated_at': FieldValue.serverTimestamp(),
-          };
-          // If item has a link but no image, mark enrichment as pending for UI feedback
-          final hasLink = (item.link != null && item.link!.trim().isNotEmpty);
-          final hasImage = (item.imageUrl != null && item.imageUrl!.trim().isNotEmpty);
-          if (hasLink && !hasImage) {
-            data['enrich_status'] = 'pending';
-          }
-          await doc.set(data);
-          return doc.id;
-        } catch (e, st) {
-          logE('WishItem createFromBackup error', tag: 'DB', error: e, stackTrace: st, data: {'wishlistId': wishlistId});
-          return null;
-        }
-      });
+    try {
+      final doc = _firestore.collection('wish_items').doc();
+      final payload = item.toMap();
+      payload.remove('id');
+      payload.remove('image_url');
+      final data = {
+        ...payload,
+        'wishlist_id': wishlistId,
+        'owner_id': ownerId,
+        'legacy_id': item.id,
+        'image_url': null,
+        'created_at': Timestamp.fromDate(item.createdAt),
+        'updated_at': FieldValue.serverTimestamp(),
+      };
+      // If item has a link but no image, mark enrichment as pending for UI feedback
+      final hasLink = (item.link != null && item.link!.trim().isNotEmpty);
+      final hasImage =
+          (item.imageUrl != null && item.imageUrl!.trim().isNotEmpty);
+      if (hasLink && !hasImage) {
+        data['enrich_status'] = 'pending';
+      }
+      await doc.set(data);
+      return doc.id;
+    } catch (e, st) {
+      logE(
+        'WishItem createFromBackup error',
+        tag: 'DB',
+        error: e,
+        stackTrace: st,
+        data: {'wishlistId': wishlistId},
+      );
+      return null;
+    }
+  });
 
-  Future<WishItem?> fetchById(String id) async => _withLatency('fetchById', () async {
-        try {
-          final doc = await _firestore.collection('wish_items').doc(id).get();
-          if (!doc.exists) return null;
-            return WishItem.fromMap({'id': doc.id, ...doc.data()!});
-        } catch (e) {
-          logE('WishItem fetch error', tag: 'DB', error: e, data: {'itemId': id});
-          return null;
-        }
-      });
+  Future<WishItem?> fetchById(String id) async => _withLatency(
+    'fetchById',
+    () async {
+      try {
+        final doc = await _firestore.collection('wish_items').doc(id).get();
+        if (!doc.exists) return null;
+        return WishItem.fromMap({'id': doc.id, ...doc.data()!});
+      } catch (e) {
+        logE('WishItem fetch error', tag: 'DB', error: e, data: {'itemId': id});
+        return null;
+      }
+    },
+  );
 }

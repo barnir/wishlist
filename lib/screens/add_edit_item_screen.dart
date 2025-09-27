@@ -6,7 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mywishstash/repositories/wish_item_repository.dart';
 import 'package:mywishstash/repositories/wishlist_repository.dart';
 import 'package:mywishstash/models/wishlist.dart';
-import 'package:mywishstash/services/cloudinary_service.dart' as cloudinary_service;
+import 'package:mywishstash/services/cloudinary_service.dart'
+    as cloudinary_service;
 import 'package:mywishstash/services/monitoring_service.dart';
 import 'package:mywishstash/services/image_cache_service.dart';
 import 'package:mywishstash/services/web_scraper_service.dart';
@@ -22,19 +23,27 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/selectable_image_preview.dart';
 import 'package:mywishstash/widgets/skeleton_loader.dart';
+
 class AddEditItemScreen extends StatefulWidget {
   final String? wishlistId;
   final String? itemId;
   final String? name;
   final String? link;
 
-  const AddEditItemScreen({super.key, this.wishlistId, this.itemId, this.name, this.link});
+  const AddEditItemScreen({
+    super.key,
+    this.wishlistId,
+    this.itemId,
+    this.name,
+    this.link,
+  });
 
   @override
   State<AddEditItemScreen> createState() => _AddEditItemScreenState();
 }
 
-class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceOptimizedState {
+class _AddEditItemScreenState extends State<AddEditItemScreen>
+    with PerformanceOptimizedState {
   final _formKey = GlobalKey<FormState>();
   final _wishItemRepo = WishItemRepository();
   final _wishlistRepo = WishlistRepository();
@@ -103,7 +112,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
         _pendingEnrichment = true;
         _enrichmentCacheId = null;
       }
-      if (initial.title != null && initial.title!.isNotEmpty && _nameController.text.isEmpty) {
+      if (initial.title != null &&
+          initial.title!.isNotEmpty &&
+          _nameController.text.isEmpty) {
         _nameController.text = initial.title!;
       }
       if (initial.price != null) {
@@ -119,59 +130,74 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
           }
           if (data['rateLimited'] == true) {
             safeSetState(() {
-              _scrapingStatus = AppLocalizations.of(context)?.enrichmentRateLimited;
+              _scrapingStatus = AppLocalizations.of(
+                context,
+              )?.enrichmentRateLimited;
               _pendingEnrichment = false;
             });
             return;
           }
-            if (_nameController.text.isEmpty && (data['title'] as String?)?.isNotEmpty == true) {
-              _nameController.text = data['title'];
+          if (_nameController.text.isEmpty &&
+              (data['title'] as String?)?.isNotEmpty == true) {
+            _nameController.text = data['title'];
+          }
+          final priceNum = data['price'];
+          if (priceNum is num &&
+              (double.tryParse(_priceController.text) ?? 0) == 0) {
+            _priceController.text = priceNum.toStringAsFixed(2);
+          }
+          final ratingVal = data['ratingValue'];
+          if (ratingVal is num && (_rating == null || _rating == 0)) {
+            _rating = ratingVal.toDouble().clamp(0.0, 5.0);
+          }
+          final suggestedCat = data['categorySuggestion'] as String?;
+          if (suggestedCat != null &&
+              suggestedCat.isNotEmpty &&
+              _selectedCategory == categories.first.name) {
+            if (categories.any((c) => c.name == suggestedCat)) {
+              _selectedCategory = suggestedCat;
             }
-            final priceNum = data['price'];
-            if (priceNum is num && (double.tryParse(_priceController.text) ?? 0) == 0) {
-              _priceController.text = priceNum.toStringAsFixed(2);
-            }
-            final ratingVal = data['ratingValue'];
-            if (ratingVal is num && (_rating == null || _rating == 0)) {
-              _rating = ratingVal.toDouble().clamp(0.0, 5.0);
-            }
-            final suggestedCat = data['categorySuggestion'] as String?;
-            if (suggestedCat != null && suggestedCat.isNotEmpty && _selectedCategory == categories.first.name) {
-              if (categories.any((c) => c.name == suggestedCat)) {
-                _selectedCategory = suggestedCat;
-              }
-            }
-            final img = data['image'] as String?;
-            if (img != null && img.isNotEmpty && _imageBytes == null && _existingImageUrl == null) {
-              try {
-                safeSetState(()=> _scrapingStatus = l10n?.scrapingLoadingImage);
-                final response = await http.get(Uri.parse(img));
-                if (response.statusCode == 200) {
-                  final tempDir = await getTemporaryDirectory();
-                  final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg');
-                  await tempFile.writeAsBytes(response.bodyBytes);
-                  if (mounted) {
-                    safeSetState(() {
-                      _imageBytes = response.bodyBytes;
-                      _localPreviewPath = tempFile.path;
-                    });
-                  }
+          }
+          final img = data['image'] as String?;
+          if (img != null &&
+              img.isNotEmpty &&
+              _imageBytes == null &&
+              _existingImageUrl == null) {
+            try {
+              safeSetState(() => _scrapingStatus = l10n?.scrapingLoadingImage);
+              final response = await http.get(Uri.parse(img));
+              if (response.statusCode == 200) {
+                final tempDir = await getTemporaryDirectory();
+                final tempFile = File(
+                  '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+                );
+                await tempFile.writeAsBytes(response.bodyBytes);
+                if (mounted) {
+                  safeSetState(() {
+                    _imageBytes = response.bodyBytes;
+                    _localPreviewPath = tempFile.path;
+                  });
                 }
-              } catch (_) {}
-            }
-            safeSetState(() {
-              _scrapingStatus = AppLocalizations.of(context)?.enrichmentCompleted;
-              _pendingEnrichment = false;
-            });
-            Future.delayed(const Duration(seconds: 2), () {
-              if (mounted && _scrapingStatus == AppLocalizations.of(context)?.enrichmentCompleted) {
-                safeSetState(() => _scrapingStatus = null);
               }
-            });
+            } catch (_) {}
+          }
+          safeSetState(() {
+            _scrapingStatus = AppLocalizations.of(context)?.enrichmentCompleted;
+            _pendingEnrichment = false;
+          });
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted &&
+                _scrapingStatus ==
+                    AppLocalizations.of(context)?.enrichmentCompleted) {
+              safeSetState(() => _scrapingStatus = null);
+            }
+          });
         });
       }
       safeSetState(() {
-        _scrapingStatus = l10n?.scrapingFillingFields ?? AppLocalizations.of(context)?.enrichmentPending;
+        _scrapingStatus =
+            l10n?.scrapingFillingFields ??
+            AppLocalizations.of(context)?.enrichmentPending;
       });
       if (enrichmentFuture != null) {
         enrichmentFuture.catchError((_) async {
@@ -179,7 +205,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
           if (_nameController.text.isEmpty) {
             try {
               final scrapedData = await _webScraperService.scrape(widget.link!);
-              if (mounted && scrapedData['title'] != null && scrapedData['title']!.isNotEmpty && _nameController.text.isEmpty) {
+              if (mounted &&
+                  scrapedData['title'] != null &&
+                  scrapedData['title']!.isNotEmpty &&
+                  _nameController.text.isEmpty) {
                 _nameController.text = scrapedData['title'];
               }
             } catch (_) {}
@@ -209,7 +238,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId == null) return;
-      final page = await _wishlistRepo.fetchUserWishlists(ownerId: userId, limit: 50);
+      final page = await _wishlistRepo.fetchUserWishlists(
+        ownerId: userId,
+        limit: 50,
+      );
       final wishlists = page.items;
       if (!mounted) return;
       safeSetState(() {
@@ -221,7 +253,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
     } catch (e) {
       final l10n = AppLocalizations.of(context);
       safeSetState(() {
-        _erro = l10n?.errorLoadingWishlists(e.toString()) ?? 'Erro ao carregar wishlists: $e';
+        _erro =
+            l10n?.errorLoadingWishlists(e.toString()) ??
+            'Erro ao carregar wishlists: $e';
       });
     } finally {
       if (mounted) {
@@ -249,22 +283,28 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
         isPrivate: false,
         imageUrl: null,
       );
-  if (id == null) throw Exception(l10n?.createWishlistError ?? 'Falha ao criar wishlist');
+      if (id == null)
+        throw Exception(l10n?.createWishlistError ?? 'Falha ao criar wishlist');
       _newWishlistNameController.clear();
       safeSetState(() {
-        _wishlists.insert(0, Wishlist(
-          id: id,
-          name: name,
-          ownerId: userId,
-          isPrivate: false,
-          createdAt: DateTime.now(),
-          imageUrl: null,
-        ));
+        _wishlists.insert(
+          0,
+          Wishlist(
+            id: id,
+            name: name,
+            ownerId: userId,
+            isPrivate: false,
+            createdAt: DateTime.now(),
+            imageUrl: null,
+          ),
+        );
         _selectedWishlistId = id;
       });
     } catch (e) {
       safeSetState(() {
-        _erro = AppLocalizations.of(context)?.errorCreatingWishlist(e.toString()) ?? 'Erro ao criar wishlist: $e';
+        _erro =
+            AppLocalizations.of(context)?.errorCreatingWishlist(e.toString()) ??
+            'Erro ao criar wishlist: $e';
       });
     } finally {
       if (mounted) safeSetState(() => _isCreatingWishlist = false);
@@ -277,15 +317,43 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
       final item = await _wishItemRepo.fetchById(widget.itemId!);
       if (!mounted) return;
       if (item != null) {
+        // SECURITY: Verify both item and wishlist ownership
+        final currentUserId = AuthService.getCurrentUserId();
+        if (currentUserId == null) {
+          safeSetState(
+            () => _erro = 'É necessário autenticar para editar itens.',
+          );
+          return;
+        }
+
+        // Check if user owns the wishlist containing this item
+        // Since we have wishlistId from the screen parameters, we can validate against it
+        if (widget.wishlistId != null) {
+          final wishlist = await _wishlistRepo.fetchById(widget.wishlistId!);
+          if (wishlist == null || wishlist.ownerId != currentUserId) {
+            safeSetState(
+              () => _erro = 'Não tens permissão para editar este item.',
+            );
+            if (mounted) Navigator.of(context).pop();
+            return;
+          }
+        }
+
         _nameController.text = item.name;
         _descriptionController.text = item.description ?? '';
         _linkController.text = item.link ?? '';
         _priceController.text = (item.price ?? 0).toString();
-        _selectedCategory = item.category.isNotEmpty ? item.category : categories.first.name;
+        _selectedCategory = item.category.isNotEmpty
+            ? item.category
+            : categories.first.name;
         _existingImageUrl = item.imageUrl;
       }
     } catch (e) {
-      safeSetState(() => _erro = AppLocalizations.of(context)?.errorLoadingItem(e.toString()) ?? 'Erro ao carregar item: $e');
+      safeSetState(
+        () => _erro =
+            AppLocalizations.of(context)?.errorLoadingItem(e.toString()) ??
+            'Erro ao carregar item: $e',
+      );
     } finally {
       if (mounted) safeSetState(() => _isSaving = false);
     }
@@ -323,7 +391,34 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
     final finalWishlistId = widget.wishlistId ?? _selectedWishlistId;
     if (finalWishlistId == null) {
       safeSetState(() {
-        _erro = AppLocalizations.of(context)?.selectOrCreateWishlistPrompt ?? 'Por favor, selecione ou crie uma wishlist.';
+        _erro =
+            AppLocalizations.of(context)?.selectOrCreateWishlistPrompt ??
+            'Por favor, selecione ou crie uma wishlist.';
+      });
+      return;
+    }
+
+    // SECURITY: Verify wishlist ownership before saving
+    final currentUserId = AuthService.getCurrentUserId();
+    if (currentUserId == null) {
+      safeSetState(() {
+        _erro = 'É necessário autenticar para guardar itens.';
+      });
+      return;
+    }
+
+    try {
+      final wishlist = await _wishlistRepo.fetchById(finalWishlistId);
+      if (wishlist == null || wishlist.ownerId != currentUserId) {
+        safeSetState(() {
+          _erro =
+              'Não tens permissão para adicionar/editar itens nesta wishlist.';
+        });
+        return;
+      }
+    } catch (e) {
+      safeSetState(() {
+        _erro = 'Erro ao verificar permissões: $e';
       });
       return;
     }
@@ -336,7 +431,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
           '${(await getTemporaryDirectory()).path}/temp_upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ).writeAsBytes(_imageBytes!);
         if (!mounted) return;
-        final targetId = widget.itemId ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final targetId =
+            widget.itemId ?? DateTime.now().millisecondsSinceEpoch.toString();
         uploadedUrl = await _cloudinaryService.uploadProductImage(
           tempFileForUpload,
           targetId,
@@ -347,14 +443,23 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
         if (uploadedUrl?.isNotEmpty == true) {
           await ImageCacheService.putFile(uploadedUrl!, _imageBytes!);
         }
-        MonitoringService.logImageUploadSuccess('item', id: targetId, bytes: _imageBytes?.length);
-            } catch (e) {
+        MonitoringService.logImageUploadSuccess(
+          'item',
+          id: targetId,
+          bytes: _imageBytes?.length,
+        );
+      } catch (e) {
         MonitoringService.logImageUploadFail('item', e);
-        safeSetState(() => _erro = AppLocalizations.of(context)?.imageUploadFailed(e.toString()) ?? 'Falha upload imagem: $e');
+        safeSetState(
+          () => _erro =
+              AppLocalizations.of(context)?.imageUploadFailed(e.toString()) ??
+              'Falha upload imagem: $e',
+        );
       } finally {
         if (mounted) safeSetState(() => _isUploading = false);
       }
     }
+
     final ownerId = AuthService.getCurrentUserId();
     if (ownerId == null) {
       safeSetState(() {
@@ -370,8 +475,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
       'description': _descriptionController.text.trim().isNotEmpty
           ? ValidationUtils.sanitizeTextInput(_descriptionController.text)
           : null,
-      'price': double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ?? 0.0,
-  'category': _selectedCategory ?? categories.first.name,
+      'price':
+          double.tryParse(_priceController.text.trim().replaceAll(',', '.')) ??
+          0.0,
+      'category': _selectedCategory ?? categories.first.name,
       'rating': _rating,
       'link': (() {
         final s = ValidationUtils.sanitizeUrlForSave(_linkController.text);
@@ -379,9 +486,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
       })(),
       'image_url': uploadedUrl ?? _existingImageUrl,
       'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
-  'owner_id': ownerId,
+      'owner_id': ownerId,
     };
-    if (_enrichmentCacheId != null) data['enrich_metadata_ref'] = _enrichmentCacheId;
+    if (_enrichmentCacheId != null)
+      data['enrich_metadata_ref'] = _enrichmentCacheId;
     if (_enrichmentCacheId != null && !_pendingEnrichment) {
       data['enrich_status'] = 'enriched';
     } else if (_pendingEnrichment) {
@@ -392,7 +500,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
       final id = await _wishItemRepo.create(data);
       ok = id != null;
     } else {
-      ok = await _wishItemRepo.update(widget.itemId!, data);
+      ok = await _wishItemRepo.update(
+        widget.itemId!,
+        data,
+        currentUserId: ownerId,
+      );
     }
     if (!ok) {
       if (!mounted) return;
@@ -417,7 +529,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.itemId == null ? (l10n?.addItemTitle ?? 'Adicionar Item') : (l10n?.editItemTitle ?? 'Editar Item')),
+        title: Text(
+          widget.itemId == null
+              ? (l10n?.addItemTitle ?? 'Adicionar Item')
+              : (l10n?.editItemTitle ?? 'Editar Item'),
+        ),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Theme.of(context).colorScheme.primary,
@@ -433,207 +549,336 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
                       child: ListView(
                         children: [
                           if (_erro != null) ...[
-                            Text(_erro!, style: TextStyle(color: Theme.of(context).extension<AppSemanticColors>()!.danger)),
+                            Text(
+                              _erro!,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).extension<AppSemanticColors>()!.danger,
+                              ),
+                            ),
                             const SizedBox(height: 16),
                           ],
                           if (_isScraping || _scrapingStatus != null) ...[
                             const SizedBox(height: 4),
                             AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 250),
-                        child: _scrapingStatus == null
-                            ? const SizedBox.shrink()
-                            : StatusChip(
-                                key: ValueKey(_scrapingStatus),
-                                status: _scrapingStatus == l10n?.enrichmentCompleted
-                                    ? StatusChipStatus.completed
-                                    : _scrapingStatus == l10n?.enrichmentRateLimited
-                                        ? StatusChipStatus.rateLimited
-                                        : StatusChipStatus.pending,
-                              ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    if (widget.wishlistId == null && widget.link != null) ...[
-                      if (_isLoadingWishlists)
-                        const Center(child: CircularProgressIndicator())
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_wishlists.isNotEmpty)
-                              Row(
+                              duration: const Duration(milliseconds: 250),
+                              child: _scrapingStatus == null
+                                  ? const SizedBox.shrink()
+                                  : StatusChip(
+                                      key: ValueKey(_scrapingStatus),
+                                      status:
+                                          _scrapingStatus ==
+                                              l10n?.enrichmentCompleted
+                                          ? StatusChipStatus.completed
+                                          : _scrapingStatus ==
+                                                l10n?.enrichmentRateLimited
+                                          ? StatusChipStatus.rateLimited
+                                          : StatusChipStatus.pending,
+                                    ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          if (widget.wishlistId == null &&
+                              widget.link != null) ...[
+                            if (_isLoadingWishlists)
+                              const Center(child: CircularProgressIndicator())
+                            else
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: DropdownButtonFormField<String>(
-                                      key: const ValueKey('wishlist_dropdown_share'),
-                                      initialValue: _selectedWishlistId,
-                                      decoration: InputDecoration(
-                                        labelText: l10n?.chooseWishlistLabel,
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                        filled: true,
-                                      ),
-                                      isExpanded: true,
-                                      borderRadius: BorderRadius.circular(12),
-                                      dropdownColor: Theme.of(context).colorScheme.surface,
-                                      items: _wishlists
-                                          .map((w) => DropdownMenuItem<String>(
-                                                value: w.id,
-                                                child: Text(w.name, overflow: TextOverflow.ellipsis),
-                                              ))
-                                          .toList(),
-                                      onChanged: (newValue) => safeSetState(() => _selectedWishlistId = newValue),
-                                      validator: (value) => ValidationUtils.validateWishlistSelection(value, context),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Tooltip(
-                                    message: l10n?.createWishlistAction ?? 'Criar wishlist',
-                                    child: SizedBox(
-                                      height: 58,
-                                      width: 58,
-                                      child: OutlinedButton(
-                                        style: OutlinedButton.styleFrom(
-                                          padding: EdgeInsets.zero,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  if (_wishlists.isNotEmpty)
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: DropdownButtonFormField<String>(
+                                            key: const ValueKey(
+                                              'wishlist_dropdown_share',
+                                            ),
+                                            initialValue: _selectedWishlistId,
+                                            decoration: InputDecoration(
+                                              labelText:
+                                                  l10n?.chooseWishlistLabel,
+                                              border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              filled: true,
+                                            ),
+                                            isExpanded: true,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            dropdownColor: Theme.of(
+                                              context,
+                                            ).colorScheme.surface,
+                                            items: _wishlists
+                                                .map(
+                                                  (w) =>
+                                                      DropdownMenuItem<String>(
+                                                        value: w.id,
+                                                        child: Text(
+                                                          w.name,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                )
+                                                .toList(),
+                                            onChanged: (newValue) =>
+                                                safeSetState(
+                                                  () => _selectedWishlistId =
+                                                      newValue,
+                                                ),
+                                            validator: (value) =>
+                                                ValidationUtils.validateWishlistSelection(
+                                                  value,
+                                                  context,
+                                                ),
+                                          ),
                                         ),
-                                        onPressed: _isCreatingWishlist ? null : () => _showQuickCreateWishlistDialog(context),
-                                        child: _isCreatingWishlist
-                                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                            : const Icon(Icons.add),
+                                        const SizedBox(width: 8),
+                                        Tooltip(
+                                          message:
+                                              l10n?.createWishlistAction ??
+                                              'Criar wishlist',
+                                          child: SizedBox(
+                                            height: 58,
+                                            width: 58,
+                                            child: OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                padding: EdgeInsets.zero,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                              onPressed: _isCreatingWishlist
+                                                  ? null
+                                                  : () =>
+                                                        _showQuickCreateWishlistDialog(
+                                                          context,
+                                                        ),
+                                              child: _isCreatingWishlist
+                                                  ? const SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    )
+                                                  : const Icon(Icons.add),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  if (_wishlists.isEmpty)
+                                    Center(
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            l10n?.noWishlistFoundCreateNew ??
+                                                'Nenhuma wishlist encontrada. Crie uma nova.',
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _isCreatingWishlist
+                                              ? const CircularProgressIndicator()
+                                              : ElevatedButton.icon(
+                                                  onPressed: () =>
+                                                      _showQuickCreateWishlistDialog(
+                                                        context,
+                                                      ),
+                                                  icon: const Icon(Icons.add),
+                                                  label: Text(
+                                                    l10n?.createWishlistAction ??
+                                                        'Criar Wishlist',
+                                                  ),
+                                                ),
+                                        ],
                                       ),
                                     ),
-                                  )
                                 ],
                               ),
-                            if (_wishlists.isEmpty)
-                              Center(
-                                child: Column(
-                                  children: [
-                                    Text(l10n?.noWishlistFoundCreateNew ?? 'Nenhuma wishlist encontrada. Crie uma nova.'),
-                                    const SizedBox(height: 12),
-                                    _isCreatingWishlist
-                                        ? const CircularProgressIndicator()
-                                        : ElevatedButton.icon(
-                                            onPressed: () => _showQuickCreateWishlistDialog(context),
-                                            icon: const Icon(Icons.add),
-                                            label: Text(l10n?.createWishlistAction ?? 'Criar Wishlist'),
-                                          ),
-                                  ],
+                            const SizedBox(height: 20),
+                          ],
+                          SelectableImagePreview(
+                            existingUrl: _existingImageUrl,
+                            localPreviewPath: _localPreviewPath,
+                            onTap: _pickImage,
+                            isUploading: _isUploading,
+                            transformationType:
+                                cloudinary_service.ImageType.productThumbnail,
+                            size: 100,
+                            circle: true,
+                            fallbackIcon: const Icon(
+                              Icons.add_a_photo,
+                              size: 42,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              labelText: l10n?.itemNameLabel,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                            ),
+                            validator: (value) =>
+                                ValidationUtils.validateItemName(
+                                  value,
+                                  context,
+                                ),
+                          ),
+                          const SizedBox(height: 20),
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedCategory,
+                            decoration: InputDecoration(
+                              labelText: l10n?.categoryLabel,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                            ),
+                            isExpanded: true,
+                            borderRadius: BorderRadius.circular(12),
+                            dropdownColor: Theme.of(
+                              context,
+                            ).colorScheme.surface,
+                            items: categories
+                                .map(
+                                  (c) => DropdownMenuItem<String>(
+                                    value: c.name,
+                                    child: Row(
+                                      children: [
+                                        Icon(c.icon),
+                                        const SizedBox(width: 10),
+                                        Text(c.name),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (newValue) => safeSetState(
+                              () => _selectedCategory = newValue,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            controller: _descriptionController,
+                            decoration: InputDecoration(
+                              labelText: l10n?.itemDescriptionLabel,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                            ),
+                            maxLines: 3,
+                            validator: (value) =>
+                                ValidationUtils.validateDescription(
+                                  value,
+                                  context,
+                                ),
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            controller: _linkController,
+                            decoration: InputDecoration(
+                              labelText: l10n?.linkLabel,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                            ),
+                            keyboardType: TextInputType.url,
+                            validator: (value) =>
+                                ValidationUtils.validateAndSanitizeUrl(
+                                  value,
+                                  context,
+                                ),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _quantityController,
+                                  decoration: InputDecoration(
+                                    labelText: l10n?.quantityLabel,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    filled: true,
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) =>
+                                      ValidationUtils.validateQuantity(
+                                        value,
+                                        context,
+                                      ),
                                 ),
                               ),
-                          ],
-                        ),
-                      const SizedBox(height: 20),
-                    ],
-                    SelectableImagePreview(
-                      existingUrl: _existingImageUrl,
-                      localPreviewPath: _localPreviewPath,
-                      onTap: _pickImage,
-                      isUploading: _isUploading,
-                      transformationType: cloudinary_service.ImageType.productThumbnail,
-                      size: 100,
-                      circle: true,
-                      fallbackIcon: const Icon(Icons.add_a_photo, size: 42),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: l10n?.itemNameLabel,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                      ),
-                      validator: (value) => ValidationUtils.validateItemName(value, context),
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedCategory,
-                      decoration: InputDecoration(
-                        labelText: l10n?.categoryLabel,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                      ),
-                      isExpanded: true,
-                      borderRadius: BorderRadius.circular(12),
-                      dropdownColor: Theme.of(context).colorScheme.surface,
-                      items: categories
-                          .map((c) => DropdownMenuItem<String>(
-                                value: c.name,
-                                child: Row(children: [Icon(c.icon), const SizedBox(width: 10), Text(c.name)]),
-                              ))
-                          .toList(),
-                      onChanged: (newValue) => safeSetState(() => _selectedCategory = newValue),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        labelText: l10n?.itemDescriptionLabel,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                      ),
-                      maxLines: 3,
-                      validator: (value) => ValidationUtils.validateDescription(value, context),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _linkController,
-                      decoration: InputDecoration(
-                        labelText: l10n?.linkLabel,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                      ),
-                      keyboardType: TextInputType.url,
-                      validator: (value) => ValidationUtils.validateAndSanitizeUrl(value, context),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _quantityController,
-                          decoration: InputDecoration(
-                            labelText: l10n?.quantityLabel,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            filled: true,
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _priceController,
+                                  decoration: InputDecoration(
+                                    labelText: l10n?.priceLabel,
+                                    prefixText: '€ ',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    filled: true,
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  validator: (value) =>
+                                      ValidationUtils.validatePrice(
+                                        value,
+                                        context,
+                                      ),
+                                ),
+                              ),
+                            ],
                           ),
-                          keyboardType: TextInputType.number,
-                          validator: (value) => ValidationUtils.validateQuantity(value, context),
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _priceController,
-                          decoration: InputDecoration(
-                            labelText: l10n?.priceLabel,
-                            prefixText: '€ ',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            filled: true,
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) => ValidationUtils.validatePrice(value, context),
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: 32),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: _isSaving || _isUploading ? null : _saveItem,
-                      child: _isSaving || _isUploading
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              widget.itemId == null ? (l10n?.addItemAction ?? 'Adicionar') : (l10n?.saveItemAction ?? 'Guardar'),
-                              style: const TextStyle(fontSize: 16),
+                          const SizedBox(height: 32),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
+                            onPressed: _isSaving || _isUploading
+                                ? null
+                                : _saveItem,
+                            child: _isSaving || _isUploading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    widget.itemId == null
+                                        ? (l10n?.addItemAction ?? 'Adicionar')
+                                        : (l10n?.saveItemAction ?? 'Guardar'),
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-      ),
+            ),
     );
   }
 
@@ -660,9 +905,18 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with PerformanceO
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            onPressed: _isCreatingWishlist ? null : () => _confirmCreateWishlist(ctx),
+            onPressed: _isCreatingWishlist
+                ? null
+                : () => _confirmCreateWishlist(ctx),
             child: _isCreatingWishlist
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : Text(l10n?.createWishlistAction ?? 'Criar'),
           ),
         ],

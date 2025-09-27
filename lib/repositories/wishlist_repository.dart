@@ -5,7 +5,8 @@ import 'package:mywishstash/utils/app_logger.dart';
 
 class WishlistRepository {
   final FirebaseFirestore _firestore;
-  WishlistRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+  WishlistRepository({FirebaseFirestore? firestore})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<T> _withLatency<T>(String op, Future<T> Function() fn) async {
     final sw = Stopwatch()..start();
@@ -13,22 +14,30 @@ class WishlistRepository {
       final r = await fn();
       return r;
     } catch (e, st) {
-  logE('WishlistRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}', tag: 'DB', error: e, stackTrace: st);
+      logE(
+        'WishlistRepository op=$op failed latency_ms=${sw.elapsedMilliseconds}',
+        tag: 'DB',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
 
   /// Fetch a single wishlist by ID. Returns null if not found.
-  Future<Wishlist?> fetchById(String id) async => _withLatency('fetchById', () async {
-        try {
-          final doc = await _firestore.collection('wishlists').doc(id).get();
-          if (!doc.exists) return null;
-          return Wishlist.fromMap({'id': doc.id, ...doc.data()!});
-        } catch (e) {
-          logE('Wishlist fetchById error', tag: 'DB', error: e, data: {'id': id});
-          return null;
-        }
-      });
+  Future<Wishlist?> fetchById(String id) async => _withLatency(
+    'fetchById',
+    () async {
+      try {
+        final doc = await _firestore.collection('wishlists').doc(id).get();
+        if (!doc.exists) return null;
+        return Wishlist.fromMap({'id': doc.id, ...doc.data()!});
+      } catch (e) {
+        logE('Wishlist fetchById error', tag: 'DB', error: e, data: {'id': id});
+        return null;
+      }
+    },
+  );
 
   Future<PageResult<Wishlist>> fetchUserWishlists({
     required String ownerId,
@@ -61,7 +70,9 @@ class WishlistRepository {
 
       final snap = await query.limit(limit).get();
       final docs = snap.docs;
-      var items = docs.map((d) => Wishlist.fromMap({'id': d.id, ...d.data()})).toList();
+      var items = docs
+          .map((d) => Wishlist.fromMap({'id': d.id, ...d.data()}))
+          .toList();
 
       // If ordering by a field that may not exist (e.g., total_value) fallback to client sort.
       if (sortField == 'total_value') {
@@ -70,16 +81,25 @@ class WishlistRepository {
       }
       final last = docs.isNotEmpty ? docs.last : null;
       final hasMore = docs.length == limit && last != null;
-      logI('Wishlist page loaded', tag: 'DB', data: {'ownerId': ownerId, 'count': items.length});
+      logI(
+        'Wishlist page loaded',
+        tag: 'DB',
+        data: {'ownerId': ownerId, 'count': items.length},
+      );
       return PageResult(items: items, lastDoc: last, hasMore: hasMore);
     } catch (e) {
-      logE('Wishlist page load error', tag: 'DB', error: e, data: {'ownerId': ownerId});
+      logE(
+        'Wishlist page load error',
+        tag: 'DB',
+        error: e,
+        data: {'ownerId': ownerId},
+      );
       return const PageResult(items: [], lastDoc: null, hasMore: false);
     }
   });
 
-
-  Future<List<Wishlist>> fetchAllForOwner(String ownerId) async => _withLatency('fetchAllForOwner', () async {
+  Future<List<Wishlist>> fetchAllForOwner(String ownerId) async =>
+      _withLatency('fetchAllForOwner', () async {
         try {
           final snapshot = await _firestore
               .collection('wishlists')
@@ -90,7 +110,13 @@ class WishlistRepository {
               .map((d) => Wishlist.fromMap({'id': d.id, ...d.data()}))
               .toList(growable: false);
         } catch (e, st) {
-          logE('Wishlist fetchAllForOwner error', tag: 'DB', error: e, stackTrace: st, data: {'ownerId': ownerId});
+          logE(
+            'Wishlist fetchAllForOwner error',
+            tag: 'DB',
+            error: e,
+            stackTrace: st,
+            data: {'ownerId': ownerId},
+          );
           return <Wishlist>[];
         }
       });
@@ -101,23 +127,27 @@ class WishlistRepository {
     bool isPrivate = false,
     String? imageUrl,
   }) async => _withLatency('create', () async {
-        try {
-          final doc = _firestore.collection('wishlists').doc();
-          await doc.set({
-            'name': name,
-            'owner_id': ownerId,
-            'is_private': isPrivate,
-            'image_url': imageUrl,
-            'created_at': FieldValue.serverTimestamp(),
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-          return doc.id;
-        } catch (e) {
-          logE('Wishlist create error', tag: 'DB', error: e, data: {'ownerId': ownerId});
-          return null;
-        }
+    try {
+      final doc = _firestore.collection('wishlists').doc();
+      await doc.set({
+        'name': name,
+        'owner_id': ownerId,
+        'is_private': isPrivate,
+        'image_url': imageUrl,
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
       });
-
+      return doc.id;
+    } catch (e) {
+      logE(
+        'Wishlist create error',
+        tag: 'DB',
+        error: e,
+        data: {'ownerId': ownerId},
+      );
+      return null;
+    }
+  });
 
   Future<String?> createFromBackup({
     required String ownerId,
@@ -126,35 +156,76 @@ class WishlistRepository {
     DateTime? createdAt,
     String? imageUrl,
   }) async => _withLatency('createFromBackup', () async {
-        try {
-          final doc = _firestore.collection('wishlists').doc();
-          await doc.set({
-            'name': name,
-            'owner_id': ownerId,
-            'is_private': isPrivate,
-            if (imageUrl != null) 'image_url': imageUrl,
-            'created_at': createdAt != null
-                ? Timestamp.fromDate(createdAt)
-                : FieldValue.serverTimestamp(),
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-          return doc.id;
-        } catch (e, st) {
-          logE('Wishlist createFromBackup error', tag: 'DB', error: e, stackTrace: st, data: {'ownerId': ownerId});
-          return null;
-        }
+    try {
+      final doc = _firestore.collection('wishlists').doc();
+      await doc.set({
+        'name': name,
+        'owner_id': ownerId,
+        'is_private': isPrivate,
+        if (imageUrl != null) 'image_url': imageUrl,
+        'created_at': createdAt != null
+            ? Timestamp.fromDate(createdAt)
+            : FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
       });
+      return doc.id;
+    } catch (e, st) {
+      logE(
+        'Wishlist createFromBackup error',
+        tag: 'DB',
+        error: e,
+        stackTrace: st,
+        data: {'ownerId': ownerId},
+      );
+      return null;
+    }
+  });
 
-  Future<bool> update(String id, Map<String, dynamic> data) async => _withLatency('update', () async {
-        try {
-          await _firestore.collection('wishlists').doc(id).update({
-            ...data,
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-          return true;
-        } catch (e) {
-          logE('Wishlist update error', tag: 'DB', error: e, data: {'id': id});
-          return false;
-        }
+  Future<bool> update(
+    String id,
+    Map<String, dynamic> data, {
+    required String currentUserId,
+  }) async => _withLatency('update', () async {
+    try {
+      // SECURITY: Verify ownership before allowing updates
+      final wishlistDoc = await _firestore
+          .collection('wishlists')
+          .doc(id)
+          .get();
+      if (!wishlistDoc.exists) {
+        logW(
+          'SECURITY: Update attempt on non-existent wishlist',
+          tag: 'SECURITY',
+          data: {'id': id, 'userId': currentUserId},
+        );
+        return false;
+      }
+
+      final wishlistData = wishlistDoc.data()!;
+      final ownerId = wishlistData['owner_id'] as String?;
+
+      if (ownerId != currentUserId) {
+        logW(
+          'SECURITY: Unauthorized wishlist update attempt',
+          tag: 'SECURITY',
+          data: {'id': id, 'userId': currentUserId, 'ownerId': ownerId},
+        );
+        return false;
+      }
+
+      await wishlistDoc.reference.update({
+        ...data,
+        'updated_at': FieldValue.serverTimestamp(),
       });
+      return true;
+    } catch (e) {
+      logE(
+        'Wishlist update error',
+        tag: 'DB',
+        error: e,
+        data: {'id': id, 'userId': currentUserId},
+      );
+      return false;
+    }
+  });
 }
